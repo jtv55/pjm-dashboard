@@ -1,0 +1,361 @@
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>PJM Power Gap</title>
+<style>
+:root {
+  --bg: #fcfcfb; --surface: #ffffff; --fg: #141413; --fg2: #52514e; --muted: #7a7973;
+  --line: #e4e3de; --soft: #f4f3ef; --accent: #2a78d6; --up: #0b7a43; --down: #c03a2b; --warn: #a86b00;
+  --r-fuel: #b8541f; --r-gen: #2a78d6; --r-wire: #0e8a62; --r-equip: #6250d6; --r-load: #b0447a;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+    --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+    --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+  --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+  --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 28px; line-height: 1.2; margin: 6px 0 8px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+.lede { color: var(--fg2); max-width: 68ch; margin: 0 0 22px; }
+.sub { color: var(--fg2); font-size: 13px; margin: 0 0 12px; max-width: 74ch; }
+section { margin-bottom: 34px; }
+p { margin: 0 0 10px; }
+a { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi { border-top: 2px solid var(--line); padding-top: 8px; min-width: 0; }
+.kpi .v { font-family: var(--font-mono); font-size: 24px; font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--fg2); font-size: 13px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); } .warn { color: var(--warn); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted);
+  padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.num, td.num { text-align: right; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+tbody tr:last-child td { border-bottom: 0; }
+.pill { font: inherit; font-size: 13px; color: var(--fg2); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; cursor: pointer; }
+.pill[aria-pressed="true"] { color: var(--fg); border-color: var(--fg2); background: var(--soft); }
+button:focus-visible, input:focus-visible, th:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 10px; align-items: center; }
+.note { background: var(--soft); border-radius: 6px; padding: 10px 12px; font-size: 14px; max-width: 80ch; margin: 0 0 12px; }
+.foot { color: var(--muted); font-size: 12px; max-width: 82ch; border-top: 1px solid var(--line); padding-top: 14px; }
+.chart text { fill: var(--fg2); font-family: var(--font-body); font-size: 12px; }
+@media (max-width: 760px) { h1 { font-size: 24px; } }
+
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.sl { display: grid; grid-template-columns: 1fr; gap: 2px; min-width: 0; }
+.sl label { font-size: 12px; color: var(--fg2); display: flex; justify-content: space-between; gap: 8px; }
+.sl label b { font-family: var(--font-mono); font-weight: 600; color: var(--fg); }
+.sl input[type=range] { width: 100%; accent-color: var(--accent); }
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px 18px; margin-top: 12px; }
+.chart text { fill: var(--fg2); font-family: var(--font-body); font-size: 12px; }
+.chart .ttl { fill: var(--fg); font-weight: 600; }
+.ledger td.num b { font-weight: 600; }
+.bad { color: var(--down); } .good { color: var(--up); }
+.fun { display: grid; gap: 6px; }
+.fun .r { display: grid; grid-template-columns: 170px 1fr 74px; gap: 10px; align-items: center; font-size: 13px; }
+.fun .t { height: 14px; background: var(--soft); border-radius: 3px; overflow: hidden; border: 1px solid var(--line); }
+.fun .t i { display: block; height: 100%; background: var(--r-gen); }
+.src { color: var(--muted); font-size: 12px; }
+.tag { font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; color: var(--muted); white-space: nowrap; }
+.tag.est { color: var(--warn); border-color: var(--warn); }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+@media (max-width: 560px) { .fun .r { grid-template-columns: 100px 1fr 60px; } }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+
+<nav style="font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="index.html" style="color:inherit">Build log</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="aigap.html" style="color:inherit">Power gap</a></nav>
+<div class="wrap">
+  <div class="eyebrow">AI capex to PJM capacity · v2 · as of Oct 19, 2026</div>
+  <h1>How much power does PJM need for AI, and when?</h1>
+  <p class="lede">This builds on the October 10 analysis of hyperscaler capex and the power gap. It keeps the chain (dollars of capex, to gigawatts, to a region), then adds what that version lacked: neocloud and lab plans, an honest look at how much of the announced load is real and lands in PJM, and PJM's own planning numbers for the auctions. The model is adjustable. Its defaults reproduce PJM's own one-year step in peak load and land within about a fifth of PJM's five-year data center growth, and the page marks which numbers are PJM's and which are guesses.</p>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section aria-labelledby="h-capex">
+    <h2 id="h-capex">1. What the builders say they will spend</h2>
+    <p class="sub">Calendar-year capex in $B. 2025 is actual, 2026 is company guidance, later years are estimates from the earlier analysis (hollow). Every builder raised 2026 guidance in the latest quarter, and Alphabet, Microsoft and Meta said 2027 goes higher.</p>
+    <div class="card"><svg class="chart" id="capex" viewBox="0 0 700 300" role="img" aria-label="Stacked bars of capex by company 2025 to 2030" style="width:100%;height:auto"></svg><div class="legend" id="capexleg" style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;margin-top:6px"></div></div>
+    <div class="tablewrap" style="margin-top:12px"><table style="min-width:820px">
+      <thead><tr><th>Builder</th><th>Period</th><th>Latest guidance</th><th>Prior</th><th>Date</th><th>What it said</th></tr></thead>
+      <tbody id="guide"></tbody>
+    </table></div>
+    <div class="two" style="margin-top:12px">
+      <div class="card"><h3>Neoclouds and labs, not in the six</h3><p class="sub" id="neo"></p></div>
+      <div class="card"><h3>The second half carries the load</h3><p class="sub">Full-year guidance minus the first half already spent implies a heavier back half, so energization lands in 2027 and 2028.</p><div id="h2"></div></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-gw">
+    <h2 id="h-gw">2. From dollars to gigawatts</h2>
+    <p class="sub">Only chips, servers and networking draw power. The earlier analysis divides that spend by the IT cost per GW of facility power ($22B in 2025, $26B in 2026, about $29 to 30B after) and lets 30% of a year's purchases energize the next year. That gives new US data center load in nameplate GW. Bear and bull scale capex by 0.75 and 1.2.</p>
+    <div class="card"><svg class="chart" id="usgw" viewBox="0 0 700 260" role="img" aria-label="New US data center load per year, bear, base and bull" style="width:100%;height:auto"></svg></div>
+    <p class="sub" style="margin-top:8px">Scope is six builders. xAI, OpenAI's own sites and other neoclouds add load, and the model includes an add-on for them below. Stargate's seven sites total about 9 GW planned, and only the Lordstown, Ohio site (under 0.3 GW) is in PJM.</p>
+  </section>
+
+  <section aria-labelledby="h-where">
+    <h2 id="h-where">3. How likely is it to need PJM?</h2>
+    <p class="sub">Capex is real money, but it only becomes PJM load if the chips sit on PJM's grid and the grid can energize them. Developers apply to many places at once, so requests run far ahead of what is built. The evidence says to expect a small share of announced load to arrive.</p>
+    <div class="two">
+      <div class="card"><h3>Announced versus built</h3><div class="fun" id="funnel"></div><p class="src" style="margin-top:8px">Requests and signed load are measured differently by each source, so compare the ratios, not the bars.</p></div>
+      <div class="card"><h3>What PJM's own forecast implies</h3>
+        <p class="sub">Modo Energy counts PJM data centers at 8.2 GW operating, 41 GW under contract or construction and 71 GW earlier-stage. PJM's 2026 forecast adds 35.1 GW of large load between 2026 and 2031, and says it now counts only firm commitments. Try the conversion rates:</p>
+        <div class="sliders" style="grid-template-columns:1fr">
+          <div class="sl"><label for="c1">Contracted or under construction that arrives <b id="c1v"></b></label><input id="c1" type="range" min="0" max="100" value="70"></div>
+          <div class="sl"><label for="c2">Earlier-stage pipeline that arrives <b id="c2v"></b></label><input id="c2" type="range" min="0" max="50" value="10"></div>
+        </div>
+        <p class="big mono" id="impl" style="margin:8px 0 0;font-size:22px"></p>
+        <p class="sub" id="implnote"></p>
+      </div>
+    </div>
+    <p class="note" style="margin-top:12px">Why the share matters: the market monitor estimates that capacity costs tied to data center forecasts above existing load were $21.3 billion of the $47.2 billion cleared in the last three auctions (45%), and that speculative forecasts raised capacity prices by 61% against 4% for load that already exists or is committed. PJM has since lowered its near-term forecast and now vets requests harder. AEP cut its Ohio pipeline by more than half after introducing a data center tariff.</p>
+  </section>
+
+  <section aria-labelledby="h-model">
+    <h2 id="h-model">4. How much capacity PJM needs, and when</h2>
+    <p class="sub">The chain: AI load in PJM, plus other data centers, less load that supplies itself, raises the peak forecast. The peak times the forecast pool requirement is the reliability requirement in accredited (UCAP) megawatts. Compare it with accredited supply. 2028/29 and 2029/30 are PJM's planning numbers; the years after are this model.</p>
+    <div class="ctl" style="display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center">
+      <span class="src">Demand</span><span class="seg" id="segd" role="group" aria-label="Demand scenario"></span>
+      <span class="src">Supply</span><span class="seg" id="segs" role="group" aria-label="Supply scenario"></span>
+      <button class="pill" id="reset">Reset</button>
+    </div>
+    <div class="sliders" id="sliders"></div>
+    <div class="card" style="margin-top:12px"><svg class="chart" id="gap" viewBox="0 0 700 320" role="img" aria-label="Reliability requirement versus accredited supply by delivery year" style="width:100%;height:auto"></svg>
+      <div class="legend" style="display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;margin-top:6px"><span><i style="display:inline-block;width:14px;height:3px;background:var(--accent);margin-right:6px;vertical-align:middle"></i>Requirement</span><span><i style="display:inline-block;width:14px;height:0;border-top:3px dashed var(--fg2);margin-right:6px;vertical-align:middle"></i>Supply, planning case</span><span><i style="display:inline-block;width:14px;height:3px;background:var(--down);margin-right:6px;vertical-align:middle"></i>Supply after the market haircut</span><span><i style="display:inline-block;width:14px;height:10px;background:var(--down);opacity:.25;margin-right:6px;vertical-align:middle"></i>Shortfall</span></div></div>
+    <div class="tablewrap" style="margin-top:12px"><table class="ledger" style="min-width:860px"><thead id="mh"></thead><tbody id="mb"></tbody></table></div>
+    <p class="note" id="calib" style="margin-top:12px"></p>
+  </section>
+
+  <section aria-labelledby="h-supply">
+    <h2 id="h-supply">5. What supply can actually arrive</h2>
+    <div class="two">
+      <div class="card"><h3>PJM's planning cases</h3><div class="tablewrap" style="border:0"><table>
+        <thead><tr><th>MW</th><th class="num">2028/29</th><th class="num">2029/30</th></tr></thead>
+        <tbody>
+          <tr><td>Installed capacity</td><td class="num mono">196,871</td><td class="num mono">202,564</td></tr>
+          <tr><td>Peak load forecast</td><td class="num mono">165,567</td><td class="num mono">171,530</td></tr>
+          <tr><td>Installed reserve margin</td><td class="num mono">20.0%</td><td class="num mono">20.4%</td></tr>
+          <tr><td>Pool-wide accreditation</td><td class="num mono">0.7834</td><td class="num mono">0.7681</td></tr>
+          <tr><td>Forecast pool requirement</td><td class="num mono">0.9401</td><td class="num mono">0.9248</td></tr>
+          <tr><td>Reliability requirement</td><td class="num mono">155,650</td><td class="num mono">158,631</td></tr>
+          <tr><td>Accredited supply</td><td class="num mono">154,234</td><td class="num mono">155,580</td></tr>
+          <tr><td><b>Shortfall in the planning case</b></td><td class="num mono bad">1,416</td><td class="num mono bad">3,051</td></tr>
+        </tbody></table></div>
+        <p class="src">PJM, MRC presentation of July 28, 2026. The 2029/30 case assumes FERC approves keeping Brandon Shores and Wagner running through 2030/31, and counts resources that filed notices of intent. It is tighter than the previous year by 1,635 MW. Winter risk is rising, which lowers every resource's accreditation.</p>
+      </div>
+      <div class="card"><h3>Why the market falls shorter than the planning case</h3><p class="sub">The actual 2028/29 auction was 6,831 MW short, against a planning-case shortfall of 1,416 MW. The 5.4 GW difference is capacity the planning portfolio counts that did not clear: resources that did not offer, fixed-resource-requirement load handled outside the auction, and other differences. Only 525 MW of new generation and uprates cleared. This model carries that 5.4 GW forward as a "market haircut" you can change. If it holds, the December auction for 2029/30 should end roughly 8 to 9 GW short.</p></div>
+    </div>
+    <div class="two" style="margin-top:12px">
+      <div class="card"><h3>What counts for how much (accreditation, 2029/30)</h3><div class="tablewrap" style="border:0"><table><thead><tr><th>Class</th><th class="num">Installed MW</th><th class="num">Counts as</th></tr></thead><tbody id="elcc"></tbody></table></div><p class="src">Installed capacity and ratings from the same PJM presentation. Gas turbines lost the most accreditation this year (-7 points) because winter performance matters more.</p></div>
+      <div class="card"><h3>Known retirements and new builds</h3><ul class="plain" id="known" style="margin:0;padding-left:18px;color:var(--fg2);font-size:14px"></ul></div>
+    </div>
+    <p class="note" style="margin-top:12px" id="bottle"></p>
+  </section>
+
+  <section aria-labelledby="h-strand">
+    <h2 id="h-strand">6. Stranded capacity, both ways</h2>
+    <div class="two">
+      <div class="card"><h3>Stranded demand: built, but cannot be served</h3><p class="sub">Each GW of shortfall in accredited capacity is about 1/FPR GW of new load that cannot be served at PJM's reliability standard unless something else is built. The table in section 4 shows that load and the capex tied to it (a ceiling, because much of it would relocate or supply itself). PJM's answers are the backstop procurement, an interim service from June 2027 that curtails new large loads without their own capacity, and co-location rules. Each pushes load to build its own power, which is what ties up gas turbines.</p></div>
+      <div class="card"><h3>Stranded generation: built, but not needed</h3><p class="sub">The risk runs the other way if AI spending stops. Pick Bear demand and High supply above: the gap shrinks or turns into a surplus. New gas plants take about five years from order (turbine slots are reserved into 2031), so plants ordered now arrive after the next spending cycle. Long-term contracts, like the 15-year backstop contracts, are what protect a plant owner if demand falls short.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-so">
+    <h2 id="h-so">7. What it means, and what would prove it wrong</h2>
+    <div class="two">
+      <div class="card"><h3>If the base case holds</h3><ul class="plain" style="margin:0;padding-left:18px;color:var(--fg2);font-size:14px">
+        <li>PJM capacity prices stay pinned at the cap through 2029/30, and the argument over the collar is the main risk to generators after that. See the <a href="capacity.html">capacity desk</a>.</li>
+        <li>The gap is far larger than the 9.3 GW of accredited capacity in PJM's Reliability Resource Initiative projects. Existing nuclear and gas with contracts to data centers hold value, which is what the power producers said on their calls (<a href="equities.html">equity map</a>).</li>
+        <li>Turbines, switchgear and transmission contractors are the bottleneck suppliers. Leverage matters for the producers that must fund builds (<a href="capstack.html">capital stacks</a>).</li>
+      </ul></div>
+      <div class="card"><h3>Checks we have set up</h3><ul class="plain" style="margin:0;padding-left:18px;color:var(--fg2);font-size:14px">
+        <li><b>Dec 15, 2026 auction (2029/30).</b> We expect it to clear at the cap and fall roughly 7 to 10 GW short. A result under 4 GW short, or a clear below the cap, means the haircut or the load forecast is wrong. Logged as hypothesis H6 before the result.</li>
+        <li><b>PJM's next load forecast.</b> If it trims data center adds again, move the conversion rates down.</li>
+        <li><b>Capex guidance next quarter.</b> A cut by any two of the six builders would move us to the bear case.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <p class="foot">Sources: capex, guidance and the per-GW method from the October 10, 2026 analysis (company releases, Platformonomics, S&amp;P, CFO Dive, MarketBeat, Outlook Business); Nebius and IREN from trade coverage; Stargate from Epoch AI (April 2026); PJM planning parameters from PJM's July 28, 2026 MRC presentation; 2028/29 and 2027/28 auction results from PJM releases and trade press; PJM load forecast figures from trade coverage of the 2026 forecast report; deactivations from PJM's September 8, 2026 TEAC update; reliability resource initiative from PJM's May 2025 release; pipelines from utility disclosures as reported by Baxtel, Nasdaq and DatacenterDynamics, and from Modo Energy; market monitor figures from Monitoring Analytics via trade press. Items marked "assumption" are mine and not company or PJM statements. The model is a simplification of a market with many moving parts. Not investment advice.</p>
+</div>
+
+<script>
+const YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
+const CAPEX = {
+  Amazon: [132, 220, 285, 320, 340, 355], Alphabet: [91, 200, 275, 310, 330, 345], Microsoft: [118, 190, 235, 265, 280, 290],
+  Meta: [72, 137.5, 185, 205, 215, 220], Oracle: [40, 76, 100, 110, 110, 110], CoreWeave: [14.9, 37, 50, 55, 55, 55]
+};
+const COLORS = { Amazon: '--r-fuel', Alphabet: '--r-gen', Microsoft: '--r-wire', Meta: '--r-equip', Oracle: '--r-load', CoreWeave: '--warn' };
+const GUIDE = [
+  ['Amazon', 'CY2026', '~$220B cash capex', '~$200B', 'Jul 30, 2026', 'Raise attributed to memory costs; still short of capacity in 2026 and 2027', 'https://platformonomics.com/2026/07/follow-the-capex-q2-2026-scoreboard/'],
+  ['Alphabet', 'CY2026', '$195-205B', '$180-190B', 'Jul 22, 2026', 'About 60% servers, 40% data centers and networking; 2027 to rise significantly', 'https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/07/alphabet-postq-ai-growth-accelerates-as-spending-weighs-on-cash-flow'],
+  ['Microsoft', 'CY2026', '~$175B reported (~$190B economic)', '~$190B', 'Jul 29, 2026', '$15B shifts to operating leases; FY27 capex to grow; about two-thirds short-lived assets', 'https://www.cfodive.com/news/microsoft-holds-line-ai-spending-plans/826648/'],
+  ['Meta', 'CY2026', '$130-145B', '$125-145B', 'Jul 29, 2026', 'Plans geared to maximize 2026-27 capacity; off-balance-sheet joint ventures add more', 'https://platformonomics.com/2026/07/follow-the-capex-q2-2026-scoreboard/'],
+  ['Oracle', 'FY2027', '~$70B net; $90-95B gross', 'FY26 actual $55.7B', 'Sep 10, 2026', '$20-25B expected repaid by customers; about 1 GW delivered in fiscal Q1', 'https://www.outlookbusiness.com/corporate/oracle-forecasts-95-bn-in-capex-for-fy27-plans-to-raise-40-bn-in-debt-and-equity'],
+  ['CoreWeave', 'CY2026', '$35-39B', '$31-35B', 'Aug 11, 2026', '1.5 GW active, 4.2 GW contracted, over 1.85 GW by year-end, 8 GW by 2030', 'https://www.marketbeat.com/instant-alerts/coreweave-q2-earnings-call-highlights-2026-08-11/'],
+  ['Nebius', 'CY2026', '$20-25B', '$16-20B', 'Q2 2026', '3.5 GW contracted, targeting at least 4 GW by year-end; tied to 2027 capacity with customer commitments', 'https://www.tikr.com/blog/nebius-grew-revenue-684-in-q1-sold-out-its-entire-capacity-and-raised-its-capex-target-to-25-billion'],
+  ['IREN', 'CY2027', '~$25-30B planned', 'n/a', 'Trade coverage', 'No confirmed 2026 figure found; about 85% of cloud revenue target under contract', 'https://exoswan.com/neocloud-stocks']
+];
+const H2 = [['Amazon', 98, 122, 220], ['Alphabet', 80.6, 119.4, 200], ['Meta', 50.9, 86.6, 137.5], ['Microsoft', 72.9, 117.1, 190]];
+const US = { base: [13.3, 16.8, 18.6, 19.6, 20.4], bear: [13.3, 13.7, 13.9, 14.7, 15.3], bull: [13.3, 19.2, 22.3, 23.6, 24.5] }; // new US nameplate GW, 2026-2030
+const FUNNEL = [
+  ['PJM: operating (2025)', 8.2, 'Modo Energy'], ['PJM: contracted or building', 41, 'Modo Energy'], ['PJM: earlier-stage in utility forecasts', 71, 'Modo Energy'], ['PJM: queue applications (3,500)', 95, 'Datacentres.com'],
+  ['PPL advanced pipeline', 31.8, 'Q2 2026'], ['PPL signed agreements', 11, '35% of advanced'], ['PPL under construction', 6.5, '20% of advanced'],
+  ['Georgia Power requests', 76.2, 'utility'], ['Georgia Power committed', 12.4, '16% of requests'], ['ERCOT requests', 474, 'ERCOT'], ['ERCOT cleared all gates', 6.6, '1.4% of requests']
+];
+const ELCC = [['Nuclear', 32220, 96], ['Coal', 31304, 84], ['Gas combined cycle', 59921, 75], ['Gas turbine (single fuel)', 11378, 60], ['Gas turbine (dual fuel)', 13728, 77], ['Steam', 10284, 75],
+  ['Demand response', 8711, 90], ['Solar, tracking', 14937, 7], ['Onshore wind', 3599, 37], ['4-hour storage and similar', 7144, 57]];
+const KNOWN = [
+  '<b>Cardinal Unit 3</b> (620 MW, AEP) requested deactivation Jan 1, 2029. PJM analysis was still underway in September.',
+  '<b>West Lorain A and B</b> (101 MW) requested June 1, 2030. PJM found no reliability impacts.',
+  '<b>Brandon Shores 1 and 2, Wagner 3 and 4</b> are being kept running for reliability. PJM filed to count them as capacity through 2030/31 and its 2029/30 case assumes approval.',
+  '<b>NRG Illinois and Midwest Generation units</b> are asked to run to May 31, 2031 so they can offer in the 2029/30 and 2030/31 auctions.',
+  '<b>Reliability Resource Initiative:</b> 51 projects, about 11.8 GW installed and 9.3 GW accredited, 69% gas, 19% battery, 12% nuclear, 90% online by 2030. Only 525 MW of new generation and uprates cleared for 2028/29.',
+  '<b>Notices of intent for 2029/30</b> add 5.7 GW of installed capacity versus 2028/29, mostly gas and solar. That is about 1.3 GW accredited after the accreditation drop.',
+  'No total of announced retirements through 2030 was found. The retirement figure in the model is an assumption.'
+];
+const BOTTLE = 'Bottlenecks: heavy-duty gas turbines ordered today may not arrive until 2031 (GE Vernova), combined-cycle plants took about five years from order in 2025 (BloombergNEF, up from 3.5 in 2023), and global turbine orders of about 110 GW compare with manufacturing capacity of 60 to 70 GW (Wood Mackenzie, via trade press). One consultant found recent PJM gas projects took about 36 months from order to operation, so lead times are disputed. A consultant to PJM flagged 2030 to 2035 as the deepest shortfall against the 2026 forecast.';
+
+const PRESETS = { d: { bear: 'bear', base: 'base', bull: 'bull' }, s: { Low: [1.5, 2.0], Base: [3.0, 1.0], High: [5.0, 0.5] } };
+const DEF = { scn: 'base', share: 29, addon: 30, btm: 10, other: 0, haircut: 5.4, fpr: 0.9248, newU: 3.0, ret: 1.0, elcc: 72, cost: 2400, gwcost: 29, growth: 2, sup: 'Base' };
+let P = Object.assign({}, DEF);
+const SL = [
+  ['share', 'Share of US AI load that lands in PJM', 10, 45, 1, v => v + '%'], ['addon', 'Other data centers on top of the six builders', 0, 80, 5, v => '+' + v + '%'],
+  ['btm', 'Load that supplies itself (not on the grid)', 0, 50, 1, v => v + '%'], ['haircut', 'Market haircut vs planning case (GW)', 0, 10, 0.1, v => v.toFixed(1)],
+  ['newU', 'New accredited supply per year after 2029/30 (GW)', 0, 8, 0.1, v => v.toFixed(1)], ['ret', 'Retirements per year after 2029/30 (GW)', 0, 4, 0.1, v => v.toFixed(1)],
+  ['fpr', 'Forecast pool requirement after 2029/30', 0.88, 0.95, 0.001, v => v.toFixed(3)], ['elcc', 'Average accreditation of new firm capacity', 50, 95, 1, v => v + '%'],
+  ['cost', 'Cost of new firm capacity ($ per kW, assumption)', 1500, 3500, 50, v => '$' + v], ['gwcost', 'Capex per GW of AI load ($B)', 20, 45, 1, v => '$' + v + 'B']
+];
+const fmt = (v, d = 1) => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(d));
+const $ = id => document.getElementById(id);
+
+function usGW(scn, y) { // calendar-year new US nameplate GW
+  const a = US[scn];
+  return y <= 2030 ? a[y - 2026] : a[4] * Math.pow(1 + P.growth / 100, y - 2030);
+}
+function dcAdds(y) { return usGW(P.scn, y) * (P.share / 100) * 0.9 * (1 + P.addon / 100); } // PJM data center peak adds before self-supply
+function calc() {
+  const DY = ['2028/29', '2029/30', '2030/31', '2031/32', '2032/33'], out = [];
+  let peak = 165.567, sup = 154.234;
+  for (let i = 0; i < 5; i++) {
+    const fpr = i === 0 ? 0.9401 : i === 1 ? 0.9248 : P.fpr;
+    if (i > 0) peak += dcAdds(2028 + i) * (1 - P.btm / 100) + P.other;
+    if (i === 1) sup = 155.58; else if (i > 1) sup += P.newU - P.ret;
+    const req = peak * fpr, gapPlan = req - sup, gapMkt = gapPlan + P.haircut;
+    let cum = 0; for (let y = 2027; y <= 2028 + i; y++) cum += dcAdds(y) * (1 - P.btm / 100);
+    const unserved = Math.min(Math.max(gapMkt, 0) / fpr, cum), icap = Math.max(gapMkt, 0) / (P.elcc / 100);
+    out.push({ dy: DY[i], peak, fpr, req, sup, gapPlan, gapMkt, icap, cost: icap * P.cost / 1000, unserved, strand: unserved * P.gwcost, cum });
+  }
+  return out;
+}
+function kpis(r) {
+  const cap26 = Object.values(CAPEX).reduce((s, a) => s + a[1], 0);
+  const usCum = [2026, 2027, 2028, 2029, 2030].reduce((s, y) => s + usGW(P.scn, y), 0);
+  const b = r[2];
+  $('kpis').innerHTML = [
+    ['$' + cap26.toFixed(0) + 'B', '2026 capex guidance, six builders'],
+    [usCum.toFixed(0) + ' GW', 'new US data center load 2026-2030 (' + P.scn + ')'],
+    [fmt(r[1].gapMkt) + ' GW', 'PJM shortfall at the December auction (2029/30), model'],
+    [fmt(b.gapMkt) + ' GW', 'shortfall by 2030/31; ' + fmt(b.icap, 0) + ' GW of new plants to close it'],
+    ['$' + fmt(r[4].strand, 0) + 'B', 'AI capex tied to load PJM cannot yet cover by 2032/33 (a ceiling)']
+  ].map(k => `<div class="kpi"><div class="v">${k[0]}</div><div class="l">${k[1]}</div></div>`).join('');
+}
+function svgScale(w, h, l, rt, t, b, ymin, ymax) { return { x: (i, n) => l + (i + 0.5) * (w - l - rt) / n, y: v => t + (h - t - b) * (1 - (v - ymin) / (ymax - ymin)) }; }
+function drawCapex() {
+  const W = 700, H = 300, L = 46, R = 12, T = 14, B = 34, n = YEARS.length, tot = YEARS.map((_, i) => Object.values(CAPEX).reduce((s, a) => s + a[i], 0));
+  const max = 1500, y = v => T + (H - T - B) * (1 - v / max), bw = 62; let s = '';
+  for (const t of [0, 500, 1000, 1500]) s += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${t}</text>`;
+  YEARS.forEach((yr, i) => {
+    const x = L + (i + 0.5) * (W - L - R) / n; let base = 0; const est = yr >= 2027;
+    for (const c of Object.keys(CAPEX)) { const v = CAPEX[c][i];
+      s += `<rect x="${x - bw / 2}" y="${y(base + v)}" width="${bw}" height="${y(base) - y(base + v)}" fill="var(${COLORS[c]})" fill-opacity="${est ? 0.35 : 0.9}" stroke="var(${COLORS[c]})"><title>${c} ${yr}: $${v}B${est ? ' (estimate)' : yr === 2026 ? ' (guidance)' : ''}</title></rect>`; base += v; }
+    s += `<text x="${x}" y="${y(tot[i]) - 5}" text-anchor="middle" style="fill:var(--fg)">$${tot[i].toFixed(0)}B</text><text x="${x}" y="${H - B + 16}" text-anchor="middle">${yr}${yr === 2025 ? ' actual' : yr === 2026 ? ' guide' : ' est.'}</text>`;
+  });
+  $('capex').innerHTML = s;
+  $('capexleg').innerHTML = Object.keys(CAPEX).map(c => `<span><i style="display:inline-block;width:10px;height:10px;background:var(${COLORS[c]});margin-right:5px;border-radius:2px"></i>${c}</span>`).join('');
+}
+function drawUS() {
+  const W = 700, H = 260, L = 46, R = 12, T = 14, B = 34, yrs = [2026, 2027, 2028, 2029, 2030], max = 28, y = v => T + (H - T - B) * (1 - v / max), bw = 38; let s = '';
+  for (const t of [0, 10, 20]) s += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${t}</text>`;
+  yrs.forEach((yr, i) => { const x = L + (i + 0.5) * (W - L - R) / 5;
+    [['bear', -bw - 3, 'var(--muted)'], ['base', 0, 'var(--r-gen)'], ['bull', bw + 3, 'var(--r-equip)']].forEach(([k, dx, col]) => { const v = US[k][i];
+      s += `<rect x="${x + dx - bw / 2}" y="${y(v)}" width="${bw}" height="${y(0) - y(v)}" fill="${col}" rx="2"><title>${k} ${yr}: ${v} GW</title></rect>`; if (k === 'base') s += `<text x="${x + dx}" y="${y(v) - 5}" text-anchor="middle" style="fill:var(--fg)">${v}</text>`; });
+    s += `<text x="${x}" y="${H - B + 16}" text-anchor="middle">${yr}</text>`; });
+  s += `<text x="${L}" y="10">GW new per year (grey bear, blue base, violet bull)</text>`; $('usgw').innerHTML = s;
+}
+function drawGap(r) {
+  const W = 700, H = 320, L = 52, R = 16, T = 22, B = 36, lo = 140, hi = 190, n = r.length, x = i => L + (i + 0.5) * (W - L - R) / n, y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  let s = ''; for (let t = lo; t <= hi; t += 10) s += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${t}</text>`;
+  const eff = r.map(d => d.sup - P.haircut), rq = r.map(d => d.req);
+  const poly = r.map((d, i) => `${x(i)},${y(Math.min(Math.max(rq[i], lo), hi))}`).concat(r.map((d, i) => `${x(r.length - 1 - i)},${y(Math.min(Math.max(eff[r.length - 1 - i], lo), hi))}`)).join(' ');
+  s += `<polygon points="${poly}" fill="var(--down)" fill-opacity=".22"/>`;
+  const line = (arr, col, dash, w) => `<polyline fill="none" stroke="${col}" stroke-width="${w}" ${dash ? 'stroke-dasharray="5 4"' : ''} points="${arr.map((v, i) => `${x(i)},${y(Math.min(Math.max(v, lo), hi))}`).join(' ')}"/>`;
+  s += line(r.map(d => d.sup), 'var(--fg2)', true, 2) + line(eff, 'var(--down)', false, 2) + line(rq, 'var(--accent)', false, 3);
+  r.forEach((d, i) => { s += `<circle cx="${x(i)}" cy="${y(Math.min(Math.max(d.req, lo), hi))}" r="3.5" fill="var(--accent)"><title>${d.dy}: requirement ${d.req.toFixed(1)} GW, supply ${d.sup.toFixed(1)}, after haircut ${(d.sup - P.haircut).toFixed(1)}</title></circle>`;
+    s += `<text x="${x(i)}" y="${H - B + 16}" text-anchor="middle">${d.dy}</text><text x="${x(i)}" y="${y(Math.min(d.req, hi)) - 10}" text-anchor="middle" style="fill:var(--down);font-weight:600">${d.gapMkt > 0 ? '-' + fmt(d.gapMkt) : '+' + fmt(-d.gapMkt)} GW</text>`; });
+  s += `<text x="${L}" y="12">Accredited GW (UCAP). The label is the shortfall after the haircut.</text>`; $('gap').innerHTML = s;
+}
+function table(r) {
+  const cols = [['', r.map(d => d.dy)]];
+  $('mh').innerHTML = '<tr><th>GW unless noted</th>' + r.map(d => `<th class="num">${d.dy}</th>`).join('') + '</tr>';
+  const row = (lab, f, cls) => `<tr><td>${lab}</td>${r.map(d => `<td class="num mono ${cls ? cls(d) : ''}">${f(d)}</td>`).join('')}</tr>`;
+  $('mb').innerHTML = [
+    row('Peak load forecast', d => d.peak.toFixed(1)), row('Forecast pool requirement', d => d.fpr.toFixed(4)), row('Reliability requirement (UCAP)', d => d.req.toFixed(1)),
+    row('Accredited supply, planning case', d => d.sup.toFixed(1)), row('<b>Shortfall, planning case</b>', d => fmt(d.gapPlan), d => d.gapPlan > 0 ? 'bad' : 'good'),
+    row('<b>Shortfall after market haircut</b>', d => fmt(d.gapMkt), d => d.gapMkt > 0 ? 'bad' : 'good'),
+    row('New firm capacity to close it (installed GW)', d => fmt(d.icap, 1)), row('Rough cost to build it ($B, assumption)', d => '$' + fmt(d.cost, 0) + 'B'),
+    row('New AI-era load that cannot be served', d => fmt(d.unserved)), row('AI capex tied to that load ($B ceiling)', d => '$' + fmt(d.strand, 0) + 'B')
+  ].join('');
+  const dc = [2027, 2028, 2029, 2030, 2031].reduce((s, y) => s + dcAdds(y) * (1 - P.btm / 100), 0), step = r[1].peak - r[0].peak;
+  $('calib').innerHTML = `<b>Calibration.</b> The model's step in peak load from 2028/29 to 2029/30 is ${step.toFixed(1)} GW against PJM's own ${(171.530 - 165.567).toFixed(1)} GW, and its data center adds for 2027 to 2031 total ${dc.toFixed(0)} GW against PJM's 35.1 GW of large-load growth for 2026 to 2031. Net supply growth needed just to stop the gap widening is about ${(r[3].req - r[2].req).toFixed(1)} GW a year; this scenario provides ${(P.newU - P.ret).toFixed(1)}. The 2029/30 planning numbers are PJM's; everything after is the model.`;
+}
+function funnel() {
+  const max = 100; $('funnel').innerHTML = FUNNEL.map(f => `<div class="r"><span>${f[0]}</span><div class="t"><i style="width:${Math.min(100, 100 * f[1] / (f[1] > 100 ? f[1] : max))}%;${f[1] >= 100 ? 'background:var(--muted)' : ''}"></i></div><span class="mono" title="${f[2]}">${f[1]} GW</span></div>`).join('');
+}
+function implied() {
+  const a = +$('c1').value, b = +$('c2').value; $('c1v').textContent = a + '%'; $('c2v').textContent = b + '%';
+  const v = 41 * a / 100 + 71 * b / 100; $('impl').textContent = v.toFixed(1) + ' GW';
+  $('implnote').textContent = 'versus PJM\'s 35.1 GW. At 70% and 10% the weights reproduce it, which suggests PJM is counting roughly 70% of contracted load and about 10% of the earlier-stage pipeline.';
+}
+function sliders() {
+  $('sliders').innerHTML = SL.map(s => `<div class="sl"><label for="p_${s[0]}">${s[1]}<b id="v_${s[0]}"></b></label><input id="p_${s[0]}" type="range" min="${s[2]}" max="${s[3]}" step="${s[4]}"></div>`).join('');
+  SL.forEach(s => { const el = $('p_' + s[0]); el.addEventListener('input', () => { P[s[0]] = +el.value; P.sup = 'custom'; refresh(); }); });
+}
+function syncSliders() { SL.forEach(s => { $('p_' + s[0]).value = P[s[0]]; $('v_' + s[0]).textContent = s[5](P[s[0]]); }); }
+function segs() {
+  $('segd').innerHTML = ['bear', 'base', 'bull'].map(k => `<button class="pill" data-d="${k}" aria-pressed="${P.scn === k}">${k[0].toUpperCase() + k.slice(1)}</button>`).join('');
+  $('segs').innerHTML = Object.keys(PRESETS.s).map(k => `<button class="pill" data-s="${k}" aria-pressed="${P.sup === k}">${k}</button>`).join('');
+}
+function refresh() { syncSliders(); segs(); const r = calc(); kpis(r); drawGap(r); table(r); }
+document.addEventListener('click', e => {
+  const d = e.target.closest('[data-d]'); if (d) { P.scn = d.dataset.d; refresh(); return; }
+  const s = e.target.closest('[data-s]'); if (s) { const v = PRESETS.s[s.dataset.s]; P.newU = v[0]; P.ret = v[1]; P.sup = s.dataset.s; refresh(); }
+});
+$('reset').addEventListener('click', () => { P = Object.assign({}, DEF); refresh(); });
+['c1', 'c2'].forEach(id => $(id).addEventListener('input', implied));
+$('guide').innerHTML = GUIDE.map(g => `<tr><td><b>${g[0]}</b></td><td>${g[1]}</td><td>${g[2]}</td><td class="src">${g[3]}</td><td class="src">${g[4]}</td><td style="color:var(--fg2);font-size:13px">${g[5]} <a href="${g[6]}" rel="noopener">source</a></td></tr>`).join('');
+$('neo').innerHTML = 'Nebius raised 2026 capex to $20-25B and reports 3.5 GW contracted. IREN is planning $25-30B for 2027. OpenAI\'s Stargate sites total about 9 GW planned, mostly in Texas, New Mexico, Wisconsin and Michigan; Ohio\'s Lordstown site is under 0.3 GW. SpaceX reported first-half capex of $28.5B, mostly AI, but how much is xAI was not confirmed. Lambda and Crusoe are private with no published guidance. This is why the model adds an "other data centers" line instead of leaving them out.';
+$('h2').innerHTML = '<table><thead><tr><th>Builder</th><th class="num">H1 spent</th><th class="num">H2 implied</th></tr></thead><tbody>' + H2.map(h => `<tr><td>${h[0]}</td><td class="num mono">$${h[1]}B</td><td class="num mono">$${h[2]}B</td></tr>`).join('') + '</tbody></table>';
+$('elcc').innerHTML = ELCC.map(e => `<tr><td>${e[0]}</td><td class="num mono">${e[1].toLocaleString()}</td><td class="num mono">${e[2]}%</td></tr>`).join('');
+$('known').innerHTML = KNOWN.map(k => `<li style="margin-bottom:6px">${k}</li>`).join(''); $('bottle').textContent = BOTTLE;
+drawCapex(); drawUS(); funnel(); implied(); sliders(); refresh();
+</script>

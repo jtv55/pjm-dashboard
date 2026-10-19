@@ -80,7 +80,7 @@ ul.plain li { margin-bottom: 4px; }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
 
-<nav style="font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="index.html" style="color:inherit">Build log</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a></nav>
+<nav style="font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="index.html" style="color:inherit">Build log</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="aigap.html" style="color:inherit">Power gap</a></nav>
 <div class="wrap">
   <div class="eyebrow">Build log · started Oct 18, 2026 · updated Oct 19, 2026</div>
   <h1>Learning PJM in public, and testing honestly whether there is an edge</h1>
@@ -105,6 +105,7 @@ ul.plain li { margin-bottom: 4px; }
       <a href="equities.html"><div class="card"><h3>Equity map</h3><p class="sub">Fifteen listed names along the PJM value chain, with what analysts asked on their latest earnings calls.</p></div></a>
       <a href="capacity.html"><div class="card"><h3>Capacity desk</h3><p class="sub">The capacity market: auction history, the rules in flux, a plant revenue calculator and a policy calendar.</p></div></a>
       <a href="capstack.html"><div class="card"><h3>Capital stacks</h3><p class="sub">Leverage, equity cushion and a stress test for each of the 15 names.</p></div></a>
+      <a href="aigap.html"><div class="card"><h3>Power gap (v2)</h3><p class="sub">AI capex guidance turned into PJM load, how much of it is likely to land, and how much capacity PJM needs by when.</p></div></a>
     </div>
     <p class="sub" style="margin-top:10px">Behind the pages: a data store that keeps every forecast as issued, a research harness with a frozen benchmark, a Black-Scholes and Kelly toolkit, an event-study script, and the forward ledger. The code is in a private repository.</p>
   </section>
@@ -158,6 +159,7 @@ const T = [
   ['Oct 19', 'done', 'Capacity desk, capital stacks, options toolkit', 'Capacity market notes, leverage and stress test for 15 names, Black-Scholes and Kelly.'],
   ['Oct 19 evening', 'run', 'Round-2 experiments scheduled', 'Outages, reserves and a seven-hub model, after the TabPFN daily limit resets.'],
   ['Oct 19', 'done', 'Public site and option-chain capture', 'Every page is public. A cloud job now snapshots option chains for VST, CEG, TLN and NRG after the open and before the close.'],
+  ['Oct 19', 'done', 'Power gap v2', 'Hyperscaler and neocloud capex turned into PJM load and a capacity need by delivery year, calibrated to PJM\'s own planning numbers. Our guess for the Dec 15 auction is logged before the result.'],
   ['Next', 'plan', 'Live prediction pipeline and option backtests on real quotes', 'Needed to test asymmetric structures properly.']
 ];
 document.getElementById('tl').innerHTML = T.map(t => `<li class="${t[1]}"><div class="when">${t[0]}</div><div class="what">${t[2]}</div><div class="why">${t[3]}</div></li>`).join('');
