@@ -1,0 +1,426 @@
+<meta charset="utf-8">
+<title>PJM Equity Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: header + value-chain strip, sortable table of 15 names, then a selected-company panel with call Q&A, then cross-call themes. */
+:root {
+  --bg: #fcfcfb; --surface: #ffffff; --fg: #141413; --fg2: #52514e; --muted: #7a7973;
+  --line: #e4e3de; --soft: #f4f3ef; --accent: #2a78d6; --up: #0b7a43; --down: #c03a2b;
+  --r-fuel: #b8541f; --r-gen: #2a78d6; --r-wire: #0e8a62; --r-equip: #6250d6; --r-load: #b0447a;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+    --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566;
+    --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+  --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566;
+  --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 28px; line-height: 1.2; margin: 6px 0 8px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+.lede { color: var(--fg2); max-width: 68ch; margin: 0 0 22px; }
+.sub { color: var(--fg2); font-size: 13px; margin: 0 0 12px; max-width: 72ch; }
+section { margin-bottom: 32px; }
+
+/* value chain */
+.chain { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.stage { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 10px 12px; min-width: 0; }
+.stage h3 { margin: 0 0 2px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.stage p { margin: 0 0 8px; font-size: 12px; color: var(--fg2); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--line); background: var(--soft); color: var(--fg);
+  border-radius: 4px; padding: 1px 6px; cursor: pointer; }
+.chip:hover { border-color: var(--fg2); }
+.chip:focus-visible, button:focus-visible, tr:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* controls */
+.ctl { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; align-items: center; }
+.pill { font: inherit; font-size: 13px; color: var(--fg2); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; cursor: pointer; }
+.pill[aria-pressed="true"] { color: var(--fg); border-color: var(--fg2); background: var(--soft); }
+
+/* table */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 860px; }
+th { text-align: left; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted);
+  padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.sortable { cursor: pointer; user-select: none; }
+th.num, td.num { text-align: right; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+tbody tr { cursor: pointer; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--soft); }
+tbody tr[aria-selected="true"] { background: var(--soft); box-shadow: inset 3px 0 0 var(--accent); }
+.tk { font-family: var(--font-mono); font-weight: 600; }
+.nm { color: var(--fg2); font-size: 12px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); }
+.what { color: var(--fg2); font-size: 13px; max-width: 46ch; }
+.role { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; }
+.range { position: relative; width: 84px; height: 4px; background: var(--line); border-radius: 2px; margin: 8px 0 4px auto; }
+.range i { position: absolute; top: -3px; width: 3px; height: 10px; background: var(--fg); border-radius: 1px; }
+.rangelbl { font-size: 11px; color: var(--muted); font-family: var(--font-mono); text-align: right; }
+
+/* detail */
+.detail { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 18px; }
+.dhead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; margin-bottom: 12px; }
+.dhead .tag { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.pjm { background: var(--soft); border-radius: 6px; padding: 10px 12px; font-size: 14px; margin: 0 0 16px; max-width: 78ch; }
+.pjm b { font-weight: 600; }
+.qa { border-top: 1px solid var(--line); }
+.qa details { border-bottom: 1px solid var(--line); }
+.qa summary { cursor: pointer; padding: 11px 2px; list-style: none; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start; }
+.qa summary::-webkit-details-marker { display: none; }
+.qa summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.qa .q { font-weight: 600; font-size: 14px; }
+.qa .who { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.qa .tog { font-family: var(--font-mono); color: var(--muted); font-size: 12px; padding-top: 2px; }
+.qa details[open] .tog::after { content: "hide"; } .qa details:not([open]) .tog::after { content: "show"; }
+.qa .a { padding: 0 2px 14px; color: var(--fg2); max-width: 76ch; font-size: 14px; }
+
+/* themes */
+.themes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.theme { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 14px; min-width: 0; }
+.theme h3 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+.theme p { margin: 0 0 8px; font-size: 13px; color: var(--fg2); }
+.foot { color: var(--muted); font-size: 12px; max-width: 80ch; border-top: 1px solid var(--line); padding-top: 14px; }
+
+@media (max-width: 760px) { .chain { grid-template-columns: 1fr 1fr; } h1 { font-size: 24px; } }
+@media (max-width: 480px) { .chain { grid-template-columns: 1fr; } }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+
+<nav style="font:13px/1.4 system-ui,sans-serif;display:flex;gap:16px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="index.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a></nav>
+<div class="wrap">
+  <div class="eyebrow">Equities · proxies for PJM exposure · snapshot <span id="asof"></span></div>
+  <h1>Who gets paid when PJM power gets tight?</h1>
+  <p class="lede">Fifteen listed companies along the PJM value chain, from the gas that fuels plants to the data centers that buy the power. Pick a name to read what analysts asked on its latest quarterly call.</p>
+
+  <section aria-labelledby="chain-h">
+    <h2 id="chain-h">The chain, left to right</h2>
+    <p class="sub">Only the generators are paid directly by PJM energy and capacity prices. Everyone else is exposed through a different door.</p>
+    <div class="chain" id="chain"></div>
+  </section>
+
+  <section aria-labelledby="tbl-h">
+    <h2 id="tbl-h">The 15 names</h2>
+    <p class="sub">Click a column to sort, click a row to open its call notes below. Price change is the latest session.</p>
+    <div class="ctl" id="filters" role="group" aria-label="Filter by role"></div>
+    <div class="tablewrap"><table>
+      <thead><tr id="thead"></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="det-h" id="detail-sec">
+    <h2 id="det-h">Latest call: analyst questions</h2>
+    <p class="sub">Paraphrased summaries of the question-and-answer portion. Select a company:</p>
+    <div class="ctl" id="picker" role="group" aria-label="Choose a company"></div>
+    <div class="detail" id="detail" aria-live="polite"></div>
+  </section>
+
+  <section aria-labelledby="th-h">
+    <h2 id="th-h">What came up across the calls</h2>
+    <p class="sub">Repeated themes, with the companies that raised them.</p>
+    <div class="themes" id="themes"></div>
+  </section>
+
+  <p class="foot">Prices and market caps are a one-time pull on <span id="asof2"></span> and do not update. The call notes are my own paraphrases of auto-generated transcripts of each company's most recent quarterly call. Speaker names and firms are as transcribed and may contain errors, and some answers were cut off in the source. Read the original call before relying on any detail. "Role" and "PJM angle" are my qualitative read, not company statements. This is not investment advice.</p>
+</div>
+
+<script>
+const ASOF = 'Oct 19, 2026';
+const ROLES = {
+  fuel:  { label: 'Fuel & pipes', blurb: 'Gas that burns in PJM plants and the pipes that deliver it.', color: '--r-fuel' },
+  gen:   { label: 'Generators', blurb: 'Sell power and capacity into PJM markets.', color: '--r-gen' },
+  wire:  { label: 'Utilities & wires', blurb: 'Regulated wires. Paid on rates, helped by load growth.', color: '--r-wire' },
+  equip: { label: 'Equipment & build', blurb: 'Turbines, switchgear, contractors, distributors.', color: '--r-equip' },
+  load:  { label: 'Big load', blurb: 'Data-center buyers whose demand tightens the grid.', color: '--r-load' }
+};
+const D = [
+{ t:'TLN', n:'Talen Energy', px:354.81, chg:0.34, cap:16.783e9, lo:279.77, hi:449.84, role:'gen', date:'Aug 5, 2026',
+  what:'Independent power producer with about 10.7 GW of nuclear, gas, coal and solar, selling into wholesale markets.',
+  pjm:'The most direct play here. Its Susquehanna nuclear plant and its fossil fleet sit in PJM, and it has an AWS data-center supply deal. Earnings move with PJM forward power and capacity prices.',
+  qa:[
+   ['PJM filing on the reliability backstop','Whether Talen will take part in central procurement or bilateral deals after PJM’s FERC filing.','The filing matched expectations. Talen supports it and plans to offer several projects, and is still reading the long document ahead of the September schedule.'],
+   ['Free cash flow outlook','Whether the 2027–2028 per-share outlook assumes the PPL-zone price gap to the hub narrows.','The outlook uses current PPL marks, so a narrower gap would be upside. Share count is held flat and buybacks add to the per-share figures.'],
+   ['Hedging as PJM forwards move','How Talen keeps upside while hedging.','It uses structures that fence in outcomes but keep some upside. 2028 hedges rose a little, and the company stays longer on the back end of the curve.'],
+   ['Contract timing for hybrid solutions','Whether an auction or a regulatory decision gates contracts with grid-connected hybrid projects.','Nothing single gates it, though regulatory uncertainty matters. Management expects deals, with customers focused on 2027–2028 needs first and 2029 next.'],
+   ['The $555 backstop cap','Whether the cap changes what Talen would offer, and whether batteries beat new gas.','The cap works like a floating, average-based limit that some projects can clear above. Uprates, batteries and peakers look like the likely winners.'],
+   ['Location risk in the PPL zone','How much the strategy depends on Connect and Manage, given assets in an oversupplied zone.','Hybrid is a fallback, but there are jurisdiction concerns. Management wants to see the actual proposal before judging it.'],
+   ['Premium over forwards','How big a premium Talen can earn contracting gas assets, and whether it is shrinking.','No figures given. Blending existing generation with new peakers and batteries under long contracts creates value and lowers the cost of capital.'],
+   ['Where data-center demand is heading','Whether customers are moving toward new-build hybrids instead of existing plants.','Hyperscalers want to bring their own new capacity, though preferences vary. Talen has built options for most scenarios other than behind-the-meter.']
+  ]},
+{ t:'CEG', n:'Constellation Energy', px:271.37, chg:-1.32, cap:96.148e9, lo:228.63, hi:406.04, role:'gen', date:'Aug 6, 2026',
+  what:'Largest US nuclear operator, with about 32 GW across nuclear, gas, wind, solar and hydro, plus a large retail business.',
+  pjm:'Most of its fleet is in PJM, so it is a leveraged bet on PJM power and capacity prices and on data-center contracting for existing nuclear.',
+  qa:[
+   ['Terms of the new nuclear deal','Barclays asked whether the new long-term contract meets the company’s price and term thresholds, and whether it is a hyperscaler deal.','Management said it fits its long-term value view but would not name the customer, which is up to the customer to disclose.'],
+   ['PJM bilateral process','Barclays asked how bilaterally contracted new capacity nets against the 6 GW backstop target.','The process is confidential, but every capacity opportunity is being discussed with customers. New capacity can come from upgrades, batteries and peakers.'],
+   ['Where the new contracts are','Wolfe asked whether the new nuclear contracts are in PJM.','Management would not pinpoint the location but agreed that most of the fleet is in PJM.'],
+   ['Connect-and-manage risk','Wolfe asked whether contracts reflect possible outcomes of PJM’s connect-and-manage rules.','Customers can use batteries or backup generation and still need energy from existing resources, which management sees as central to early data-center growth.'],
+   ['Contract value range','Wolfe asked for direction within the $20–50 per MWh range given in March.','Management declined to update the range and said the March deals fit it.'],
+   ['Customer sentiment','JPMorgan asked how customer talks have shifted as PJM pricing improves.','Regulatory clarity is the driver. Customers are returning to contracting now that PJM is giving direction, and deal flow should speed up once rules are final.'],
+   ['Co-location timeline','KeyBanc asked about the next step in PJM’s co-location process.','Management expects a PJM response around November and a FERC order in the first half of 2027, and sees hybrid solutions as promising.'],
+   ['Texas market','Morgan Stanley asked about ERCOT prices and batteries.','Weak prices were expected because batteries arrived before load. Management expects the market to tighten as data centers come online.']
+  ]},
+{ t:'VST', n:'Vistra', px:152.02, chg:-1.39, cap:51.023e9, lo:132.66, hi:205.50, role:'gen', date:'Q2 2026',
+  what:'Power producer and retailer with about 38.7 GW across gas, nuclear, coal, solar and batteries, serving roughly 4.3 million customers.',
+  pjm:'Large PJM fleet plus the biggest ERCOT position of the group. PJM strength and ERCOT weakness pull it two ways.',
+  qa:[
+   ['Texas queue rules','Wells Fargo asked whether Texas large-load queue reforms affect any deals.','The ERCOT load forecast is unchanged. Management expects a short pause in some reviews, supports cleaning up the queue, and does not see Comanche Peak affected.'],
+   ['Pricing long-term contracts','An analyst asked whether contracts should still price off new-build cost or allow premiums for existing plants.','The gap between current prices and new-build cost is still wide, and customers still pay a premium for existing assets because new build keeps getting costlier.'],
+   ['PJM versus ERCOT contracting','JPMorgan asked how data-center talks compare between the two markets.','ERCOT is less tight for now. PJM’s localized study process is more complex. Customers are active in both and will contract without perfect clarity.'],
+   ['PJM backstop procurement','JPMorgan asked how Vistra sees the backstop versus bilateral deals.','Management prefers bilateral deals, which could shrink the backstop. The $555 per MW-day level may need to be exceeded for some projects, which adds price pressure.'],
+   ['FERC large-load framework','JPMorgan asked for Vistra’s view of the proposed framework.','Management prefers incentives over mandates, opposes bring-your-own-capacity requirements, and said the framework could favor co-location with existing plants.'],
+   ['Helix digital infrastructure platform','Wolfe asked what milestones would trigger more investment.','Helix adds to the deal pipeline and is optional to use. A further $500 million of investment would follow if milestones are met.'],
+   ['Buybacks and hedges','Goldman asked about buyback room and power-curve moves, especially for 2028.','$1.2 billion remains on the authorization and more may be sought. Management skipped hedge levels and noted PJM strength and ERCOT weakness.'],
+   ['Energy-only versus capacity deals','Bank of America asked what customers want in PJM given possible bring-your-own-capacity rules.','Demand is strong for both energy and capacity, with no big shift toward energy-only.']
+  ]},
+{ t:'NRG', n:'NRG Energy', px:103.75, chg:0.87, cap:21.809e9, lo:93.36, hi:189.96, role:'gen', date:'Q2 2026',
+  what:'Power producer and retailer (Reliant, Direct Energy and others) with Texas, East and West segments and about six million customers.',
+  pjm:'The East segment, grown through the LS Power purchase, is largely PJM. Texas is still the bigger earnings driver, so PJM is a partial exposure.',
+  qa:[
+   ['Expanding the Texas data-center site','Jefferies asked about timing for 2.4 GW and the cadence of later blocks.','Timing depends on online date and turbine deliveries. Later 1.2 GW blocks could follow roughly every 12 months after the 2029 start.'],
+   ['Contract length','Jefferies asked whether 15 years is the new norm.','Fifteen years is the structure here and will not go shorter, since that would change the customer’s price.'],
+   ['Implied price','Barclays asked whether the implied power price is now above $90–100 per MWh.','Management said the per-MWh figure does not matter under this structure. Rough math points to about $85–90 or more, and the customer can hedge the variable piece.'],
+   ['PJM upgrades and procurement','Barclays asked how NRG approaches bilateral and procurement options.','A multi-pronged approach. NRG is open to a 15-year capacity award or a bilateral deal of similar term for durable cash flows.'],
+   ['Economics at the $555 cap','Goldman asked how much of the 2 GW of PJM upgrades works at the cap.','Probably less than half would clear the central auction at that price. NRG is still negotiating bilateral deals for all 2 GW.'],
+   ['Buybacks','Goldman asked about adding capital to buybacks.','Any increase depends on year-end cash flow after funding the project.'],
+   ['Funding the build','Wolfe asked about capital partners and credit metrics.','The base case funds it on the balance sheet, which pushes the 3x leverage target from 2028 to 2029. A partner could free room for larger buybacks.'],
+   ['Low Texas prices','Wolfe asked why ERCOT prices are low despite load growth.','The market will not price load until it is real. Fear of project delays weighs on 2027–2028, but Texas still needs mid-term generation as solar and battery subsidies fade.']
+  ]},
+{ t:'PEG', n:'Public Service Enterprise Group', px:71.49, chg:1.82, cap:35.632e9, lo:66.15, hi:87.63, role:'wire', date:'Aug 4, 2026',
+  what:'New Jersey utility (PSE&G) that moves and sells electricity and gas, plus PSEG Power, which owns nuclear and other generation.',
+  pjm:'Mostly a regulated utility, so earnings track rate cases more than PJM prices. PSEG Power’s nuclear fleet gives it some wholesale and capacity exposure.',
+  qa:[
+   ['Rate case timing','Barclays asked whether the state’s review drove the decision to file a base rate case.','Management expects little from the report in this filing. The timing fits the state’s push for transparency and performance-based rates.'],
+   ['Growth range','Barclays asked where PSEG sits in its 6–8% growth range.','Still within the range. Losing the RTO incentive was an anticipated scenario, and other items could add upside.'],
+   ['PJM bilateral opportunities','Truist asked about the scale of project proposals PSEG Power has submitted.','The company kept its generation expertise and is looking at a few opportunities in and outside New Jersey, preferring utility-like contracts. No details while PJM rules change.'],
+   ['Data-center interest','Goldman asked whether interest from large loads has grown.','No inflection, just continued interest. Customers are waiting for PJM’s processes to clarify requirements.'],
+   ['Returns on PJM deals','Wolfe asked what returns PSEG targets in the bilateral process.','Management declined to give targets, saying returns will be weighed against risk with an emphasis on utility-like contracts.'],
+   ['Existing versus new plants','JPMorgan asked what counterparties want.','Both are of interest, with a clear preference for new generation and no fixed ratio.'],
+   ['New nuclear','JPMorgan asked if new nuclear can help near-term supply.','It is a long-term option given build times. PJM’s proposed 2032 in-service target is a near-to-medium-term window.']
+  ]},
+{ t:'NEE', n:'NextEra Energy', px:79.80, chg:1.06, cap:166.461e9, lo:74.41, hi:98.75, role:'wire', date:'Jul 24, 2026',
+  what:'Florida’s largest utility (FPL) and the biggest US developer of wind, solar and storage, with growing gas pipeline and nuclear plans.',
+  pjm:'Little direct PJM exposure today. The pending Dominion combination would add a large PJM utility, and management called PJM and a FERC show-cause order a complication.',
+  qa:[
+   ['Merger forecast versus guidance','Wolfe asked why internal forecasts in the merger filing appear higher than guidance.','The 2032 Energy Resources EBITDA forecast is about $4 billion higher than in December on better renewables and storage returns. Guidance stays at 8%+ growth.'],
+   ['Federal gas hub projects','Wolfe asked whether the hub projects are behind schedule.','Management said the overall hub strategy is ahead of schedule. Talks between governments take longer, and the hub count is rising from 30 to 40.'],
+   ['Florida large load','Jefferies asked what drives the 8 GW large-load outlook at FPL.','Execution, low build costs, and new state legislation that gives certainty. Material news will be released when it happens.'],
+   ['Vertical integration','Jefferies asked about expanding into data-center adjacencies.','Management pointed to its capabilities across generation, storage, transmission, pipelines and marketing, and said they should help the Dominion combination despite PJM complexity.'],
+   ['Recontracting and returns','Barclays asked whether renewables recontracting at a premium is in the 8%+ plan.','Yes. Option value from recontracting, storage co-location and hubs is rising, and it is reflected in the merger numbers.'],
+   ['Dominion deal progress','Barclays asked about feedback from state stakeholders.','Talks are going well and state regulators will decide. The target is the second half of 2027, with a push to go earlier.'],
+   ['Nuclear timeline','JPMorgan asked for updated timing on new nuclear.','Duane Arnold recommissioning is progressing and small reactors are under evaluation. Any new build needs a structure that avoids taking on cost-overrun risk.'],
+   ['Pipelines and LNG','JPMorgan asked about gas pipelines.','A senior pipeline executive was hired and there is a large opportunity set, especially in the Southeast and around MVP. NextEra will not take part in LNG.']
+  ]},
+{ t:'FE', n:'FirstEnergy', px:46.19, chg:1.41, cap:26.727e9, lo:42.67, hi:52.34, role:'wire', date:'Jul 29, 2026',
+  what:'Regulated utility serving about six million customers in Ohio, Pennsylvania, West Virginia, Maryland, New Jersey and New York.',
+  pjm:'Sits entirely inside PJM. It is paid on regulated rates, so it benefits from data-center load growth and PJM transmission projects, not from wholesale price spikes.',
+  qa:[
+   ['West Virginia transmission room','Wells Fargo asked how much open capacity exists for data-center load.','Near-term room is limited, with early-queue customers adding about 100–200 MW. Management estimates about $250 million of investment per gigawatt added.'],
+   ['New Jersey rate case','Wells Fargo asked whether the state’s review will affect the case.','Management does not expect trouble and sees the state as collaborative. It is filing to recover heavy reliability spending.'],
+   ['Generation-company structure in West Virginia','Barclays asked how it differs from the traditional approval route.','It could avoid much of the traditional process, needing federal approval for wholesale sales and state approval of the supply contract, and should be considerably faster.'],
+   ['Why contracts convert quickly','JPMorgan asked why data-center pipeline is turning into contracts so fast.','Developers, hyperscalers and utilities want to contract fast so load enters PJM’s transmission planning, which is seen as a bottleneck.'],
+   ['Maidsville gas plant hearings','Goldman asked how hearings went and about approval odds.','Management said hearings went well, the commission granted the expedited schedule, and it expects a positive order soon despite coal opposition.'],
+   ['PJM transmission window','Goldman asked about the scale of proposals for the September window.','Still working through proposals, with about $5 billion secured in earlier windows. More windows are expected.'],
+   ['1.5 GW of data-center contracts','Scotiabank asked about the contracts expected within about two weeks.','Close to signing, with the most interest in West Virginia, Pennsylvania and Maryland and load phasing in mostly through 2031.'],
+   ['Capex upside','Scotiabank asked if West Virginia upside is incremental to the plan.','Yes, it would add to the $36 billion plan and is reflected in the updated plan.']
+  ]},
+{ t:'EQT', n:'EQT Corporation', px:54.315, chg:3.56, cap:33.975e9, lo:47.94, hi:68.24, role:'fuel', date:'Jul 22, 2026',
+  what:'Largest US natural gas producer, centered on the Marcellus and Utica shales in Pennsylvania, West Virginia and Ohio.',
+  pjm:'Its gas fuels PJM power plants, and PJM power and gas prices move together. A contract tied to a Virginia power plant links part of its income to power prices.',
+  qa:[
+   ['Why grow at all','Wolfe asked why EQT would grow if premium-priced deals exist nearby.','Direct connections to demand come first and growth would be only part of that demand. The big ramp is expected near the end of the decade because infrastructure takes three to five years.'],
+   ['Supplying new pipelines','Barclays asked how new Appalachian pipelines will be supplied.','New takeaway near Clarington needs gas from EQT’s core area, which is an advantage, and EQT expects to earn midstream fees.'],
+   ['Power-linked contract','Barclays asked how the CPV contract’s power-price linkage affects upside and downside.','Full-year 2027 flow at capacity would add about $100 million to annual free cash flow. Power and gas move together, so EQT expects the spark spread to widen and prefers to stay unhedged for now.'],
+   ['Winning the power project','JPMorgan asked what won EQT the power deal and what gates its 2031 start.','Management credited its integrated platform, customer relationships and balance sheet, with pricing tied to electricity. More West Virginia power deals could come before year-end.'],
+   ['How real is the demand','BMO asked how to think about project risk on the demand slide.','Management contacted most customers and assigned probabilities, implying roughly 40% of identified growth is realistic.'],
+   ['Basin supply limits','BMO asked if there is a cap on Appalachian growth.','The basin can deliver, but smaller operators are price-sensitive. About a third of basin supply may struggle to stay flat by late decade, which would support prices.'],
+   ['Sharing data-center upside','William Blair asked about future contracts that share in data-center economics.','That would be a big step beyond spark-spread exposure. EQT has considered it but sees no current market for it.'],
+   ['West Virginia data-center campus','Truist asked if the Monarch campus is on track.','EQT is in discussions and sees no obstacle to being a gas supplier. Other sites are close to definitive agreements.']
+  ]},
+{ t:'WMB', n:'Williams Companies', px:71.28, chg:2.98, cap:87.187e9, lo:56.19, hi:80.08, role:'fuel', date:'Q2 2026',
+  what:'Natural gas pipeline and processing company operating about 30,000 miles of pipe, including the Transco line from Texas to New York.',
+  pjm:'Transco carries gas to Mid-Atlantic and Southeast power plants and utilities. It is also building on-site power projects for data centers with a Blackstone partnership.',
+  qa:[
+   ['Growth target','Wells Fargo asked if the raised 11%+ EBITDA growth target is conservative.','It covers only the existing contracted book and excludes new power and pipeline projects.'],
+   ['On-site power for customers','JPMorgan asked how behind-the-meter power will develop and whether one hyperscaler limits others.','Customer interest is growing and Williams wants to serve many customers rather than be tied to one.'],
+   ['More Transco expansions','JPMorgan asked about further large Transco projects.','Many backlog projects are Transco-related, with more Mid-Atlantic and Southeast demand under discussion. Timing depends on utility customers.'],
+   ['Recycling capital','Citi asked how the next wave of power projects differs.','The Blackstone joint venture lets Williams recycle capital. Future projects will balance speed, scale and grid support, with more deals expected by year-end.'],
+   ['First project startup','Citi asked how the first power project’s startup went.','Commissioning went well and first power was delivered that week. Other projects are on schedule and budget.'],
+   ['Line 200 supply','BMO asked how much capacity can be sourced from Transco and other systems.','Line 200 is fully subscribed. A seven-mile lateral into Lake Charles will serve growing power demand.'],
+   ['Funding next projects','Goldman asked how the next on-site projects will be funded.','Over $2 billion is available through year-end, and future partnerships may be priced separately.'],
+   ['Execution limits','Truist asked if equipment or talent would limit running more than five projects.','Delivery is spread across the decade and the team is adding talent, scaling carefully.']
+  ]},
+{ t:'GEV', n:'GE Vernova', px:921.20, chg:-0.57, cap:245.347e9, lo:530.16, hi:1195.94, role:'equip', date:'Jul 22, 2026',
+  what:'Maker of gas turbines, wind turbines and grid equipment, spun out of GE in 2024.',
+  pjm:'Sells the turbines that new PJM gas plants need. Slots are reserved years ahead, which shows how tight new supply is.',
+  qa:[
+   ['Gas output expansion','Deutsche Bank asked whether 30 GW of annual gas output by 2030 is new.','Output moves from about 3 GW to 5 GW per quarter from Q3. The 30 GW for 2030 is largely sold, helped by lean and automation gains.'],
+   ['International demand','Bank of America asked what non-US demand is behind the added capacity.','A Taiwan pipeline with over 10 GW on contract, plus Saudi Arabia, Mexico, Southeast Asia and Qatar.'],
+   ['Post-2031 bookings','Wolfe asked about capacity on the existing footprint and demand for 2032–2033.','More machines fit in the same factories with modest capex. More than half of 2031 should be contracted by year-end, with early talks about 2032 and beyond.'],
+   ['Data-center content','Citi asked how to size the data-center opportunity.','About $5 billion of first-half data-center orders. Scope per gigawatt could rise two to three times, mostly in 2027 orders.'],
+   ['Is 2026 peak turbine orders','Morgan Stanley asked if this is the peak year.','Management expects contracted gigawatts to keep growing, to at least 125 GW by year-end and higher in 2027.'],
+   ['Industry capacity','Goldman asked about concern that industry capacity exceeds demand.','Heavy-duty supply and demand look balanced for five to six years.'],
+   ['Aeroderivatives versus heavy-duty','RBC asked if customers are shifting to smaller turbines.','Heavy-duty demand is very strong. Aeroderivatives are a bridge while customers secure heavy-duty units for the early 2030s.'],
+   ['Pricing','Not a main topic in the Q&A.','Prepared remarks said first-half equipment orders were priced over 20% above Q4 2025.']
+  ]},
+{ t:'ETN', n:'Eaton', px:391.25, chg:-2.79, cap:151.962e9, lo:296.09, hi:478.00, role:'equip', date:'Q2 2026',
+  what:'Power management company making switchgear, breakers, UPS and cooling for buildings, utilities and data centers, plus aerospace and vehicle parts.',
+  pjm:'Sells electrical gear into data-center build-outs and utility grids. Its data-center orders are a read on how fast new load is arriving.',
+  qa:[
+   ['Non-data-center demand','RBC asked about growth outside data centers.','Most electrical end markets grew strongly, with double-digit organic revenue in several and mid-30s order growth in machine OEM.'],
+   ['Boyd liquid cooling','Bank of America asked about Boyd’s edge.','Boyd leads in liquid cooling and is a design partner for chip makers. Boyd revenue guidance was raised to $1.8 billion.'],
+   ['Electrical Global upside','Morgan Stanley asked what drove the upside.','All regions beat expectations, data-center organic revenue was up about 65%, and backlog rose 103% (54% excluding Boyd).'],
+   ['Margin ramp in the Americas','Wolfe asked how much comes from price versus cost.','Second-half margin should rise 450–500 basis points, about 300 from price-cost and 150–200 from output.'],
+   ['Content per megawatt','Citi asked about the $3.4 million per MW figure and 800-volt DC.','Management said $3.4 million is right for modeling and that winning needs solid-state transformers, DC breakers, power electronics and cooling.'],
+   ['Modular builds','Bernstein asked about prefab share of requests.','Labor scarcity pushes customers toward modular, a reason Eaton bought Fiberbond.'],
+   ['Lead times','KeyBank asked about long-lead items.','Eaton is adding factory and engineering capacity to shorten lead times. Its 2030 model assumed only 17% data-center growth versus 65% now.']
+  ]},
+{ t:'PWR', n:'Quanta Services', px:631.86, chg:-1.61, cap:94.996e9, lo:404.51, hi:788.75, role:'equip', date:'Q2 2026',
+  what:'Specialty contractor that builds and maintains power lines, substations, pipelines and renewable projects.',
+  pjm:'Builds the transmission and substations PJM needs for new load. Large transmission projects are only starting to contribute.',
+  qa:[
+   ['Modular fabrication','Bernstein asked if integrated fabrication lowers cost.','It can improve efficiency, but the benefit depends on logistics and building near project sites.'],
+   ['Cash conversion','An analyst asked about free cash flow trends.','Cash flow is strong and long-term conversion is about 55%, with room to reach 55–60%.'],
+   ['Data-center exposure','Roth asked about state policy risk to backlog.','Data centers are roughly 15–20% of the business, and backlog counts only awarded work.'],
+   ['Transmission and distribution','An analyst asked how the T&D business compares with expectations.','On target with double-digit growth. Large transmission projects are just beginning.'],
+   ['Making hard-to-source equipment','An analyst asked about manufacturing investment.','Quanta has invested in hard-to-source gear such as breakers and will keep investing selectively.'],
+   ['Electric margin','An analyst asked about margin expansion.','Double-digit margins are the goal, depending on project mix and moving labor across segments.'],
+   ['Labor','Vertical Research asked how far ahead customers lock in labor.','Customers reserve resources against five-to-seven-year plans. The company is near capacity and spends about $250 million a year on training.']
+  ]},
+{ t:'EME', n:'EMCOR Group', px:721.66, chg:-1.48, cap:31.832e9, lo:564.92, hi:951.96, role:'equip', date:'Q2 2026',
+  what:'Electrical and mechanical contractor and facilities services firm, with a large data-center construction business.',
+  pjm:'A picture of data-center construction demand in Ohio, Pennsylvania and Northern Virginia, where power access decides site choice.',
+  qa:[
+   ['Data-center customer demand','Stifel asked if demand has changed given market worries.','Demand is unchanged. Growth is expected in Ohio, Texas, Pennsylvania, Arizona and Northern Virginia, with power access the key factor.'],
+   ['Fixed-price shift','Stifel asked about the shift toward guaranteed-maximum-price contracts.','Mechanical mix shifted about 9–10%, mainly on complex AI data-center projects.'],
+   ['Labor and local moratoriums','William Blair asked about flexibility given local data-center moratorium proposals.','Union labor travels for projects, prefabrication helps, and some counties depend on data-center tax revenue, so owners will find places to build.'],
+   ['Project size','Goldman asked about project scale.','Data-center projects grew from about 20 MW in 2019 to 40–75 MW for cloud and well over 100 MW for AI.'],
+   ['Electrical margins','UBS asked what drove strong margins.','Electrical margin is near the middle of its band, and the 10.6% quarterly margin is not expected to repeat.'],
+   ['High-tech manufacturing','Thompson, Davis & Co. asked about semiconductor-related bookings.','Purchase orders in that space are up about 7% sequentially and growth could resume later this year or early next.']
+  ]},
+{ t:'WCC', n:'WESCO International', px:340.89, chg:-1.66, cap:16.613e9, lo:213.48, hi:388.64, role:'equip', date:'Jul 30, 2026',
+  what:'Industrial distributor of electrical, communications and utility products, with growing data-center and grid services businesses.',
+  pjm:'Distributes the cable, transformers and gear that go into utility and data-center build-outs. Data centers are about 20% of sales.',
+  qa:[
+   ['Growth drivers','An analyst asked what drives the broad growth and how durable it is.','Data centers are about 20% of trailing sales. The rest is power, reshoring and an expected industrial upcycle, with record backlog into 2027.'],
+   ['Data-center margins','Raymond James asked about margins.','Services pulled through after projects and new leaders helped. Grid services adds to margin in the utility segment.'],
+   ['Who buys grid services','Barrett asked who buys it.','A hyperscaler directly, not an integrator, in a business built over five to six years.'],
+   ['Crowding out','Barclays asked if AI spending is crowding out other markets.','Not at WESCO. Power and construction labor are the main constraints across the industry.'],
+   ['Pricing and hiring','Wolfe asked about price and hiring.','Pricing contributed about 3% and has normalized. Hiring is selective and below sales growth.'],
+   ['Grid services competition','Jefferies asked who competes.','No direct one-for-one competitor, and the pipeline is large and long-cycle.']
+  ]},
+{ t:'AMZN', n:'Amazon', px:250.00, chg:-1.87, cap:2696.575e9, lo:196.00, hi:287.20, role:'load', date:'Jul 30, 2026',
+  what:'Online retail, advertising and the AWS cloud, which is among the largest buyers of data-center power.',
+  pjm:'Demand side of the story. AWS is doubling its power capacity by the end of 2027 against 2025, and it has a supply deal with Talen in PJM.',
+  qa:[
+   ['AWS margins and AI','J.P. Morgan asked about margins and AI strategy.','AWS margins rose sharply on efficiency and capacity optimization and will move with investment and AI mix. AI margins should follow a similar path to the core business.'],
+   ['Capacity and power','Bank of America asked about AWS acceleration.','Growth comes from AWS breadth, inference moving to production, and AI pulling core compute along. Amazon is on track to double power capacity by end of 2027 versus 2025.'],
+   ['Capacity reserved','Morgan Stanley asked about 2027 data-center spend.','Most 2027 capacity is already reserved and a substantial amount of 2028 as well. Amazon will keep investing.'],
+   ['Selling chips','Morgan Stanley asked about selling Trainium externally.','Customers are asking for chips outside AWS, and Amazon is exploring it with a real chance it happens.'],
+   ['Backlog and cost inflation','Wells Fargo asked about pricing amid cost inflation.','Backlog keeps growing and is in capex projections. Pricing is fixed in existing contracts, and new deals reflect higher memory and storage costs.'],
+   ['Funding','Baird asked about funding sources.','Amazon has issued debt this year and has many funding options, with nothing new to share.']
+  ]}
+];
+const THEMES = [
+  { h:'PJM’s $555 per MW-day backstop', p:'Several generators said the cap is a ceiling some projects will clear above, and that bilateral contracts may shrink central procurement. NRG said under half of its 2 GW of upgrades would clear at that price.', t:['CEG','VST','TLN','NRG','PEG'] },
+  { h:'Co-location and large-load rules', p:'Timing for PJM and FERC decisions kept coming up. Constellation expects a PJM response around November and a FERC order in the first half of 2027. Vistra opposes bring-your-own-capacity mandates.', t:['CEG','VST','NRG','FE'] },
+  { h:'Data-center demand turning into contracts', p:'Utilities and builders described a fast pipeline: FirstEnergy expects 1.5 GW of contracts soon, Talen cited about 4 GW of sites. PSEG saw continued interest but no inflection while PJM rules settle.', t:['FE','TLN','PEG','EME','WCC','AMZN'] },
+  { h:'PJM strong, Texas weak', p:'Vistra, NRG and Constellation all noted that PJM forward power prices are firming while ERCOT is soft because batteries arrived before load.', t:['VST','NRG','CEG'] },
+  { h:'Supply chain is the limit on new supply', p:'GE Vernova has gas turbine slots reserved into 2031 and Quanta, Eaton and WESCO all cite labor and equipment as the constraint. New supply is slow even when prices call for it.', t:['GEV','ETN','PWR','WCC'] },
+  { h:'Gas and power prices move together', p:'EQT noted PJM power and gas prices are tightly correlated and expects the spark spread to widen. Williams is building on-site power for data centers along Transco.', t:['EQT','WMB'] }
+];
+
+document.getElementById('asof').textContent = ASOF;
+document.getElementById('asof2').textContent = ASOF;
+const byT = Object.fromEntries(D.map(d => [d.t, d]));
+const fmtCap = v => v >= 1e12 ? '$' + (v / 1e12).toFixed(2) + 'T' : '$' + (v / 1e9).toFixed(1) + 'B';
+const fmtPx = v => '$' + v.toFixed(2);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let sel = 'TLN', filter = 'all', sortKey = null, sortDir = -1;
+
+function roleTag(r) { const R = ROLES[r]; return '<span class="role"><span class="dot" style="background:var(' + R.color + ')"></span>' + R.label + '</span>'; }
+
+function renderChain() {
+  document.getElementById('chain').innerHTML = Object.keys(ROLES).map(k => {
+    const R = ROLES[k];
+    const chips = D.filter(d => d.role === k).map(d => '<button class="chip" data-t="' + d.t + '">' + d.t + '</button>').join('');
+    return '<div class="stage"><h3><span class="dot" style="background:var(' + R.color + ')"></span>' + R.label + '</h3><p>' + R.blurb + '</p><div class="chips">' + chips + '</div></div>';
+  }).join('');
+}
+function renderFilters() {
+  const opts = [['all', 'All']].concat(Object.keys(ROLES).map(k => [k, ROLES[k].label]));
+  document.getElementById('filters').innerHTML = opts.map(o => '<button class="pill" data-f="' + o[0] + '" aria-pressed="' + (filter === o[0]) + '">' + o[1] + '</button>').join('');
+}
+const COLS = [
+  ['t', 'Company', false], ['px', 'Price', true], ['chg', 'Change', true], ['cap', 'Market cap', true], ['rng', '52-week range', true], ['role', 'Role', false], ['what', 'What they do', false]
+];
+function renderHead() {
+  document.getElementById('thead').innerHTML = COLS.map(c => {
+    const s = sortKey === c[0] ? (sortDir > 0 ? ' ▲' : ' ▼') : '';
+    const sortable = ['t', 'px', 'chg', 'cap', 'role'].includes(c[0]);
+    return '<th class="' + (c[2] ? 'num ' : '') + (sortable ? 'sortable' : '') + '" data-k="' + c[0] + '"' + (sortable ? ' tabindex="0" role="button"' : '') + '>' + c[1] + s + '</th>';
+  }).join('');
+}
+function renderBody() {
+  let rows = D.filter(d => filter === 'all' || d.role === filter);
+  if (sortKey) rows = rows.slice().sort((a, b) => (a[sortKey] > b[sortKey] ? 1 : a[sortKey] < b[sortKey] ? -1 : 0) * sortDir);
+  document.getElementById('tbody').innerHTML = rows.map(d => {
+    const pos = Math.max(0, Math.min(100, (d.px - d.lo) / (d.hi - d.lo) * 100));
+    return '<tr data-t="' + d.t + '" tabindex="0" aria-selected="' + (d.t === sel) + '">' +
+      '<td><div class="tk">' + d.t + '</div><div class="nm">' + esc(d.n) + '</div></td>' +
+      '<td class="num mono">' + fmtPx(d.px) + '</td>' +
+      '<td class="num mono ' + (d.chg >= 0 ? 'up' : 'down') + '">' + (d.chg >= 0 ? '+' : '') + d.chg.toFixed(2) + '%</td>' +
+      '<td class="num mono">' + fmtCap(d.cap) + '</td>' +
+      '<td class="num"><div class="range" title="' + fmtPx(d.lo) + ' to ' + fmtPx(d.hi) + '"><i style="left:calc(' + pos + '% - 1px)"></i></div><div class="rangelbl">' + d.lo.toFixed(0) + ' – ' + d.hi.toFixed(0) + '</div></td>' +
+      '<td>' + roleTag(d.role) + '</td>' +
+      '<td class="what">' + esc(d.what) + '</td></tr>';
+  }).join('');
+}
+function renderPicker() {
+  document.getElementById('picker').innerHTML = D.map(d => '<button class="pill" data-t="' + d.t + '" aria-pressed="' + (d.t === sel) + '">' + d.t + '</button>').join('');
+}
+function renderDetail() {
+  const d = byT[sel];
+  const items = d.qa.map((x, i) => '<details' + (i === 0 ? ' open' : '') + '><summary><div><div class="q">' + esc(x[0]) + '</div><div class="who">' + esc(x[1]) + '</div></div><span class="tog"></span></summary><div class="a">' + esc(x[2]) + '</div></details>').join('');
+  document.getElementById('detail').innerHTML =
+    '<div class="dhead"><div><h2 style="margin:0">' + esc(d.n) + ' <span class="tk" style="color:var(--muted);font-size:14px">' + d.t + '</span></h2>' + roleTag(d.role) + '</div><div class="tag">Call: ' + esc(d.date) + ' · ' + d.qa.length + ' exchanges shown</div></div>' +
+    '<p class="pjm"><b>PJM angle.</b> ' + esc(d.pjm) + '</p><div class="qa">' + items + '</div>';
+}
+function renderThemes() {
+  document.getElementById('themes').innerHTML = THEMES.map(t => '<div class="theme"><h3>' + esc(t.h) + '</h3><p>' + esc(t.p) + '</p><div class="chips">' + t.t.map(x => '<button class="chip" data-t="' + x + '">' + x + '</button>').join('') + '</div></div>').join('');
+}
+function select(t, scroll) {
+  sel = t; renderBody(); renderPicker(); renderDetail();
+  if (scroll) document.getElementById('detail-sec').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+document.addEventListener('click', e => {
+  const f = e.target.closest('[data-f]'); if (f) { filter = f.dataset.f; renderFilters(); renderBody(); return; }
+  const th = e.target.closest('th[data-k]');
+  if (th && th.classList.contains('sortable')) { const k = th.dataset.k; sortDir = sortKey === k ? -sortDir : (k === 't' || k === 'role' ? 1 : -1); sortKey = k; renderHead(); renderBody(); return; }
+  const tr = e.target.closest('tr[data-t]'); if (tr) { select(tr.dataset.t, true); return; }
+  const c = e.target.closest('[data-t]'); if (c) { select(c.dataset.t, !c.closest('#picker')); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const tr = e.target.closest('tr[data-t]'); if (tr) { e.preventDefault(); select(tr.dataset.t, true); return; }
+  const th = e.target.closest('th.sortable'); if (th) { e.preventDefault(); th.click(); }
+});
+renderChain(); renderFilters(); renderHead(); renderBody(); renderPicker(); renderDetail(); renderThemes();
+</script>
