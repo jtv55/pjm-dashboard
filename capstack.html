@@ -1,0 +1,252 @@
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>PJM Capital Stacks</title>
+<style>
+:root {
+  --bg: #fcfcfb; --surface: #ffffff; --fg: #141413; --fg2: #52514e; --muted: #7a7973;
+  --line: #e4e3de; --soft: #f4f3ef; --accent: #2a78d6; --up: #0b7a43; --down: #c03a2b; --warn: #a86b00;
+  --r-fuel: #b8541f; --r-gen: #2a78d6; --r-wire: #0e8a62; --r-equip: #6250d6; --r-load: #b0447a;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+    --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+    --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+  --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+  --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 28px; line-height: 1.2; margin: 6px 0 8px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+.lede { color: var(--fg2); max-width: 68ch; margin: 0 0 22px; }
+.sub { color: var(--fg2); font-size: 13px; margin: 0 0 12px; max-width: 74ch; }
+section { margin-bottom: 34px; }
+p { margin: 0 0 10px; }
+a { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi { border-top: 2px solid var(--line); padding-top: 8px; min-width: 0; }
+.kpi .v { font-family: var(--font-mono); font-size: 24px; font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--fg2); font-size: 13px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); } .warn { color: var(--warn); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted);
+  padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.num, td.num { text-align: right; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+tbody tr:last-child td { border-bottom: 0; }
+.pill { font: inherit; font-size: 13px; color: var(--fg2); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; cursor: pointer; }
+.pill[aria-pressed="true"] { color: var(--fg); border-color: var(--fg2); background: var(--soft); }
+button:focus-visible, input:focus-visible, th:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 10px; align-items: center; }
+.note { background: var(--soft); border-radius: 6px; padding: 10px 12px; font-size: 14px; max-width: 80ch; margin: 0 0 12px; }
+.foot { color: var(--muted); font-size: 12px; max-width: 82ch; border-top: 1px solid var(--line); padding-top: 14px; }
+.chart text { fill: var(--fg2); font-family: var(--font-body); font-size: 12px; }
+@media (max-width: 760px) { h1 { font-size: 24px; } }
+
+.stack { display: grid; grid-template-columns: 112px 1fr 120px; gap: 6px 12px; align-items: center; font-size: 13px; }
+.stack .nm { font-family: var(--font-mono); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.bar { position: relative; height: 18px; background: var(--soft); border-radius: 3px; overflow: hidden; border: 1px solid var(--line); }
+.bar i { position: absolute; top: 0; bottom: 0; display: block; }
+.bar .debt { background: var(--fg2); opacity: .55; left: 0; }
+.bar .eq { background: var(--r-gen); }
+.bar .gap { background: repeating-linear-gradient(45deg, var(--down), var(--down) 4px, transparent 4px, transparent 8px); opacity: .6; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--fg2); margin-bottom: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 10px; display: inline-block; border-radius: 2px; }
+input[type=range] { width: min(420px, 100%); accent-color: var(--accent); }
+th.sortable { cursor: pointer; user-select: none; }
+.tier { border-left: 3px solid var(--line); padding-left: 12px; margin-bottom: 14px; }
+.tier h3 { margin-bottom: 2px; }
+.tier ul { margin: 6px 0 0; padding-left: 18px; color: var(--fg2); font-size: 14px; }
+.tier li { margin-bottom: 4px; }
+.pillrole { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; }
+@media (max-width: 560px) { .stack { grid-template-columns: 76px 1fr 82px; } }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+
+<nav style="font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="index.html" style="color:inherit">Build log</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a></nav>
+<div class="wrap">
+  <div class="eyebrow">Capital stacks · fulcrum analysis · snapshot Oct 19, 2026</div>
+  <h1>Who gets hurt first when the numbers move</h1>
+  <p class="lede">For each of the 15 names: how much of the company's value is debt and how much is equity, how big a fall in enterprise value it takes to wipe out the equity, and which layer becomes the fulcrum (the layer where value runs out) beyond that. Drag the slider to stress them all at once.</p>
+
+  <section aria-labelledby="h-stress">
+    <h2 id="h-stress">Stress test</h2>
+    <p class="sub">Enterprise value is market cap plus net debt. A fall in enterprise value comes from lower EBITDA, a lower multiple, or both. Debt is fixed, so equity absorbs the loss first. Solid blue is equity left, grey is net debt, striped red is debt the stressed value no longer covers (the fulcrum has moved into the debt).</p>
+    <div class="ctl">
+      <label for="shock"><b>Enterprise value change:</b> <span class="mono" id="shockv">-30%</span></label>
+      <input id="shock" type="range" min="0" max="80" value="30" step="1" aria-label="Enterprise value decline in percent">
+      <button class="pill" id="reset">Reset</button>
+    </div>
+    <div class="legend"><span><i style="background:var(--fg2);opacity:.55"></i>Net debt</span><span><i style="background:var(--r-gen)"></i>Equity left</span><span><i style="background:repeating-linear-gradient(45deg,var(--down),var(--down) 3px,transparent 3px,transparent 6px)"></i>Debt not covered</span></div>
+    <div class="card"><div class="stack" id="stack" role="list"></div></div>
+    <p class="sub" style="margin-top:8px">The stress treats all debt as one class. Real recoveries depend on seniority (secured before unsecured, operating-company debt before parent debt), which pushes more of the shortfall onto the junior layers listed in the table below.</p>
+  </section>
+
+  <section aria-labelledby="h-table">
+    <h2 id="h-table">The numbers</h2>
+    <p class="sub">USD. Click a column to sort. Leverage is net debt divided by reference EBITDA. Cushion is the share of enterprise value that is equity, which is also the size of the fall in enterprise value that wipes it out.</p>
+    <div class="ctl" id="filters" role="group" aria-label="Filter by role"></div>
+    <div class="tablewrap"><table style="min-width:980px">
+      <thead><tr id="thead"></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+    <p class="sub" style="margin-top:8px" id="basisnote"></p>
+  </section>
+
+  <section aria-labelledby="h-fulcrum">
+    <h2 id="h-fulcrum">Where each one's fulcrum sits</h2>
+    <p class="sub">Typical structures, from general knowledge of how these companies fund themselves. Verify exact tranches and amounts in each company's latest 10-K debt note before relying on them.</p>
+    <div class="tablewrap"><table style="min-width:760px">
+      <thead><tr><th>Name</th><th>Structure, senior to junior</th><th>Fulcrum if stressed</th></tr></thead>
+      <tbody id="struct"></tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="h-take">
+    <h2 id="h-take">How they sit, and where they are going</h2>
+    <div class="tier" style="border-color:var(--r-gen)"><h3>Stretched balance sheets: NRG, FirstEnergy, PSEG, NextEra, Talen</h3>
+      <ul id="t1"></ul></div>
+    <div class="tier" style="border-color:var(--r-wire)"><h3>Comfortable but exposed to the rules: Vistra, Constellation, Williams, Eaton</h3>
+      <ul id="t2"></ul></div>
+    <div class="tier" style="border-color:var(--r-equip)"><h3>Clean credit, expensive stock: GE Vernova, Quanta, EMCOR, EQT, Amazon</h3>
+      <ul id="t3"></ul></div>
+    <div class="tier" style="border-color:var(--warn)"><h3>What changes the picture</h3>
+      <ul id="t4"></ul></div>
+  </section>
+
+  <p class="foot">Market cap, total debt, cash, TTM EBITDA, interest coverage and free cash flow come from stockanalysis.com statistics pages read on Oct 19, 2026, and may contain errors or include lease liabilities in debt. TTM EBITDA is GAAP-based and distorted by hedge mark-to-market for the power producers, so for Vistra, NRG, Talen and Williams the reference EBITDA is the midpoint of the company's 2026 adjusted EBITDA guidance (Williams sources differ, $8.3 to 8.5 billion). Constellation does not guide EBITDA; its reference is TTM. Credit ratings and covenant detail are not included unless stated. The "fulcrum" is a stylized stress measure, not a prediction of default for any company. Not investment advice.</p>
+</div>
+
+<script>
+const D = [
+ ['VST','Vistra','gen',50.24,20.51,0.435,6.65,7.2,'2026 adj. EBITDA guidance midpoint',3.81,2.26],
+ ['NRG','NRG Energy','gen',20.89,23.47,0.162,3.25,5.575,'2026 adj. EBITDA guidance midpoint',2.03,0.348],
+ ['TLN','Talen Energy','gen',16.83,9.57,0.232,0.582,2.125,'2026 adj. EBITDA guidance midpoint',0.31,0.444],
+ ['CEG','Constellation','gen',93.25,24.70,0.697,7.95,7.95,'TTM',6.01,0.295],
+ ['PEG','PSEG','wire',35.05,24.68,0.192,4.46,4.46,'TTM',2.81,0.276],
+ ['FE','FirstEnergy','wire',26.18,28.98,0.063,5.42,5.42,'TTM',2.74,-1.95],
+ ['NEE','NextEra','wire',163.06,110.20,2.87,14.59,14.59,'TTM',2.40,-16.57],
+ ['EQT','EQT','fuel',34.04,5.66,0.113,7.00,7.00,'TTM',11.08,3.76],
+ ['WMB','Williams','fuel',86.09,30.79,0.203,7.03,8.4,'2026 adj. EBITDA guidance midpoint',3.15,-0.174],
+ ['GEV','GE Vernova','equip',241.95,3.72,12.72,3.93,3.93,'TTM',null,12.44],
+ ['ETN','Eaton','equip',152.06,21.33,0.695,6.64,6.64,'TTM',11.71,3.93],
+ ['PWR','Quanta','equip',92.97,6.60,0.506,3.05,3.05,'TTM',6.84,2.29],
+ ['EME','EMCOR','equip',31.62,0.548,0.924,1.99,1.99,'TTM',148.57,1.17],
+ ['WCC','WESCO','equip',16.67,6.71,0.809,1.59,1.59,'TTM',3.40,0.155],
+ ['AMZN','Amazon','load',2830.0,251.64,122.99,168.91,168.91,'TTM',28.13,-11.63]
+].map(r => { const nd = r[4] - r[5], ev = r[3] + nd; return { t:r[0], n:r[1], role:r[2], mc:r[3], debt:r[4], cash:r[5], ttm:r[6], eb:r[7], basis:r[8], cov:r[9], fcf:r[10], nd, ev, lev:nd/r[7], mult:ev/r[7], cush: nd > 0 ? r[3]/ev : 1 }; });
+const ROLES = { gen:['Generators','--r-gen'], wire:['Utilities & wires','--r-wire'], fuel:['Fuel & pipes','--r-fuel'], equip:['Equipment & build','--r-equip'], load:['Big load','--r-load'] };
+const STRUCT = {
+ VST:['Operating-company secured term loan, revolver and secured notes; parent unsecured notes; parent preferred stock; equity.','Parent unsecured notes and preferred, after the operating-company secured debt.'],
+ NRG:['Secured revolver, term loan and first-lien notes; parent unsecured notes; convertibles and preferred; equity.','Parent unsecured notes, with a thin cushion above them.'],
+ TLN:['Secured term loans and revolver at the operating subsidiary; unsecured senior notes due 2034 and 2036 issued for the Freedom and Guernsey purchases; equity.','Unsecured notes if the secured term loans are fully covered.'],
+ CEG:['Mostly unsecured senior notes, project-level non-recourse debt; investment-grade ratings (Baa1 and BBB+ after the Calpine deal); equity.','Equity, then unsecured notes. A downgrade below investment grade would need about $3.4 billion of collateral.'],
+ PEG:['Utility first-mortgage and secured medium-term notes at PSE&G; parent unsecured notes; equity.','Parent unsecured notes. Utility debt is secured by regulated assets.'],
+ FE:['Utility first-mortgage bonds at operating companies; transmission-company notes; parent unsecured notes; equity.','Parent unsecured notes, structurally behind the operating companies.'],
+ NEE:['Florida utility first-mortgage bonds; NextEra Energy Capital Holdings debentures guaranteed by the parent; junior subordinated debt and equity units; equity.','Junior subordinated and hybrid debt, then parent-guaranteed debentures.'],
+ EQT:['Unsecured senior notes and a revolver; equity.','Equity, then unsecured notes. Little structural subordination.'],
+ WMB:['Pipeline-subsidiary notes (Transco, Northwest); parent unsecured senior notes; junior subordinated hybrid notes; equity.','Hybrid and parent notes, behind the pipeline subsidiaries.'],
+ GEV:['Net cash. Small debt balance.','Equity only.'], ETN:['Unsecured senior notes and term debt; equity.','Equity, then unsecured notes.'],
+ PWR:['Senior notes, term loan and revolver; equity.','Equity.'], EME:['Net cash. A revolver, little drawn.','Equity only.'],
+ WCC:['Secured term loan and revolver, receivables securitization, senior notes; equity.','Senior notes behind the secured loans.'],
+ AMZN:['Unsecured senior notes; net debt small against EBITDA.','Equity only.']
+};
+let filter = 'all', sortKey = 'cush', sortDir = 1;
+const fmt = v => v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2);
+const roleTag = r => `<span class="pillrole"><span class="dot" style="background:var(${ROLES[r][1]})"></span>${ROLES[r][0]}</span>`;
+
+function stack() {
+  const x = +document.getElementById('shock').value / 100;
+  document.getElementById('shockv').textContent = '-' + Math.round(x * 100) + '%';
+  const rows = D.slice().sort((a, b) => a.cush - b.cush);
+  document.getElementById('stack').innerHTML = rows.map(d => {
+    const evS = d.ev * (1 - x), eq = Math.max(evS - d.nd, 0), nd = Math.max(d.nd, 0);  // net cash adds to equity
+    const covered = Math.min(evS, nd), gap = nd - covered, base = Math.max(d.ev, d.mc, 0.0001);
+    const pct = v => (100 * v / base).toFixed(2) + '%';
+    const left = Math.round(100 * eq / d.mc);
+    const label = eq > 0 ? left + '% of equity left' : (gap > 0 ? 'debt short by ' + Math.round(100 * gap / nd) + '%' : 'equity gone');
+    return `<div class="nm" role="listitem"><span class="dot" style="background:var(${ROLES[d.role][1]})"></span>${d.t}</div>
+      <div class="bar" title="${d.n}: net debt $${fmt(nd)}B, equity left $${fmt(eq)}B of $${fmt(d.mc)}B"><i class="debt" style="width:${pct(covered)}"></i><i class="eq" style="left:${pct(covered)};width:${pct(eq)}"></i><i class="gap" style="left:${pct(covered)};width:${pct(gap)}"></i></div>
+      <div class="mono ${eq <= 0 ? 'down' : ''}" style="text-align:right;font-size:12px">${label}</div>`;
+  }).join('');
+}
+const COLS = [['t','Name',0],['role','Role',0],['mc','Market cap $B',1],['nd','Net debt $B',1],['eb','Ref. EBITDA $B',1],['lev','Net debt / EBITDA',1],['mult','EV / EBITDA',1],['cush','Equity cushion',1],['cov','EBIT / interest',1],['fcf','FCF TTM $B',1]];
+function head() {
+  document.getElementById('thead').innerHTML = COLS.map(c => `<th class="sortable ${c[2] ? 'num' : ''}" data-k="${c[0]}" tabindex="0" role="button">${c[1]}${sortKey === c[0] ? (sortDir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('');
+}
+function body() {
+  let rows = D.filter(d => filter === 'all' || d.role === filter);
+  rows.sort((a, b) => ((a[sortKey] ?? -1e9) > (b[sortKey] ?? -1e9) ? 1 : (a[sortKey] ?? -1e9) < (b[sortKey] ?? -1e9) ? -1 : 0) * sortDir);
+  document.getElementById('tbody').innerHTML = rows.map(d => `<tr>
+    <td><b class="mono">${d.t}</b><div style="color:var(--muted);font-size:12px">${d.n}</div></td><td>${roleTag(d.role)}</td>
+    <td class="num mono">${fmt(d.mc)}</td><td class="num mono">${fmt(d.nd)}</td>
+    <td class="num mono" title="${d.basis}">${fmt(d.eb)}${d.basis.startsWith('2026') ? '*' : ''}</td>
+    <td class="num mono ${d.lev > 5 ? 'warn' : ''}">${d.lev.toFixed(1)}x</td><td class="num mono">${d.mult.toFixed(1)}x</td>
+    <td class="num mono ${d.cush < 0.5 ? 'down' : ''}">${(d.cush * 100).toFixed(0)}%</td>
+    <td class="num mono">${d.cov == null ? 'n/a' : d.cov.toFixed(1) + 'x'}</td><td class="num mono ${d.fcf < 0 ? 'down' : ''}">${d.fcf.toFixed(1)}</td></tr>`).join('');
+  document.getElementById('basisnote').textContent = '* Reference EBITDA is the midpoint of the company’s 2026 adjusted EBITDA guidance. Hover for the basis. Interest coverage uses GAAP EBIT, which understates the power producers where hedge losses are booked.';
+}
+function filters() {
+  const o = [['all', 'All']].concat(Object.keys(ROLES).map(k => [k, ROLES[k][0]]));
+  document.getElementById('filters').innerHTML = o.map(x => `<button class="pill" data-f="${x[0]}" aria-pressed="${filter === x[0]}">${x[1]}</button>`).join('');
+}
+function struct() {
+  document.getElementById('struct').innerHTML = D.slice().sort((a, b) => a.cush - b.cush).map(d => `<tr><td><b class="mono">${d.t}</b></td><td style="color:var(--fg2)">${STRUCT[d.t][0]}</td><td>${STRUCT[d.t][1]}</td></tr>`).join('');
+}
+const li = a => a.map(s => `<li>${s}</li>`).join('');
+function takes() {
+  const g = t => D.find(d => d.t === t);
+  const p = v => Math.round(v * 100) + '%';
+  document.getElementById('t1').innerHTML = li([
+    `<b>NRG</b> has the thinnest cushion, ${p(g('NRG').cush)}: a ${p(g('NRG').cush)} fall in enterprise value wipes out the equity. Net debt is ${g('NRG').lev.toFixed(1)}x guided EBITDA, but ${(g('NRG').nd / g('NRG').ttm).toFixed(1)}x on trailing EBITDA, because the LS Power portfolio only joined in January. The stock is a bet that 2026 guidance of $5.3 to 5.8 billion arrives. On its call NRG said funding the 2.4 GW Texas data center project on the balance sheet moves its 3x leverage target from 2028 to 2029, and that a partner structure could free room for buybacks.`,
+    `<b>FirstEnergy</b> (${p(g('FE').cush)} cushion) and <b>PSEG</b> (${p(g('PEG').cush)}) carry ${g('FE').lev.toFixed(1)}x and ${g('PEG').lev.toFixed(1)}x, normal for regulated utilities because regulators allow the debt to be repaid through rates. FirstEnergy's free cash flow is negative ($${g('FE').fcf.toFixed(1)}B) while it funds a $36 billion capital plan, so it relies on rate cases, new data center load, and capital markets. The risk is political: rate case outcomes in New Jersey and Ohio, not PJM prices.`,
+    `<b>NextEra</b> carries the most debt ($${g('NEE').nd.toFixed(0)}B net) and burns the most cash ($${(-g('NEE').fcf).toFixed(1)}B negative free cash flow), a build-out funded by capital markets. The Dominion combination, targeted for the second half of 2027, would bring a large PJM utility into the structure.`,
+    `<b>Talen</b> looks leveraged on trailing numbers (GAAP EBIT barely covers interest) but ${g('TLN').lev.toFixed(1)}x on guided EBITDA with a ${p(g('TLN').cush)} cushion. Its multiple is the point: ${g('TLN').mult.toFixed(0)}x guided EBITDA means the price assumes the AWS contract and new contracts deliver. It repriced its term loans in May 2026 at SOFR plus 175 basis points, which suggests lenders are comfortable.`
+  ]);
+  document.getElementById('t2').innerHTML = li([
+    `<b>Vistra</b> has the lowest leverage of the large power producers on guided EBITDA (${g('VST').lev.toFixed(1)}x), ${p(g('VST').cush)} cushion and $${g('VST').fcf.toFixed(1)}B of free cash flow. On its call it had $1.2 billion left on its buyback authorization, which shows how much room it has.`,
+    `<b>Constellation</b> (${g('CEG').lev.toFixed(1)}x, ${p(g('CEG').cush)} cushion) is rated Baa1 and BBB+ after buying Calpine. Its 10-Q says losing investment grade would require roughly $3.4 billion of extra collateral, so staying investment grade is part of the business model. A third-party summary of its plan describes spending on buybacks and on deleveraging at the same time, which I have not checked against its filings.`,
+    `<b>Williams</b> (${g('WMB').lev.toFixed(1)}x guided) has negative free cash flow because it is building power projects for data centers. It moved much of that off its balance sheet with a Blackstone joint venture with $5.34 billion of committed capital. This is the template for how new power gets financed without stretching the parent.`,
+    `<b>Eaton</b> (${g('ETN').lev.toFixed(1)}x, ${p(g('ETN').cush)} cushion) completed the Boyd liquid-cooling purchase mentioned on its call, where data center organic revenue was up about 65%. Its credit risk is low; the stock's risk is how long data center spending keeps growing.`
+  ]);
+  document.getElementById('t3').innerHTML = li([
+    `<b>GE Vernova</b> has $${(-g('GEV').nd).toFixed(0)}B of net cash and EMCOR is net cash too. Credit is a non-issue. The fulcrum for these is valuation: GE Vernova trades at ${g('GEV').mult.toFixed(0)}x trailing EBITDA and Quanta at ${g('PWR').mult.toFixed(0)}x, so a modest slowdown in orders hurts the equity far more than any balance sheet risk would.`,
+    `<b>EQT</b> (${g('EQT').lev.toFixed(1)}x, free cash flow yield of ${(100 * g('EQT').fcf / g('EQT').ev).toFixed(0)}% of enterprise value) is the safest balance sheet that is paid directly by PJM-linked gas demand. On its call it said only about 40% of the identified Appalachian demand growth looks realistic.`,
+    `<b>Amazon</b> is a buyer of power, not a seller. Net debt is under 1x EBITDA. Its negative free cash flow is the capital spending behind the load growth PJM is struggling to serve.`,
+    `<b>WESCO</b> is the most leveraged of the equipment names (${g('WCC').lev.toFixed(1)}x) while its stock sits at ${g('WCC').mult.toFixed(0)}x EBITDA.`
+  ]);
+  document.getElementById('t4').innerHTML = li([
+    `<b>The capacity collar ends after the 2029/30 auction.</b> Higher capacity prices would lift the power producers' cash flow and strengthen their balance sheets, while a lower floor would do the opposite. See the capacity page.`,
+    `<b>Financing is moving toward partners and long contracts.</b> Fifteen-year contracts, joint ventures and backstop procurement make cash flows look utility-like, which supports more debt at lower cost. That is already visible at Williams and NRG.`,
+    `<b>Consolidation continues.</b> Constellation and Calpine, NRG and LS Power, Talen's plant purchases and NextEra and Dominion all pushed leverage up in the last year. The next deals will be judged on what they do to the cushion.`,
+    `<b>Rates matter more for the stretched names.</b> A utility at 5 to 7x net debt to EBITDA, or NRG at 4x with a 47% cushion, has more to lose from higher funding costs than the cash-rich names.`
+  ]);
+}
+document.addEventListener('click', e => {
+  const f = e.target.closest('[data-f]'); if (f) { filter = f.dataset.f; filters(); body(); return; }
+  const th = e.target.closest('th[data-k]'); if (th) { const k = th.dataset.k; sortDir = sortKey === k ? -sortDir : (k === 't' || k === 'role' || k === 'cush' ? 1 : -1); sortKey = k; head(); body(); }
+});
+document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('th[data-k]')) { e.preventDefault(); e.target.click(); } });
+document.getElementById('shock').addEventListener('input', stack);
+document.getElementById('reset').addEventListener('click', () => { document.getElementById('shock').value = 30; stack(); });
+stack(); filters(); head(); body(); struct(); takes();
+</script>

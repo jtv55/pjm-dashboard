@@ -1,0 +1,232 @@
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>PJM Capacity Desk</title>
+<style>
+:root {
+  --bg: #fcfcfb; --surface: #ffffff; --fg: #141413; --fg2: #52514e; --muted: #7a7973;
+  --line: #e4e3de; --soft: #f4f3ef; --accent: #2a78d6; --up: #0b7a43; --down: #c03a2b; --warn: #a86b00;
+  --r-fuel: #b8541f; --r-gen: #2a78d6; --r-wire: #0e8a62; --r-equip: #6250d6; --r-load: #b0447a;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+    --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+    --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+  --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+  --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 28px; line-height: 1.2; margin: 6px 0 8px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+.lede { color: var(--fg2); max-width: 68ch; margin: 0 0 22px; }
+.sub { color: var(--fg2); font-size: 13px; margin: 0 0 12px; max-width: 74ch; }
+section { margin-bottom: 34px; }
+p { margin: 0 0 10px; }
+a { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi { border-top: 2px solid var(--line); padding-top: 8px; min-width: 0; }
+.kpi .v { font-family: var(--font-mono); font-size: 24px; font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--fg2); font-size: 13px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); } .warn { color: var(--warn); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted);
+  padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.num, td.num { text-align: right; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+tbody tr:last-child td { border-bottom: 0; }
+.pill { font: inherit; font-size: 13px; color: var(--fg2); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; cursor: pointer; }
+.pill[aria-pressed="true"] { color: var(--fg); border-color: var(--fg2); background: var(--soft); }
+button:focus-visible, input:focus-visible, th:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 10px; align-items: center; }
+.note { background: var(--soft); border-radius: 6px; padding: 10px 12px; font-size: 14px; max-width: 80ch; margin: 0 0 12px; }
+.foot { color: var(--muted); font-size: 12px; max-width: 82ch; border-top: 1px solid var(--line); padding-top: 14px; }
+.chart text { fill: var(--fg2); font-family: var(--font-body); font-size: 12px; }
+@media (max-width: 760px) { h1 { font-size: 24px; } }
+
+.tl { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--line); }
+.tl li { position: relative; padding: 0 0 16px 18px; }
+.tl li::before { content: ""; position: absolute; left: -6px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--line); border: 2px solid var(--bg); }
+.tl li.done::before { background: var(--up); }
+.tl li.next::before { background: var(--warn); }
+.tl .when { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.tl .what { font-weight: 600; font-size: 14px; }
+.tl .why { color: var(--fg2); font-size: 13px; max-width: 74ch; }
+.tag { font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin-left: 6px; color: var(--muted); white-space: nowrap; }
+.calc { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.calc label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+.calc input[type=number] { width: 100%; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--fg); font-family: var(--font-mono); }
+.big { font-family: var(--font-mono); font-size: 28px; font-variant-numeric: tabular-nums; }
+dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: 14px; }
+dt { font-weight: 600; font-family: var(--font-mono); font-size: 13px; }
+dd { margin: 0; color: var(--fg2); }
+@media (max-width: 560px) { dl { grid-template-columns: 1fr; } }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+
+<nav style="font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="index.html" style="color:inherit">Build log</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a></nav>
+<div class="wrap">
+  <div class="eyebrow">PJM capacity market · as of Oct 19, 2026</div>
+  <h1>How PJM pays power plants for being ready</h1>
+  <p class="lede">Three years ahead of each delivery year, PJM runs a capacity auction. It sets a large share of what a generator earns, it has cleared at the price cap three times in a row, and the rules around it are changing right now. This page is the working notes.</p>
+
+  <div class="kpis">
+    <div class="kpi"><div class="v">$325</div><div class="l">per MW-day, 2028/29 auction (the cap), July 14, 2026</div></div>
+    <div class="kpi"><div class="v">6,831 MW</div><div class="l">short of the reliability requirement</div></div>
+    <div class="kpi"><div class="v">$554.72</div><div class="l">PJM's estimate without the cap</div></div>
+    <div class="kpi"><div class="v">~14.4-14.7%</div><div class="l">projected reserve margin versus a target of about 20% (sources differ)</div></div>
+  </div>
+
+  <section aria-labelledby="h-prices">
+    <h2 id="h-prices">What the auctions have cleared at</h2>
+    <p class="sub">RTO-wide price in $/MW-day (unforced capacity). Hollow bars show what PJM or a consultant estimates the price would have been without the cap. The cap and floor (about $325 and $175) were agreed with state governors and approved by FERC, and FERC extended them through the 2029/30 auction.</p>
+    <div class="card"><svg class="chart" id="bars" viewBox="0 0 700 320" role="img" aria-label="Bar chart of PJM capacity auction clearing prices by delivery year" style="width:100%;height:auto"></svg></div>
+    <p class="sub" style="margin-top:8px">† The 2024/25 price is from PJM's published results and was not re-checked against a source for this page. The 2027/28 uncapped figure ($529.80) is from a consultant report, the 2028/29 figure from PJM. Cleared supply in 2028/29: 138,318 MW, about 46% gas, 20% nuclear, 18% coal, 5% demand response. Only 525 MW of new generation and uprates cleared.</p>
+  </section>
+
+  <section aria-labelledby="h-how">
+    <h2 id="h-how">How it works in a minute</h2>
+    <div class="grid">
+      <div class="card"><h3>Pay for readiness</h3><p class="sub">PJM does not only buy energy. It pays resources to be available during the worst hours of the year. The auction price is per MW of accredited capacity per day, for a delivery year starting June 1.</p></div>
+      <div class="card"><h3>Auction three years out</h3><p class="sub">The Base Residual Auction (BRA) sets the price for a future year. Late additions and shortfalls are handled in later auctions and, now, in a separate backstop procurement.</p></div>
+      <div class="card"><h3>A collar limits the price</h3><p class="sub">Since the 2026/27 auction a cap and floor limit the result. The last three auctions all landed on the cap, which means the market wanted to clear higher.</p></div>
+      <div class="card"><h3>Short of the target</h3><p class="sub">The last two auctions procured less than PJM's one-event-in-ten-years reliability requirement. That is why PJM is designing a backstop and a rule for new large loads like data centers.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-calc">
+    <h2 id="h-calc">What a capacity price is worth to a plant</h2>
+    <p class="sub">Annual capacity revenue = MW × accreditation × price × 365. A generic calculator, not tied to any company's fleet. Change the numbers.</p>
+    <div class="card">
+      <div class="calc">
+        <div><label for="mw">Plant size (MW of installed capacity)</label><input id="mw" type="number" value="1000" min="0" step="50"></div>
+        <div><label for="acc">Accreditation (% of installed counted as capacity)</label><input id="acc" type="number" value="90" min="0" max="100" step="1"></div>
+        <div><label for="px">Capacity price ($/MW-day)</label><input id="px" type="number" value="325" min="0" step="5"></div>
+      </div>
+      <div class="big" id="rev"></div>
+      <p class="sub" id="sens" style="margin:6px 0 0"></p>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-cal">
+    <h2 id="h-cal">Policy calendar</h2>
+    <p class="sub">Dates and status as of the sources listed below. Items marked "expected" come from company calls, not from PJM or FERC documents, so treat the timing as soft.</p>
+    <ul class="tl" id="tl"></ul>
+  </section>
+
+  <section aria-labelledby="h-stocks">
+    <h2 id="h-stocks">What it has meant for the stocks</h2>
+    <p class="sub">Abnormal return of an equal-weight basket of VST, CEG, TLN and NRG (stock return minus what SPY and the QQQ-SPY gap explain), on the result day and the next two trading days. PJM posts results after the market closes, so the first full reaction is the next day. Four auctions is a story, not a test.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Results announced</th><th>Delivery year</th><th class="num">Result day</th><th class="num">Next day</th><th class="num">Day after</th></tr></thead>
+      <tbody id="ev"></tbody>
+    </table></div>
+    <p class="note" style="margin-top:10px">The basket rose the next day after all four auctions (+56 to +703 bp), then gave part of it back. With four events and a daily noise level of about 256 bp for this basket, that proves nothing yet. The December 2025 result day alone fell 486 bp. We will log every future auction in the hypothesis list.</p>
+  </section>
+
+  <section aria-labelledby="h-watch">
+    <h2 id="h-watch">What to watch, and why it matters</h2>
+    <div class="grid">
+      <div class="card"><h3>The collar ends</h3><p class="sub">The cap and floor cover auctions through 2029/30. After that, prices can rise toward the $555 uncapped estimate or fall. It is the single biggest swing for generator cash flow and for customer bills, and politics will decide it.</p></div>
+      <div class="card"><h3>Backstop contracts</h3><p class="sub">The backstop procurement would sign resources for up to 15 years at a MW-weighted average of up to $555 per MW-day. On earnings calls NRG said probably less than half of its 2 GW of PJM upgrades would clear a central auction at that price, and Vistra said some projects may need more than $555.</p></div>
+      <div class="card"><h3>Large-load rules</h3><p class="sub">New data centers that do not bring their own capacity could face an interim service from mid-2027, curtailed before other load. How co-location with existing plants is treated decides who captures the value of existing nuclear and gas.</p></div>
+      <div class="card"><h3>Supply that cannot arrive</h3><p class="sub">Only 525 MW of new generation cleared. Turbine slots are reserved years ahead, and gas pipelines and transmission take three to five years. The shortfall persists unless demand slows.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-gloss">
+    <h2 id="h-gloss">Glossary</h2>
+    <div class="card"><dl>
+      <dt>BRA</dt><dd>Base Residual Auction. The main capacity auction, held about three years before the delivery year.</dd>
+      <dt>RPM</dt><dd>Reliability Pricing Model, the name of PJM's capacity market design.</dd>
+      <dt>UCAP / ICAP</dt><dd>Unforced capacity (what counts after accreditation) and installed capacity (nameplate). Prices are quoted per UCAP MW-day.</dd>
+      <dt>Accreditation</dt><dd>The share of a resource's installed capacity that PJM counts. It differs by technology and is a major lever on revenue.</dd>
+      <dt>Collar</dt><dd>The price cap and floor on auction results, agreed with state governors and approved by FERC.</dd>
+      <dt>FRR</dt><dd>Fixed Resource Requirement. Some utilities supply their own capacity outside the auction.</dd>
+      <dt>RBP</dt><dd>Reliability Backstop Procurement. A separate procurement of long-term capacity to cover the auction shortfall.</dd>
+      <dt>IRAS</dt><dd>Interim resource adequacy service for new large loads that do not bring enough capacity.</dd>
+      <dt>Connect and manage</dt><dd>A framework where a load or resource connects now and accepts limits when the system is tight.</dd>
+      <dt>Co-location</dt><dd>A data center connecting directly at a power plant, which changes who pays for the grid and capacity.</dd>
+    </dl></div>
+  </section>
+
+  <p class="foot">Sources: PJM news release of July 14, 2026 and coverage by Public Power, OPIS and Enel North America for the 2028/29 auction; PJM release of December 17, 2025 and a Calpine report for 2027/28; PJM release of July 22, 2025 for 2026/27; PJM board letter of July 27, 2026 and a summary of FERC's late-September 2026 order for the backstop (the order itself was not read); company earnings calls for the co-location timing. Event-study returns use daily prices from Yahoo Finance and public PJM dates. Not investment advice.</p>
+</div>
+
+<script>
+const AUCTIONS = [
+  { dy: '2024/25', p: 28.92, note: '†' },
+  { dy: '2025/26', p: 269.92 },
+  { dy: '2026/27', p: 329.17 },
+  { dy: '2027/28', p: 333.44, unc: 529.80 },
+  { dy: '2028/29', p: 325.00, unc: 554.72 }
+];
+function bars() {
+  const W = 700, H = 320, L = 52, R = 16, T = 20, B = 44, max = 600;
+  const x = i => L + (i + 0.5) * (W - L - R) / AUCTIONS.length, bw = 64;
+  const y = v => T + (H - T - B) * (1 - v / max);
+  let s = '';
+  for (const t of [0, 100, 200, 300, 400, 500, 600]) s += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L - 8}" y="${y(t) + 4}" text-anchor="end">${t}</text>`;
+  for (const [v, lab] of [[325, 'cap about $325'], [175, 'floor about $175']]) s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--warn)" stroke-dasharray="5 4"/><text x="${L + 6}" y="${y(v) - 5}" text-anchor="start" style="fill:var(--warn)">${lab}</text>`;
+  AUCTIONS.forEach((a, i) => {
+    if (a.unc) s += `<rect x="${x(i) - bw / 2}" y="${y(a.unc)}" width="${bw}" height="${y(a.p) - y(a.unc)}" fill="none" stroke="var(--r-gen)" stroke-dasharray="4 3"><title>${a.dy}: about $${a.unc.toFixed(2)} without the cap</title></rect>`;
+    s += `<rect x="${x(i) - bw / 2}" y="${y(a.p)}" width="${bw}" height="${y(0) - y(a.p)}" fill="var(--r-gen)" rx="2"><title>${a.dy}: $${a.p.toFixed(2)} per MW-day</title></rect>`;
+    s += `<text x="${x(i)}" y="${y(a.p) - 6}" text-anchor="middle" style="fill:var(--fg)">$${a.p.toFixed(0)}${a.note || ''}</text>`;
+    s += `<text x="${x(i)}" y="${H - B + 18}" text-anchor="middle">${a.dy}</text>`;
+    if (a.unc) s += `<text x="${x(i)}" y="${y(a.unc) - 6}" text-anchor="middle">$${a.unc.toFixed(0)}</text>`;
+  });
+  s += `<text x="${L}" y="12">$/MW-day</text>`;
+  document.getElementById('bars').innerHTML = s;
+}
+function calc() {
+  const mw = +document.getElementById('mw').value || 0, acc = (+document.getElementById('acc').value || 0) / 100, px = +document.getElementById('px').value || 0;
+  const rev = mw * acc * px * 365 / 1e6;
+  document.getElementById('rev').textContent = '$' + rev.toFixed(1) + ' million a year';
+  document.getElementById('sens').textContent = 'Each $10 per MW-day moves it by $' + (mw * acc * 10 * 365 / 1e6).toFixed(1) + ' million a year. At the uncapped estimate of $554.72 the same plant would earn $' + (mw * acc * 554.72 * 365 / 1e6).toFixed(0) + ' million.';
+}
+const CAL = [
+  ['Jul 30, 2024', 'done', '2025/26 auction result: $269.92', 'First big jump after years of low prices.', 'PJM'],
+  ['Jul 22, 2025', 'done', '2026/27 auction result: $329.17, at the cap', 'The collar agreed with governors applied for the first time.', 'PJM'],
+  ['Dec 17, 2025', 'done', '2027/28 auction result: $333.44, at the cap', 'First time the whole RTO fell short of the reliability requirement (6,623 MW).', 'PJM'],
+  ['Apr 2026', 'done', 'FERC extends the collar to 2028/29 and 2029/30', 'Keeps a cap and floor through the 2029/30 delivery year.', 'law firm summaries'],
+  ['Jul 14, 2026', 'done', '2028/29 auction result: $325, at the cap', '138,318 MW cleared, 6,831 MW short, $16.4 billion total. PJM estimates $554.72 without the cap.', 'PJM'],
+  ['Jul 27, 2026', 'done', 'PJM board directs FERC filings on a reliability backstop and interim service for new large loads', 'Backstop contracts up to 15 years at a MW-weighted average of up to $555 per MW-day; initial target equal to the 6,831 MW shortfall.', 'PJM board letter'],
+  ['Late Sep 2026', 'done', 'FERC accepts the backstop filing but suspends it five months', 'Planned Sept 30 start did not proceed; timelines to be re-communicated. Read from a summary, not the order.', 'trade press'],
+  ['Nov 2026', 'next', 'PJM response on the co-location process (expected)', 'From a Constellation call. Vistra said PJM and transmission owners asked for more time.', 'company calls'],
+  ['Dec 15, 2026', 'next', '2029/30 auction closes', 'Last auction in the extended collar.', 'trade press'],
+  ['Feb 28, 2027', 'next', 'Backstop procurement effective date, subject to refund', 'Set by FERC when it suspended the filing.', 'trade press'],
+  ['1H 2027', 'next', 'FERC order on co-location (expected)', 'From a Constellation call; timing is the company\'s view.', 'company calls'],
+  ['Jun 1, 2027', 'next', 'Interim service starts for new large loads without enough capacity', 'They would be curtailed before pre-emergency load management.', 'PJM board letter'],
+  ['After 2029/30', 'next', 'Collar expires unless extended', 'No rule is set yet for later auctions.', 'analysis']
+];
+function timeline() {
+  document.getElementById('tl').innerHTML = CAL.map(c => `<li class="${c[1]}"><div class="when">${c[0]}<span class="tag">${c[4]}</span></div><div class="what">${c[2]}</div><div class="why">${c[3]}</div></li>`).join('');
+}
+const EV = [
+  ['Jul 30, 2024', '2025/26', -18, 703, -101], ['Jul 22, 2025', '2026/27', 103, 417, -137],
+  ['Dec 17, 2025', '2027/28', -486, 294, -227], ['Jul 14, 2026', '2028/29', -153, 56, -307]
+];
+function events() {
+  const f = v => `<td class="num mono ${v >= 0 ? 'up' : 'down'}">${v >= 0 ? '+' : ''}${v} bp</td>`;
+  document.getElementById('ev').innerHTML = EV.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td>${f(r[2])}${f(r[3])}${f(r[4])}</tr>`).join('');
+}
+['mw', 'acc', 'px'].forEach(id => document.getElementById(id).addEventListener('input', calc));
+bars(); calc(); timeline(); events();
+</script>
