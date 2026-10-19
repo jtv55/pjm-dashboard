@@ -127,7 +127,7 @@ ul.plain li { margin-bottom: 4px; }
   <section aria-labelledby="h-next">
     <h2 id="h-next">What comes next</h2>
     <div class="grid">
-      <div class="card"><h3>Near term</h3><ul class="plain"><li>Round-2 experiments: outage and reserve features and a seven-hub model.</li><li>Watch the forward ledger collect H1 events.</li><li>Start collecting real option quotes for the generator stocks, so options can be tested with market prices, not assumptions.</li></ul></div>
+      <div class="card"><h3>Near term</h3><ul class="plain"><li>Round-2 experiments: outage and reserve features and a seven-hub model.</li><li>Watch the forward ledger collect H1 events.</li><li>Collect real option quotes for the generator stocks (running twice a day since Oct 19), so options can be tested with market prices, not assumptions.</li></ul></div>
       <div class="card"><h3>Next builds</h3><ul class="plain"><li>A live feature pipeline so TabPFN can log daily predictions in the ledger.</li><li>Causal drill-down: click an hour, see why it moved.</li><li>Fragility gauge: how steep is the supply stack right now.</li><li>Gas prices and spark spreads.</li></ul></div>
       <div class="card"><h3>Later</h3><ul class="plain"><li>Paper trading with asymmetric option structures sized with fractional Kelly.</li><li>A small real-money pilot only after months of clean forward results.</li><li>Local TabPFN inference if cloud limits get in the way.</li></ul></div>
     </div>
@@ -157,7 +157,8 @@ const T = [
   ['Oct 19', 'done', 'Forward ledger live in the cloud', 'Daily job logs signals before the open, hash-chained.'],
   ['Oct 19', 'done', 'Capacity desk, capital stacks, options toolkit', 'Capacity market notes, leverage and stress test for 15 names, Black-Scholes and Kelly.'],
   ['Oct 19 evening', 'run', 'Round-2 experiments scheduled', 'Outages, reserves and a seven-hub model, after the TabPFN daily limit resets.'],
-  ['Next', 'plan', 'Real option quotes and live prediction pipeline', 'Needed to test asymmetric structures properly.']
+  ['Oct 19', 'done', 'Public site and option-chain capture', 'Every page is public. A cloud job now snapshots option chains for VST, CEG, TLN and NRG after the open and before the close.'],
+  ['Next', 'plan', 'Live prediction pipeline and option backtests on real quotes', 'Needed to test asymmetric structures properly.']
 ];
 document.getElementById('tl').innerHTML = T.map(t => `<li class="${t[1]}"><div class="when">${t[0]}</div><div class="what">${t[2]}</div><div class="why">${t[3]}</div></li>`).join('');
 </script>
