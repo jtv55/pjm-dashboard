@@ -60,6 +60,7 @@ button:focus-visible, input:focus-visible, th:focus-visible { outline: 2px solid
 .foot { color: var(--muted); font-size: 12px; max-width: 82ch; border-top: 1px solid var(--line); padding-top: 14px; }
 .chart text { fill: var(--fg2); font-family: var(--font-body); font-size: 12px; }
 @media (max-width: 760px) { h1 { font-size: 24px; } }
+@media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi .v { font-size: 20px; } }
 
 .stack { display: grid; grid-template-columns: 112px 1fr 120px; gap: 6px 12px; align-items: center; font-size: 13px; }
 .stack .nm { font-family: var(--font-mono); font-weight: 600; display: flex; align-items: center; gap: 6px; }
@@ -81,8 +82,9 @@ th.sortable { cursor: pointer; user-select: none; }
 @media (max-width: 560px) { .stack { grid-template-columns: 76px 1fr 82px; } }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 
-<nav style="font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="index.html" style="color:inherit">Build log</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="aigap.html" style="color:inherit">Power gap</a><a href="calendar.html" style="color:inherit">Energy calendar</a></nav>
+<nav style="font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="index.html" style="color:inherit">Build log</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="aigap.html" style="color:inherit">Power gap</a><a href="calendar.html" style="color:inherit">Energy calendar</a><a href="spikes.html" style="color:inherit">Spike lab</a></nav>
 <div class="wrap">
   <div class="eyebrow">Capital stacks · fulcrum analysis · snapshot Oct 19, 2026</div>
   <h1>Who gets hurt first when the numbers move</h1>
@@ -110,6 +112,13 @@ th.sortable { cursor: pointer; user-select: none; }
       <tbody id="tbody"></tbody>
     </table></div>
     <p class="sub" style="margin-top:8px" id="basisnote"></p>
+  </section>
+
+
+  <section aria-labelledby="h-lv">
+    <h2 id="h-lv">Leverage versus price</h2>
+    <p class="sub">Each bubble is a company (area is market cap, square-root scaled). Right means more debt per dollar of EBITDA; up means the market pays more per dollar of EBITDA. The upper-right corner is where a stumble hurts most.</p>
+    <div class="card"><div id="lv"></div><p class="sub" id="lv-so" style="margin:8px 0 0"></p></div>
   </section>
 
   <section aria-labelledby="h-fulcrum">
@@ -249,4 +258,75 @@ document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === 
 document.getElementById('shock').addEventListener('input', stack);
 document.getElementById('reset').addEventListener('click', () => { document.getElementById('shock').value = 30; stack(); });
 stack(); filters(); head(); body(); struct(); takes();
+</script>
+
+<script>/* Shared chart helpers (d3 v7 is loaded by the page). Colors come from the page's CSS variables so dark mode works. */
+const VZ = (() => {
+  const cs = () => getComputedStyle(document.documentElement);
+  const css = (v, fb) => (cs().getPropertyValue(v) || fb || '#888').trim();
+  const pal = () => ({
+    fg: css('--fg'), fg2: css('--fg2'), muted: css('--muted'), line: css('--line'), soft: css('--soft'), bg: css('--bg'), surface: css('--surface'),
+    up: css('--up'), down: css('--down'), warn: css('--warn'), accent: css('--accent'),
+    gen: css('--r-gen'), fuel: css('--r-fuel'), wire: css('--r-wire'), equip: css('--r-equip'), load: css('--r-load')
+  });
+  let tipEl;
+  function tip() {
+    if (!tipEl) {
+      tipEl = document.createElement('div');
+      tipEl.style.cssText = 'position:fixed;pointer-events:none;z-index:50;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.35;max-width:260px;box-shadow:0 2px 10px rgba(0,0,0,.15);display:none';
+      document.body.appendChild(tipEl);
+    }
+    return {
+      show(html, ev) {
+        tipEl.innerHTML = html; tipEl.style.display = 'block';
+        const x = Math.min(ev.clientX + 14, innerWidth - 270), y = Math.min(ev.clientY + 14, innerHeight - 80);
+        tipEl.style.left = x + 'px'; tipEl.style.top = y + 'px';
+      },
+      hide() { tipEl.style.display = 'none'; }
+    };
+  }
+  /* responsive svg with a fixed viewBox; returns {svg, g, w, h, iw, ih} */
+  function svg(el, w, h, m = { t: 12, r: 12, b: 28, l: 40 }) {
+    const root = d3.select(el); root.selectAll('*').remove();
+    const s = root.append('svg').attr('viewBox', `0 0 ${w} ${h}`).attr('class', 'chart').style('width', '100%').style('height', 'auto').attr('role', 'img');
+    const g = s.append('g').attr('transform', `translate(${m.l},${m.t})`);
+    return { svg: s, g, w, h, iw: w - m.l - m.r, ih: h - m.t - m.b, m };
+  }
+  function axisStyle(sel) {
+    const p = pal();
+    sel.selectAll('text').attr('fill', p.fg2).style('font-size', '11px');
+    sel.selectAll('path,line').attr('stroke', p.line);
+    return sel;
+  }
+  const fmt = { usd: d3.format('$,.0f'), int: d3.format(','), pct: d3.format('.0%'), bp: v => (v > 0 ? '+' : '') + Math.round(v) + ' bp' };
+  return { pal, tip, svg, axisStyle, fmt, css };
+})();
+</script>
+<script>
+(function () {
+  const tip = VZ.tip();
+  function draw() {
+    const P = VZ.pal(), o = VZ.svg(document.getElementById('lv'), 760, 420, {t: 14, r: 20, b: 38, l: 50}), g = o.g;
+    const rows = D.filter(d => d.eb > 0 && isFinite(d.lev) && isFinite(d.mult));
+    const x = d3.scaleLinear().domain([-0.6, 5.6]).range([0, o.iw]).clamp(true), y = d3.scaleLinear().domain([0, 35]).range([o.ih, 0]).clamp(true);
+    const xm = 2.5, ym = 14;
+    g.append('rect').attr('x', x(xm)).attr('y', 0).attr('width', o.iw - x(xm)).attr('height', y(ym)).attr('fill', P.down).attr('opacity', .07);
+    g.append('line').attr('x1', x(xm)).attr('x2', x(xm)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.muted).attr('stroke-dasharray', '4 4');
+    g.append('line').attr('y1', y(ym)).attr('y2', y(ym)).attr('x1', 0).attr('x2', o.iw).attr('stroke', P.muted).attr('stroke-dasharray', '4 4');
+    const lab = (t, a, b, an) => g.append('text').attr('x', a).attr('y', b).attr('text-anchor', an).attr('fill', P.muted).style('font-size', '11px').text(t);
+    lab('priced for growth, low debt', 4, 12, 'start'); lab('fragile: levered and expensive', o.iw - 4, 12, 'end'); lab('cheap, low debt', 4, o.ih - 6, 'start'); lab('levered but cheap: the market is already worried', o.iw - 4, o.ih - 6, 'end');
+    const rc = {gen: P.gen, wire: P.wire, fuel: P.fuel, equip: P.equip, load: P.load};
+    rows.forEach(d => { const cx = x(d.lev), cy = y(d.mult), r = 4 + Math.sqrt(d.mc) * 0.9;
+      g.append('circle').attr('cx', cx).attr('cy', cy).attr('r', r).attr('fill', rc[d.role]).attr('opacity', .7).attr('stroke', P.bg)
+        .on('mousemove', ev => tip.show('<b>' + d.n + '</b> (' + d.t + ')<br>Net debt / EBITDA ' + d.lev.toFixed(1) + 'x<br>EV / EBITDA ' + d.mult.toFixed(1) + 'x<br>Equity cushion ' + Math.round(d.cush * 100) + '% of enterprise value<br>Market cap $' + d.mc.toFixed(0) + 'B', ev)).on('mouseleave', tip.hide);
+      g.append('text').attr('x', cx).attr('y', cy - r - 3).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '10px').text(d.t); });
+    VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(6).tickFormat(d => d + 'x')));
+    VZ.axisStyle(g.append('g').call(d3.axisLeft(y).ticks(7).tickFormat(d => d + 'x')));
+    g.append('text').attr('x', o.iw / 2).attr('y', o.ih + 32).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '11px').text('Net debt / EBITDA');
+    g.append('text').attr('transform', 'rotate(-90)').attr('x', -o.ih / 2).attr('y', -38).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '11px').text('Enterprise value / EBITDA');
+    const frag = rows.filter(d => d.lev > xm && d.mult > ym).map(d => d.t), cheap = rows.filter(d => d.lev > xm && d.mult <= ym).map(d => d.t);
+    document.getElementById('lv-so').innerHTML = 'Levered and expensive: <b>' + (frag.join(', ') || 'none') + '</b>. Levered but priced cheaply: <b>' + (cheap.join(', ') || 'none') + '</b>. Colors: <span style="color:var(--r-gen)">generators</span>, <span style="color:var(--r-wire)">utilities</span>, <span style="color:var(--r-fuel)">fuel</span>, <span style="color:var(--r-equip)">equipment</span>, <span style="color:var(--r-load)">Amazon</span>. Lines are at 2.5x debt and 14x EV/EBITDA, chosen by eye.';
+  }
+  draw(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+})();
 </script>

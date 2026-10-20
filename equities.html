@@ -99,6 +99,14 @@ tbody tr[aria-selected="true"] { background: var(--soft); box-shadow: inset 3px 
 .foot { color: var(--muted); font-size: 12px; max-width: 80ch; border-top: 1px solid var(--line); padding-top: 14px; }
 
 
+
+.mapgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 12px; }
+@media (max-width: 520px) { .mapgrid { grid-template-columns: 1fr; } }
+.mapcard { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 12px; min-width: 0; }
+.mapcard h3 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+.mlegend { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 11px; color: var(--muted); margin-top: 4px; }
+.mso { font-size: 12px; color: var(--fg2); margin: 6px 0 0; } .mso b { color: var(--fg); }
+
 /* topic filter + evidence */
 @media (min-width: 900px) { .topicbar { position: sticky !important; top: 0; } }
 .topicbar { position: static; z-index: 5; background: var(--bg); padding: 10px 0 8px; border-bottom: 1px solid var(--line); margin: 0 0 24px; }
@@ -135,11 +143,25 @@ a { color: var(--accent); }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
 
-<nav style="font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="index.html" style="color:inherit">Build log</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="aigap.html" style="color:inherit">Power gap</a><a href="calendar.html" style="color:inherit">Energy calendar</a></nav>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<nav style="font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="index.html" style="color:inherit">Build log</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="aigap.html" style="color:inherit">Power gap</a><a href="calendar.html" style="color:inherit">Energy calendar</a><a href="spikes.html" style="color:inherit">Spike lab</a></nav>
 <div class="wrap">
   <div class="eyebrow">Equities · proxies for PJM exposure · snapshot <span id="asof"></span></div>
   <h1>Who gets paid when PJM power gets tight?</h1>
   <p class="lede">Fifteen listed companies along the PJM value chain, from the gas that fuels plants to the data centers that buy the power. Pick a topic to filter everything below (the table, analyst questions, management quotes, investor-deck slides), or pick a name to read what analysts asked on its latest quarterly call.</p>
+
+  <!--MAP-START-->
+  <section aria-labelledby="map-h" id="map-sec">
+    <h2 id="map-h">The map</h2>
+    <p class="sub">Four views of the same fifteen names. Click a tile or a cell to open that company below.</p>
+    <div class="mapgrid">
+      <div class="mapcard"><h3>Size and today's move</h3><div id="m-tree"></div><div class="mlegend"><span>tile area = square root of market cap (so Amazon does not swamp the rest)</span><span>green up · red down (latest session)</span></div></div>
+      <div class="mapcard"><h3>Who talks about what</h3><div id="m-heat"></div><div class="mlegend"><span>count of call questions, quotes and slides</span></div></div>
+      <div class="mapcard"><h3>Next-day move after a PJM price spike</h3><div id="m-dot"></div><p class="mso" id="m-dot-so"></p></div>
+      <div class="mapcard"><h3>Spike risk versus policy-news risk</h3><div id="m-quad"></div><p class="mso" id="m-quad-so"></p></div>
+    </div>
+  </section>
+<!--MAP-END-->
 
   <div class="topicbar" id="topicbar">
     <div class="ctl" id="topics" role="group" aria-label="Filter by topic"></div>
@@ -537,4 +559,131 @@ document.addEventListener('keydown', e => {
 });
 document.getElementById('onlysel').addEventListener('change', e => { onlySel = e.target.checked; renderQuotes(); renderDecks(); });
 renderChain(); renderHead(); renderPicker(); renderAll();
+</script>
+<script>
+/*MAP-START*/
+/* Shared chart helpers (d3 v7 is loaded by the page). Colors come from the page's CSS variables so dark mode works. */
+const VZ = (() => {
+  const cs = () => getComputedStyle(document.documentElement);
+  const css = (v, fb) => (cs().getPropertyValue(v) || fb || '#888').trim();
+  const pal = () => ({
+    fg: css('--fg'), fg2: css('--fg2'), muted: css('--muted'), line: css('--line'), soft: css('--soft'), bg: css('--bg'), surface: css('--surface'),
+    up: css('--up'), down: css('--down'), warn: css('--warn'), accent: css('--accent'),
+    gen: css('--r-gen'), fuel: css('--r-fuel'), wire: css('--r-wire'), equip: css('--r-equip'), load: css('--r-load')
+  });
+  let tipEl;
+  function tip() {
+    if (!tipEl) {
+      tipEl = document.createElement('div');
+      tipEl.style.cssText = 'position:fixed;pointer-events:none;z-index:50;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.35;max-width:260px;box-shadow:0 2px 10px rgba(0,0,0,.15);display:none';
+      document.body.appendChild(tipEl);
+    }
+    return {
+      show(html, ev) {
+        tipEl.innerHTML = html; tipEl.style.display = 'block';
+        const x = Math.min(ev.clientX + 14, innerWidth - 270), y = Math.min(ev.clientY + 14, innerHeight - 80);
+        tipEl.style.left = x + 'px'; tipEl.style.top = y + 'px';
+      },
+      hide() { tipEl.style.display = 'none'; }
+    };
+  }
+  /* responsive svg with a fixed viewBox; returns {svg, g, w, h, iw, ih} */
+  function svg(el, w, h, m = { t: 12, r: 12, b: 28, l: 40 }) {
+    const root = d3.select(el); root.selectAll('*').remove();
+    const s = root.append('svg').attr('viewBox', `0 0 ${w} ${h}`).attr('class', 'chart').style('width', '100%').style('height', 'auto').attr('role', 'img');
+    const g = s.append('g').attr('transform', `translate(${m.l},${m.t})`);
+    return { svg: s, g, w, h, iw: w - m.l - m.r, ih: h - m.t - m.b, m };
+  }
+  function axisStyle(sel) {
+    const p = pal();
+    sel.selectAll('text').attr('fill', p.fg2).style('font-size', '11px');
+    sel.selectAll('path,line').attr('stroke', p.line);
+    return sel;
+  }
+  const fmt = { usd: d3.format('$,.0f'), int: d3.format(','), pct: d3.format('.0%'), bp: v => (v > 0 ? '+' : '') + Math.round(v) + ' bp' };
+  return { pal, tip, svg, axisStyle, fmt, css };
+})();
+
+const RX = {"asof":"2026-10-16","up_days":44,"down_days":13,"rows":[{"t":"TLN","role":"gen","up":{"n":44,"bp":-114.9,"se":43.1,"neg":0.7},"down":{"n":13,"bp":52.6,"se":95.2,"neg":0.38},"pol":{"n":18,"bp":-231.1,"se":105.0}},{"t":"CEG","role":"gen","up":{"n":44,"bp":-79.7,"se":31.6,"neg":0.59},"down":{"n":13,"bp":76.9,"se":70.3,"neg":0.46},"pol":{"n":18,"bp":-107.4,"se":120.6}},{"t":"VST","role":"gen","up":{"n":44,"bp":-72.6,"se":31.6,"neg":0.57},"down":{"n":13,"bp":44.8,"se":74.1,"neg":0.38},"pol":{"n":18,"bp":-170.9,"se":94.1}},{"t":"NRG","role":"gen","up":{"n":44,"bp":-98.6,"se":37.8,"neg":0.59},"down":{"n":13,"bp":-8.5,"se":90.0,"neg":0.62},"pol":{"n":18,"bp":-94.4,"se":91.9}},{"t":"PEG","role":"wire","up":{"n":44,"bp":-9.5,"se":14.4,"neg":0.59},"down":{"n":13,"bp":7.5,"se":32.2,"neg":0.38},"pol":{"n":18,"bp":-18.6,"se":40.5}},{"t":"NEE","role":"wire","up":{"n":44,"bp":25.2,"se":17.5,"neg":0.48},"down":{"n":13,"bp":-17.9,"se":36.2,"neg":0.46},"pol":{"n":18,"bp":34.4,"se":48.5}},{"t":"FE","role":"wire","up":{"n":44,"bp":10.0,"se":14.3,"neg":0.48},"down":{"n":13,"bp":6.7,"se":27.7,"neg":0.54},"pol":{"n":18,"bp":6.8,"se":36.8}},{"t":"EQT","role":"fuel","up":{"n":44,"bp":-33.8,"se":27.0,"neg":0.57},"down":{"n":13,"bp":-29.5,"se":59.6,"neg":0.54},"pol":{"n":18,"bp":-53.0,"se":57.5}},{"t":"WMB","role":"fuel","up":{"n":44,"bp":18.3,"se":22.1,"neg":0.5},"down":{"n":13,"bp":-49.4,"se":62.0,"neg":0.46},"pol":{"n":18,"bp":-61.0,"se":69.9}},{"t":"GEV","role":"equip","up":{"n":44,"bp":-69.6,"se":39.7,"neg":0.57},"down":{"n":13,"bp":66.2,"se":63.2,"neg":0.31},"pol":{"n":18,"bp":35.2,"se":95.7}},{"t":"ETN","role":"equip","up":{"n":44,"bp":-13.5,"se":28.4,"neg":0.48},"down":{"n":13,"bp":20.8,"se":54.2,"neg":0.46},"pol":{"n":18,"bp":-35.7,"se":58.5}},{"t":"PWR","role":"equip","up":{"n":44,"bp":-27.4,"se":23.4,"neg":0.55},"down":{"n":13,"bp":-42.3,"se":45.7,"neg":0.62},"pol":{"n":18,"bp":28.5,"se":89.4}},{"t":"EME","role":"equip","up":{"n":44,"bp":-34.9,"se":23.2,"neg":0.61},"down":{"n":13,"bp":-24.9,"se":36.9,"neg":0.38},"pol":{"n":18,"bp":-13.3,"se":90.1}},{"t":"WCC","role":"equip","up":{"n":44,"bp":-65.6,"se":31.3,"neg":0.59},"down":{"n":13,"bp":-20.4,"se":59.1,"neg":0.54},"pol":{"n":18,"bp":-95.4,"se":49.3}},{"t":"AMZN","role":"load","up":{"n":44,"bp":-8.8,"se":17.0,"neg":0.48},"down":{"n":13,"bp":24.0,"se":22.3,"neg":0.38},"pol":{"n":18,"bp":21.3,"se":20.1}}]};
+(function () {
+  const el = id => document.getElementById(id), tip = VZ.tip();
+  const RXm = Object.fromEntries(RX.rows.map(r => [r.t, r]));
+  const RC = {gen: '--r-gen', wire: '--r-wire', fuel: '--r-fuel', equip: '--r-equip', load: '--r-load'};
+  const rcol = (r, P) => P[{gen: 'gen', wire: 'wire', fuel: 'fuel', equip: 'equip', load: 'load'}[r]];
+  const open = t => { if (typeof select === 'function') select(t, true); };
+
+  function tree() {
+    const P = VZ.pal(), W = 520, H = 330, o = VZ.svg(el('m-tree'), W, H, {t: 0, r: 0, b: 0, l: 0}), g = o.g;
+    const root = d3.hierarchy({children: Object.keys(ROLES).map(k => ({name: ROLES[k].label, role: k, children: D.filter(d => d.role === k).map(d => ({name: d.t, cap: d.cap, chg: d.chg, n: d.n}))}))}).sum(d => d.cap ? Math.sqrt(d.cap) : 0).sort((a, b) => b.value - a.value);
+    d3.treemap().size([W, H]).paddingInner(2).paddingTop(d => d.depth === 1 ? 15 : 0).round(true)(root);
+    const col = d3.scaleDiverging(d3.interpolateRgbBasis([P.down, P.soft, P.up])).domain([-3, 0, 3]);
+    root.children.forEach(grp => {
+      g.append('text').attr('x', grp.x0 + 2).attr('y', grp.y0 + 11).attr('fill', P.fg2).style('font-size', '11px').style('font-weight', 600).text(grp.data.name);
+      grp.children.forEach(d => {
+        const a = g.append('g').style('cursor', 'pointer').on('click', () => open(d.data.name))
+          .on('mousemove', ev => tip.show('<b>' + d.data.n + '</b> (' + d.data.name + ')<br>Market cap ' + fmtCap(d.data.cap) + '<br>Latest session ' + (d.data.chg >= 0 ? '+' : '') + d.data.chg.toFixed(2) + '%', ev)).on('mouseleave', tip.hide);
+        a.append('rect').attr('x', d.x0).attr('y', d.y0).attr('width', d.x1 - d.x0).attr('height', d.y1 - d.y0).attr('rx', 3).attr('fill', col(d.data.chg)).attr('stroke', P.line);
+        if (d.x1 - d.x0 > 34 && d.y1 - d.y0 > 24) a.append('text').attr('x', d.x0 + 5).attr('y', d.y0 + 15).attr('fill', P.fg).style('font-size', '12px').style('font-weight', 600).text(d.data.name);
+        if (d.x1 - d.x0 > 50 && d.y1 - d.y0 > 38) a.append('text').attr('x', d.x0 + 5).attr('y', d.y0 + 29).attr('fill', P.fg2).style('font-size', '11px').text((d.data.chg >= 0 ? '+' : '') + d.data.chg.toFixed(1) + '%');
+      });
+    });
+  }
+
+  function counts() {
+    const out = {};
+    D.forEach(d => { out[d.t] = {}; Object.keys(TOPIC_LABELS).forEach(k => out[d.t][k] = 0);
+      d.qa.forEach(q => qaTopics(q).forEach(k => out[d.t][k]++));
+      QUOTES.filter(q => q.t === d.t).forEach(q => q.tags.forEach(k => out[d.t][k]++));
+      DECKS.filter(k => k.t === d.t).forEach(k => k.slides.forEach(s => s[2].forEach(t => out[d.t][t]++))); });
+    return out;
+  }
+  function heat() {
+    const P = VZ.pal(), C = counts(), T = Object.keys(TOPIC_LABELS), co = D.map(d => d.t), o = VZ.svg(el('m-heat'), 520, 330, {t: 70, r: 6, b: 4, l: 44}), g = o.g;
+    const x = d3.scaleBand().domain(T).range([0, o.iw]).padding(.06), y = d3.scaleBand().domain(co).range([0, o.ih]).padding(.06);
+    const mx = d3.max(co, c => d3.max(T, t => C[c][t])), col = d3.scaleSequential(d3.interpolateRgb(P.soft, P.accent)).domain([0, mx]);
+    co.forEach(c => T.forEach(t => g.append('rect').attr('x', x(t)).attr('y', y(c)).attr('width', x.bandwidth()).attr('height', y.bandwidth()).attr('rx', 2).attr('fill', C[c][t] ? col(C[c][t]) : 'none').attr('stroke', C[c][t] ? 'none' : P.line)
+      .style('cursor', 'pointer').on('click', () => { topic = t; sel = c; renderAll(); select(c, false); document.getElementById('topicbar').scrollIntoView(); })
+      .on('mousemove', ev => tip.show('<b>' + c + '</b> · ' + TOPIC_LABELS[t] + '<br>' + C[c][t] + ' items', ev)).on('mouseleave', tip.hide)));
+    VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickSize(0)));
+    const ax = g.append('g').call(d3.axisTop(x).tickFormat(t => TOPIC_LABELS[t].replace(' and ', ' & ').slice(0, 22)).tickSize(0)); VZ.axisStyle(ax);
+    ax.selectAll('text').attr('transform', 'rotate(-45)').style('text-anchor', 'start');
+  }
+
+  function dots() {
+    const P = VZ.pal(), R = RX.rows.slice().sort((a, b) => a.up.bp - b.up.bp), o = VZ.svg(el('m-dot'), 520, 380, {t: 6, r: 14, b: 26, l: 48}), g = o.g;
+    const y = d3.scaleBand().domain(R.map(r => r.t)).range([0, o.ih]).padding(.3), m = d3.max(R, r => Math.abs(r.up.bp) + 1.96 * r.up.se), x = d3.scaleLinear().domain([-m, m]).nice().range([0, o.iw]);
+    g.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.muted);
+    R.forEach(r => {
+      g.append('line').attr('x1', x(r.up.bp - 1.96 * r.up.se)).attr('x2', x(r.up.bp + 1.96 * r.up.se)).attr('y1', y(r.t) + y.bandwidth() / 2).attr('y2', y(r.t) + y.bandwidth() / 2).attr('stroke', rcol(r.role, P)).attr('opacity', .5).attr('stroke-width', 2);
+      g.append('circle').attr('cx', x(r.up.bp)).attr('cy', y(r.t) + y.bandwidth() / 2).attr('r', 5).attr('fill', rcol(r.role, P)).style('cursor', 'pointer').on('click', () => open(r.t))
+        .on('mousemove', ev => tip.show('<b>' + r.t + '</b><br>' + Math.round(r.up.bp) + ' bp next day (±' + Math.round(1.96 * r.up.se) + ' at 95%)<br>' + Math.round(r.up.neg * 100) + '% of ' + r.up.n + ' days negative', ev)).on('mouseleave', tip.hide);
+    });
+    VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickSize(0))); VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(6).tickFormat(d => d + ' bp')));
+    const sig = R.filter(r => r.up.bp + 1.96 * r.up.se < 0).map(r => r.t);
+    el('m-dot-so').innerHTML = 'Abnormal return the session after ' + RX.up_days + ' up-spike days (spikes print after the close). Bars are 95% ranges. Clearly below zero: <b>' + (sig.join(', ') || 'none') + '</b>. Utilities and gas sit near zero.';
+  }
+
+  function quad() {
+    const P = VZ.pal(), o = VZ.svg(el('m-quad'), 520, 380, {t: 10, r: 14, b: 34, l: 48}), g = o.g, R = RX.rows;
+    const ext = d3.max(R, r => Math.max(Math.abs(r.up.bp), Math.abs(r.pol.bp))) * 1.15, x = d3.scaleLinear().domain([-ext, ext]).range([0, o.iw]), y = d3.scaleLinear().domain([-ext, ext]).range([o.ih, 0]);
+    g.append('rect').attr('x', 0).attr('y', y(0)).attr('width', x(0)).attr('height', o.ih - y(0)).attr('fill', P.down).attr('opacity', .07);
+    g.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.muted); g.append('line').attr('y1', y(0)).attr('y2', y(0)).attr('x1', 0).attr('x2', o.iw).attr('stroke', P.muted);
+    const lab = (t, a, b, an) => g.append('text').attr('x', a).attr('y', b).attr('text-anchor', an).attr('fill', P.muted).style('font-size', '11px').text(t);
+    lab('falls on both', 4, o.ih - 6, 'start'); lab('rises on both', o.iw - 4, 12, 'end'); lab('falls on policy news only', o.iw - 4, o.ih - 6, 'end'); lab('falls on spikes only', 4, 12, 'start');
+    R.forEach(r => { const cx = x(r.up.bp), cy = y(r.pol.bp), cap = byT[r.t].cap, rad = 4 + Math.sqrt(cap / 1e9) * .5;
+      g.append('circle').attr('cx', cx).attr('cy', cy).attr('r', rad).attr('fill', rcol(r.role, P)).attr('opacity', .7).attr('stroke', P.bg).style('cursor', 'pointer').on('click', () => open(r.t))
+        .on('mousemove', ev => tip.show('<b>' + r.t + '</b><br>After spikes: ' + Math.round(r.up.bp) + ' bp<br>After policy news: ' + Math.round(r.pol.bp) + ' bp (' + r.pol.n + ' events)', ev)).on('mouseleave', tip.hide);
+      g.append('text').attr('x', cx).attr('y', cy - rad - 3).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '10px').text(r.t); });
+    VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(5).tickFormat(d => d + ' bp'))); VZ.axisStyle(g.append('g').call(d3.axisLeft(y).ticks(5).tickFormat(d => d + ' bp')));
+    g.append('text').attr('x', o.iw / 2).attr('y', o.ih + 30).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '11px').text('Next-day move after PJM up-spike days');
+    g.append('text').attr('transform', 'rotate(-90)').attr('x', -o.ih / 2).attr('y', -36).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '11px').text('Event day plus next day, unscheduled federal and PJM news');
+    const both = R.filter(r => r.up.bp < 0 && r.pol.bp < 0).map(r => r.t);
+    el('m-quad-so').innerHTML = 'Names that fall on <b>both</b>: <b>' + both.join(', ') + '</b>. Four independent generators sit furthest into the corner, which is the cleanest sign they trade on PJM prices and policy together. Bubble size is market cap. Small samples (' + RX.up_days + ' spike days, ' + R[0].pol.n + ' news events).';
+  }
+
+  function all() { tree(); heat(); dots(); quad(); }
+  all(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
+})();
+
+/*MAP-END*/
 </script>

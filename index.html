@@ -60,6 +60,7 @@ button:focus-visible, input:focus-visible, th:focus-visible { outline: 2px solid
 .foot { color: var(--muted); font-size: 12px; max-width: 82ch; border-top: 1px solid var(--line); padding-top: 14px; }
 .chart text { fill: var(--fg2); font-family: var(--font-body); font-size: 12px; }
 @media (max-width: 760px) { h1 { font-size: 24px; } }
+@media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi .v { font-size: 20px; } }
 
 .tl { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--line); }
 .tl li { position: relative; padding: 0 0 14px 18px; }
@@ -77,14 +78,56 @@ button:focus-visible, input:focus-visible, th:focus-visible { outline: 2px solid
 .chip { font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; color: var(--muted); }
 ul.plain { margin: 6px 0 0; padding-left: 18px; color: var(--fg2); font-size: 14px; }
 ul.plain li { margin-bottom: 4px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 820px) { .two { grid-template-columns: 1fr; } }
+.so { font-size: 13px; color: var(--fg2); margin: 8px 0 0; max-width: 80ch; } .so b { color: var(--fg); }
+.hyp { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin-top: 10px; }
+.hyp div { border: 1px solid var(--line); border-left-width: 4px; border-radius: 4px; padding: 6px 8px; font-size: 12px; background: var(--surface); }
+.hyp b { font-family: var(--font-mono); font-size: 11px; display: block; }
+.hyp span { color: var(--fg2); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--fg2); margin-top: 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+details.fold { margin-bottom: 18px; } details.fold > summary { cursor: pointer; font-size: 18px; font-weight: 600; padding: 4px 0; }
+
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 
-<nav style="font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="index.html" style="color:inherit">Build log</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="aigap.html" style="color:inherit">Power gap</a><a href="calendar.html" style="color:inherit">Energy calendar</a></nav>
+<nav style="font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="index.html" style="color:inherit">Build log</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="aigap.html" style="color:inherit">Power gap</a><a href="calendar.html" style="color:inherit">Energy calendar</a><a href="spikes.html" style="color:inherit">Spike lab</a></nav>
 <div class="wrap">
-  <div class="eyebrow">Build log · started Oct 18, 2026 · updated Oct 19, 2026</div>
+  <div class="eyebrow">Build log · started Oct 18, 2026 · updated Oct 20, 2026</div>
   <h1>Learning PJM in public, and testing honestly whether there is an edge</h1>
   <p class="lede">This is a hobby project with two goals. The first is to understand how the PJM power market works well enough to explain any price move. The second is to find out, with data and without fooling ourselves, whether any of that understanding can be turned into a trading edge. Everything uses public data, money stays on paper until there is a track record, and the results below include the ones that did not work.</p>
+
+
+  <div class="kpis" id="meta-kpis"></div>
+
+  <section>
+    <h2>Where the hypotheses stand</h2>
+    <p class="sub">Every idea is written down before it is tested. The honest tally is mostly nulls and open questions.</p>
+    <div class="card">
+      <div id="hyp-bar"></div>
+      <div class="hyp" id="hyp"></div>
+      <div class="legend" id="hyp-leg"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Has any model beaten the one-line rule?</h2>
+    <p class="sub">Each dot is a model on frozen data. The dashed line is the rule "the higher the day-ahead price, the likelier a spike". Dots left of the line lose to it.</p>
+    <div class="card">
+      <div class="ctl"><span id="m-target"></span><span id="m-metric"></span></div>
+      <div id="models"></div>
+      <div class="legend"><span><i style="background:var(--muted)"></i>1 year of training</span><span><i style="background:var(--accent)"></i>3 years of training</span><span><i style="background:var(--warn)"></i>with load, weather, outages</span></div>
+      <p class="so" id="models-so"></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The iceberg: what we hold versus what we show</h2>
+    <p class="sub">Rows per dataset (log scale). Blue is on a page now, grey feeds models only, amber was just pulled and is queued for the next pages.</p>
+    <div class="card"><div id="ice"></div></div>
+  </section>
 
   <section aria-labelledby="h-rules">
     <h2 id="h-rules">How we keep ourselves honest</h2>
@@ -105,44 +148,46 @@ ul.plain li { margin-bottom: 4px; }
       <a href="equities.html"><div class="card"><h3>Equity map</h3><p class="sub">Fifteen listed names along the PJM value chain, with what analysts asked on their latest earnings calls.</p></div></a>
       <a href="capacity.html"><div class="card"><h3>Capacity desk</h3><p class="sub">The capacity market: auction history, the rules in flux, a plant revenue calculator and a policy calendar.</p></div></a>
       <a href="capstack.html"><div class="card"><h3>Capital stacks</h3><p class="sub">Leverage, equity cushion and a stress test for each of the 15 names.</p></div></a>
+      <a href="spikes.html"><div class="card"><h3>Spike lab</h3><p class="sub">When, where and why PJM prices blow up: heatmaps, a day-ahead price quadrant, hub comparison and the Sept 16 case study.</p></div></a>
+      <a href="calendar.html"><div class="card"><h3>Energy calendar</h3><p class="sub">86 sourced events with stakeholder scores, a who-wins quadrant, and predictions logged before the event.</p></div></a>
       <a href="aigap.html"><div class="card"><h3>Power gap (v2)</h3><p class="sub">AI capex guidance turned into PJM load, how much of it is likely to land, and how much capacity PJM needs by when.</p></div></a>
     </div>
     <p class="sub" style="margin-top:10px">Behind the pages: a data store that keeps every forecast as issued, a research harness with a frozen benchmark, a Black-Scholes and Kelly toolkit, an event-study script, and the forward ledger. The code is in a private repository.</p>
   </section>
 
-  <section aria-labelledby="h-learned">
-    <h2 id="h-learned">What we have learned so far</h2>
+  <details class="fold"><summary id="h-learned">What we have learned so far</summary><div>
+    
     <div class="find"><b>PJM's big price gaps are an evening ramp story.</b> At Western Hub, 97% of the largest real-time versus day-ahead gaps over four months fell between 4pm and 8pm, and about 89% of a typical gap was the system-wide energy price, not local congestion. They are scarcity bets: does the evening ramp tighten reserves or not?<div class="conf">Evidence: 20 largest hours in 30 days, 7 days. Small sample, clear pattern.</div></div>
     <div class="find"><b>TabPFN has not beaten a one-line rule yet.</b> For upward price spikes, a rule that says "the higher the day-ahead price, the likelier a spike" scored 0.83 AUC. TabPFN scored 0.745 with prices and calendar and 0.79 after we added load forecasts, weather and wind and solar, which is real but not enough. Gradient boosting scored about the same as TabPFN, so the limit is the data (about 70 spike events), not the model.<div class="conf">Evidence: 900 held-out ramp hours, 67 upward spikes. Differences under 0.05 are noise.</div></div>
     <div class="find"><b>A lead worth testing: generator stocks fall the day after a spike.</b> After upward spike days, an equal-weight basket of VST, CEG, TLN and NRG underperformed SPY by about 1.1% during the next trading day, with no overnight gap, so a trader could in principle act after the open. A possible reason is political risk: spikes feed affordability and price-cap pressure.<div class="conf">Evidence: 28 episodes, t-stat about -3, in-sample, weaker in 2025 than 2026. Not confirmed. The forward ledger has tracked it since Oct 19.</div></div>
     <div class="find"><b>Puts on the lead make money before costs, and costs decide the rest.</b> Using real historical option trades, buying a 2% or 5% out-of-the-money put on VST, CEG, NRG or TLN the morning after a spike earned about +10% on the premium by the close, against about -4% to -7% on random days. After 3% slippage on each side that shrinks to about +3 to +5%, and it reaches zero at about 5% per side. Quoted spreads on these options are often wider than that, so the idea only works if you can fill near the midpoint. TLN did not follow the pattern.<div class="conf">Evidence: 68 filled trades from 28 episodes (60% of attempts found a contract that traded in both windows), 91 placebo trades, in-sample. Real daytime quotes are now being captured to measure actual spreads.</div></div>
     <div class="find"><b>The capacity market is the bigger structural story.</b> The last three auctions cleared at the price cap, the system is about 6.8 GW short of its reliability target, and the cap and floor end after the 2029/30 auction. Generators on earnings calls spent most of their time on it.<div class="conf">Evidence: PJM auction releases and company calls; see the Capacity desk.</div></div>
     <div class="find"><b>The balance sheets are not alike.</b> NRG and FirstEnergy have the thinnest equity cushions (about 47 to 48% of enterprise value), Vistra and Constellation look comfortable, and GE Vernova, EMCOR and Amazon have no credit problem at all, so their risk is valuation.<div class="conf">Evidence: Oct 19 snapshot from public statistics pages; adjusted EBITDA guidance used for four names.</div></div>
-  </section>
+  </div></details>
 
-  <section aria-labelledby="h-timeline">
-    <h2 id="h-timeline">Timeline</h2>
+  <details class="fold"><summary id="h-timeline">Timeline</summary><div>
+    
     <ul class="tl" id="tl"></ul>
-  </section>
+  </div></details>
 
-  <section aria-labelledby="h-next">
-    <h2 id="h-next">What comes next</h2>
+  <details class="fold"><summary id="h-next">What comes next</summary><div>
+    
     <div class="grid">
       <div class="card"><h3>Near term</h3><ul class="plain"><li>Round-2 experiments: outage and reserve features and a seven-hub model.</li><li>Watch the forward ledger collect H1 events.</li><li>Collect real option quotes for the generator stocks (running twice a day since Oct 19), so options can be tested with market prices, not assumptions.</li></ul></div>
       <div class="card"><h3>Next builds</h3><ul class="plain"><li>A live feature pipeline so TabPFN can log daily predictions in the ledger.</li><li>Causal drill-down: click an hour, see why it moved.</li><li>Fragility gauge: how steep is the supply stack right now.</li><li>Gas prices and spark spreads.</li></ul></div>
       <div class="card"><h3>Later</h3><ul class="plain"><li>Paper trading with asymmetric option structures sized with fractional Kelly.</li><li>A small real-money pilot only after months of clean forward results.</li><li>Local TabPFN inference if cloud limits get in the way.</li></ul></div>
     </div>
-  </section>
+  </div></details>
 
-  <section aria-labelledby="h-wrong">
-    <h2 id="h-wrong">Where we could be wrong</h2>
+  <details class="fold"><summary id="h-wrong">Where we could be wrong</summary><div>
+    
     <ul class="plain">
       <li>Small samples. Seven spike days in a month and 28 episodes in two years can produce patterns by chance. We ran many comparisons.</li>
       <li>Free data has holes: PJM's load feed was not usable, price history for options is not free, and one stock-price source is unofficial.</li>
       <li>Generator stocks move with the AI trade and the market. Our simple factor model may not remove all of that.</li>
       <li>Costs matter. Options spreads, shorting costs and small account sizes can erase a 1% edge.</li>
     </ul>
-  </section>
+  </div></details>
 
   <p class="foot">Educational research, not investment advice. Nothing here is a recommendation to buy or sell any security. All figures come from public sources and may contain errors. Paper trading results are hypothetical and exclude many real-world frictions.</p>
 </div>
@@ -160,7 +205,108 @@ const T = [
   ['Oct 19 evening', 'run', 'Round-2 experiments scheduled', 'Outages, reserves and a seven-hub model, after the TabPFN daily limit resets.'],
   ['Oct 19', 'done', 'Public site and option-chain capture', 'Every page is public. A cloud job now snapshots option chains for VST, CEG, TLN and NRG after the open and before the close.'],
   ['Oct 19', 'done', 'Power gap v2', 'Hyperscaler and neocloud capex turned into PJM load and a capacity need by delivery year, calibrated to PJM\'s own planning numbers. Our guess for the Dec 15 auction is logged before the result.'],
+  ['Oct 20', 'done', 'Energy calendar and ledger', '86 sourced events, stakeholder scores, predictions sealed before the events, and a who-wins quadrant.'],
+  ['Oct 20', 'done', 'Equity map: topics, quotes, slides', 'One topic filter across the table, analyst questions, 34 verified quotes and 45 investor-deck slides shown inline.'],
+  ['Oct 20', 'done', 'Seven years of price history, new foils', 'Hub prices back to 2019; CatBoost and a price-only model join TabPFN. More history helped, but nothing beat the one-line rule.'],
+  ['Oct 20', 'done', 'Spike lab and visual pass', 'Heatmaps, a day-ahead quadrant, hub comparison, the load-surprise chart and the Sept 16 case study; treemap, quadrants and a sunburst on other pages.'],
   ['Next', 'plan', 'Live prediction pipeline and option backtests on real quotes', 'Needed to test asymmetric structures properly.']
 ];
 document.getElementById('tl').innerHTML = T.map(t => `<li class="${t[1]}"><div class="when">${t[0]}</div><div class="what">${t[2]}</div><div class="why">${t[3]}</div></li>`).join('');
+</script>
+<script>/* Shared chart helpers (d3 v7 is loaded by the page). Colors come from the page's CSS variables so dark mode works. */
+const VZ = (() => {
+  const cs = () => getComputedStyle(document.documentElement);
+  const css = (v, fb) => (cs().getPropertyValue(v) || fb || '#888').trim();
+  const pal = () => ({
+    fg: css('--fg'), fg2: css('--fg2'), muted: css('--muted'), line: css('--line'), soft: css('--soft'), bg: css('--bg'), surface: css('--surface'),
+    up: css('--up'), down: css('--down'), warn: css('--warn'), accent: css('--accent'),
+    gen: css('--r-gen'), fuel: css('--r-fuel'), wire: css('--r-wire'), equip: css('--r-equip'), load: css('--r-load')
+  });
+  let tipEl;
+  function tip() {
+    if (!tipEl) {
+      tipEl = document.createElement('div');
+      tipEl.style.cssText = 'position:fixed;pointer-events:none;z-index:50;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.35;max-width:260px;box-shadow:0 2px 10px rgba(0,0,0,.15);display:none';
+      document.body.appendChild(tipEl);
+    }
+    return {
+      show(html, ev) {
+        tipEl.innerHTML = html; tipEl.style.display = 'block';
+        const x = Math.min(ev.clientX + 14, innerWidth - 270), y = Math.min(ev.clientY + 14, innerHeight - 80);
+        tipEl.style.left = x + 'px'; tipEl.style.top = y + 'px';
+      },
+      hide() { tipEl.style.display = 'none'; }
+    };
+  }
+  /* responsive svg with a fixed viewBox; returns {svg, g, w, h, iw, ih} */
+  function svg(el, w, h, m = { t: 12, r: 12, b: 28, l: 40 }) {
+    const root = d3.select(el); root.selectAll('*').remove();
+    const s = root.append('svg').attr('viewBox', `0 0 ${w} ${h}`).attr('class', 'chart').style('width', '100%').style('height', 'auto').attr('role', 'img');
+    const g = s.append('g').attr('transform', `translate(${m.l},${m.t})`);
+    return { svg: s, g, w, h, iw: w - m.l - m.r, ih: h - m.t - m.b, m };
+  }
+  function axisStyle(sel) {
+    const p = pal();
+    sel.selectAll('text').attr('fill', p.fg2).style('font-size', '11px');
+    sel.selectAll('path,line').attr('stroke', p.line);
+    return sel;
+  }
+  const fmt = { usd: d3.format('$,.0f'), int: d3.format(','), pct: d3.format('.0%'), bp: v => (v > 0 ? '+' : '') + Math.round(v) + ' bp' };
+  return { pal, tip, svg, axisStyle, fmt, css };
+})();
+</script>
+<script>
+(function () {
+  const M = {"first_commit":"2026-10-19","commits":32,"py_lines":4916,"rows_total":2383026,"iceberg":[["PJM hub prices 2019 to Oct 2024 (12 hubs, DA and RT)",1214760,"spikes"],["Hub prices Oct 2024 to now (7 hubs)",245252,"spikes"],["Day-ahead binding constraints",155869,"next"],["Generation by fuel (hourly)",174190,"next"],["Actual load by area",108010,"next"],["Load forecasts and vintages",130413,"model only"],["Reserve market results",87110,"case study"],["Wind and solar actuals",209064,"model only"],["Weather forecasts (8 cities)",17448,"model only"],["Outage forecasts",15645,"model only"],["Stock and macro prices",24481,"equities"],["Energy events and scores",180,"calendar"]],"events":86,"annotations":94,"predictions":7,"hyps":[{"id":"H1","t":"IPP stocks fall the day after a PJM up-spike","s":"lead","r":"28 episodes in sample, t about -3; forward test live"},{"id":"H1 robust","t":"Result survives rates, oil, gas and bond factors","s":"held","r":"-129 to -135 bp vs -135 bp"},{"id":"H1b","t":"Cheap puts on the signal make money after costs","s":"open","r":"+10% gross, breaks even near 5% slippage; real quotes needed"},{"id":"H2","t":"Reserve margin and ramp explain the spread sign","s":"null","r":"AUC 0.79 vs 0.83 for the plain day-ahead rule"},{"id":"H3","t":"A model beats the day-ahead rule in high-price hours","s":"null","r":"0.52 to 0.65 vs 0.63 for the rule"},{"id":"H4","t":"Seven hubs together beat one hub","s":"null","r":"0.846 vs 0.864 for the rule"},{"id":"H5","t":"Generators fall on affordability risk, not other factors","s":"idea","r":"needs news tagging"},{"id":"H6","t":"2029/30 auction clears at the cap, 7 to 10 GW short","s":"open","r":"resolves Dec 15, 2026"},{"id":"H7","t":"PJM's next load forecast does not raise data-center adds","s":"open","r":"resolves with the 2027 forecast"},{"id":"H8","t":"Generators fall on unscheduled federal and PJM decisions","s":"lead","r":"n=11, day +1 about -189 bp"},{"id":"H9","t":"Generators rise the day after a cap-clearing auction","s":"lead","r":"4 of 4, about +372 bp"},{"id":"H10","t":"Logged event predictions come true at stated odds","s":"open","r":"7 predictions; first resolve Nov 20"},{"id":"H11","t":"My stakeholder scores match the market's reaction","s":"null","r":"9 of 19, a coin flip"},{"id":"Stock model","t":"Macro, rates, oil, gas and event features improve next-day returns","s":"null","r":"IC stays near zero (all within noise)"}],"models":[{"bench":"ramp_v1","model":"hgb","set":"A","target":"down","auc":0.934,"auc_da150":0.637,"brier":0.045,"events":45},{"bench":"ramp_v1","model":"rule_da","set":"F","target":"down","auc":0.963,"auc_da150":0.773,"brier":null,"events":45},{"bench":"ramp_v1","model":"rule_da","set":"A","target":"down","auc":0.963,"auc_da150":0.773,"brier":null,"events":45},{"bench":"ramp_v1","model":"logreg","set":"F","target":"up","auc":0.616,"auc_da150":0.434,"brier":0.0725,"events":67},{"bench":"ramp_v1","model":"logreg","set":"F","target":"down","auc":0.895,"auc_da150":0.597,"brier":0.0593,"events":45},{"bench":"ramp_v1","model":"rule_da","set":"F","target":"up","auc":0.832,"auc_da150":0.63,"brier":null,"events":67},{"bench":"ramp_v1","model":"logreg","set":"A","target":"down","auc":0.891,"auc_da150":0.633,"brier":0.0543,"events":45},{"bench":"ramp_v1","model":"hgb","set":"F","target":"up","auc":0.742,"auc_da150":0.548,"brier":0.0673,"events":67},{"bench":"ramp_v1","model":"hgb","set":"F","target":"down","auc":0.937,"auc_da150":0.632,"brier":0.0496,"events":45},{"bench":"ramp_v1","model":"hgb","set":"A","target":"up","auc":0.742,"auc_da150":0.572,"brier":0.0712,"events":67},{"bench":"ramp_v1","model":"logreg","set":"A","target":"up","auc":0.652,"auc_da150":0.587,"brier":0.0677,"events":67},{"bench":"ramp_v1","model":"rule_da","set":"A","target":"up","auc":0.832,"auc_da150":0.63,"brier":null,"events":67},{"bench":"ramp_v2","model":"logreg","set":"G","target":"down","auc":0.899,"auc_da150":0.604,"brier":0.0596,"events":45},{"bench":"ramp_v2","model":"rule_da","set":"G","target":"up","auc":0.832,"auc_da150":0.63,"brier":null,"events":67},{"bench":"ramp_v2","model":"rule_da","set":"G","target":"down","auc":0.963,"auc_da150":0.773,"brier":null,"events":45},{"bench":"ramp_v2","model":"rule_da","set":"F","target":"up","auc":0.832,"auc_da150":0.63,"brier":null,"events":67},{"bench":"ramp_v2","model":"rule_da","set":"F","target":"down","auc":0.963,"auc_da150":0.773,"brier":null,"events":45},{"bench":"ramp_v2","model":"rule_da","set":"A","target":"up","auc":0.832,"auc_da150":0.63,"brier":null,"events":67},{"bench":"ramp_v2","model":"rule_da","set":"A","target":"down","auc":0.963,"auc_da150":0.773,"brier":null,"events":45},{"bench":"ramp_v2","model":"logreg","set":"G","target":"up","auc":0.653,"auc_da150":0.498,"brier":0.0734,"events":67},{"bench":"ramp_v2","model":"logreg","set":"F","target":"up","auc":0.616,"auc_da150":0.434,"brier":0.0725,"events":67},{"bench":"ramp_v2","model":"hgb","set":"G","target":"down","auc":0.932,"auc_da150":0.599,"brier":0.0533,"events":45},{"bench":"ramp_v2","model":"logreg","set":"A","target":"up","auc":0.652,"auc_da150":0.587,"brier":0.0677,"events":67},{"bench":"ramp_v2","model":"logreg","set":"A","target":"down","auc":0.891,"auc_da150":0.633,"brier":0.0543,"events":45},{"bench":"ramp_v2","model":"hgb","set":"G","target":"up","auc":0.723,"auc_da150":0.522,"brier":0.0686,"events":67},{"bench":"ramp_v2","model":"hgb","set":"F","target":"up","auc":0.742,"auc_da150":0.548,"brier":0.0673,"events":67},{"bench":"ramp_v2","model":"hgb","set":"F","target":"down","auc":0.937,"auc_da150":0.632,"brier":0.0496,"events":45},{"bench":"ramp_v2","model":"hgb","set":"A","target":"up","auc":0.742,"auc_da150":0.572,"brier":0.0712,"events":67},{"bench":"ramp_v2","model":"hgb","set":"A","target":"down","auc":0.934,"auc_da150":0.637,"brier":0.045,"events":45},{"bench":"ramp_v2","model":"logreg","set":"F","target":"down","auc":0.895,"auc_da150":0.597,"brier":0.0593,"events":45},{"bench":"ramp_long_v1","model":"logreg","set":"P","target":"up","auc":0.673,"auc_da150":0.59,"brier":0.0668,"events":67},{"bench":"ramp_long_v1","model":"logreg","set":"P","target":"down","auc":0.92,"auc_da150":0.68,"brier":0.0527,"events":45},{"bench":"ramp_long_v1_t365","model":"logreg","set":"P","target":"up","auc":0.65,"auc_da150":0.586,"brier":0.0678,"events":67},{"bench":"ramp_long_v1_t365","model":"logreg","set":"P","target":"down","auc":0.891,"auc_da150":0.633,"brier":0.0543,"events":45},{"bench":"ramp_long_v1","model":"rule_da","set":"P","target":"down","auc":0.963,"auc_da150":0.773,"brier":null,"events":45},{"bench":"ramp_long_v1","model":"tabpfn:v3.5_default","set":"P","target":"up","auc":0.793,"auc_da150":0.563,"brier":0.065,"events":67},{"bench":"ramp_long_v1","model":"tabpfn:v3.5_default","set":"P","target":"down","auc":0.951,"auc_da150":0.707,"brier":0.0379,"events":45},{"bench":"ramp_long_v1","model":"rule_da","set":"P","target":"up","auc":0.832,"auc_da150":0.63,"brier":null,"events":67},{"bench":"ramp_long_v1","model":"logreg_da","set":"P","target":"up","auc":0.77,"auc_da150":0.624,"brier":0.0668,"events":67},{"bench":"ramp_long_v1","model":"hgb","set":"P","target":"down","auc":0.953,"auc_da150":0.713,"brier":0.0439,"events":45},{"bench":"ramp_long_v1","model":"hgb","set":"P","target":"up","auc":0.824,"auc_da150":0.646,"brier":0.0647,"events":67},{"bench":"ramp_long_v1","model":"catboost","set":"P","target":"up","auc":0.805,"auc_da150":0.574,"brier":0.0675,"events":67},{"bench":"ramp_long_v1","model":"catboost","set":"P","target":"down","auc":0.943,"auc_da150":0.658,"brier":0.0554,"events":45},{"bench":"ramp_long_v1","model":"logreg_da","set":"P","target":"down","auc":0.957,"auc_da150":0.733,"brier":0.0506,"events":45},{"bench":"ramp_long_v1_t365","model":"logreg_da","set":"P","target":"up","auc":0.746,"auc_da150":0.634,"brier":0.0655,"events":67},{"bench":"ramp_long_v1_t365","model":"rule_da","set":"P","target":"up","auc":0.832,"auc_da150":0.63,"brier":null,"events":67},{"bench":"ramp_long_v1_t365","model":"rule_da","set":"P","target":"down","auc":0.963,"auc_da150":0.773,"brier":null,"events":45},{"bench":"ramp_long_v1_t365","model":"logreg_da","set":"P","target":"down","auc":0.954,"auc_da150":0.719,"brier":0.0507,"events":45},{"bench":"ramp_long_v1_t365","model":"tabpfn:v3.5_default","set":"P","target":"down","auc":0.942,"auc_da150":0.67,"brier":0.0425,"events":45},{"bench":"ramp_long_v1_t365","model":"hgb","set":"P","target":"down","auc":0.933,"auc_da150":0.635,"brier":0.0467,"events":45},{"bench":"ramp_long_v1_t365","model":"catboost","set":"P","target":"up","auc":0.779,"auc_da150":0.553,"brier":0.0694,"events":67},{"bench":"ramp_long_v1_t365","model":"catboost","set":"P","target":"down","auc":0.936,"auc_da150":0.642,"brier":0.054,"events":45},{"bench":"ramp_long_v1_t365","model":"hgb","set":"P","target":"up","auc":0.737,"auc_da150":0.54,"brier":0.0711,"events":67},{"bench":"ramp_long_v1_t365","model":"tabpfn:v3.5_default","set":"P","target":"up","auc":0.773,"auc_da150":0.54,"brier":0.0665,"events":67}],"pages":8}, el = id => document.getElementById(id), tip = VZ.tip();
+  const d0 = new Date(M.first_commit), days = Math.max(1, Math.round((new Date('2026-10-20') - d0) / 864e5) + 1);
+  const big = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(0) + 'k' : n;
+  const st = {lead: ['In-sample lead', 'warn'], held: ['Held up under checks', 'up'], null: ['Null result', 'down'], open: ['Open: result pending', 'accent'], idea: ['Idea, untested', 'muted']};
+  const cnt = k => M.hyps.filter(h => h.s === k).length;
+  el('meta-kpis').innerHTML = [[big(M.rows_total), 'price and grid rows pulled'], [M.events, 'sourced energy events'], [M.hyps.length, 'hypotheses logged'], [cnt('null'), 'nulls recorded, honestly'], [M.predictions, 'predictions sealed in advance'], [days + ' days', 'building in public']]
+    .map(([v, l]) => '<div class="kpi"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>').join('');
+
+  function hyp() {
+    const P = VZ.pal(), order = ['held', 'lead', 'open', 'idea', 'null'], o = VZ.svg(el('hyp-bar'), 760, 40, {t: 4, r: 0, b: 4, l: 0});
+    let x = 0; const w = o.iw / M.hyps.length;
+    order.forEach(k => { const n = cnt(k); if (!n) return; o.g.append('rect').attr('x', x).attr('y', 0).attr('width', n * w - 3).attr('height', 32).attr('rx', 3).attr('fill', P[st[k][1]]).attr('opacity', .85);
+      o.g.append('text').attr('x', x + 8).attr('y', 21).attr('fill', '#fff').style('font-size', '12px').style('font-weight', 600).text(n + ' ' + (k === 'null' ? 'nulls' : k)); x += n * w; });
+    el('hyp').innerHTML = order.flatMap(k => M.hyps.filter(h => h.s === k)).map(h => '<div style="border-left-color:' + P[st[h.s][1]] + '"><b>' + h.id + '</b>' + h.t + '<br><span>' + h.r + '</span></div>').join('');
+    el('hyp-leg').innerHTML = order.map(k => '<span><i style="background:' + P[st[k][1]] + '"></i>' + st[k][0] + '</span>').join('');
+  }
+
+  let tgt = 'up', met = 'auc';
+  function pills(id, opts, cur, f) { el(id).innerHTML = opts.map(o => '<button class="pill" data-v="' + o[0] + '" aria-pressed="' + (cur === o[0]) + '">' + o[1] + '</button>').join(' '); el(id).onclick = e => { const b = e.target.closest('[data-v]'); if (b) { f(b.dataset.v); } }; }
+  function models() {
+    pills('m-target', [['up', 'Up spikes'], ['down', 'Down spikes']], tgt, v => { tgt = v; models(); });
+    pills('m-metric', [['auc', 'All evening hours'], ['auc_da150', 'Only when day-ahead is $150+']], met, v => { met = v; models(); });
+    const P = VZ.pal(), nice = {rule_da: 'Day-ahead rule', logreg_da: 'Logistic, price only', logreg: 'Logistic, all features', hgb: 'Gradient boosting', catboost: 'CatBoost', 'tabpfn:v3.5_default': 'TabPFN 3.5'};
+    const R = M.models.filter(r => r.target === tgt && r[met] != null && r.model !== 'rule_da');
+    const rule = M.models.find(r => r.model === 'rule_da' && r.target === tgt && r[met] != null), ruleV = rule ? rule[met] : null;
+    const names = Object.keys(nice).filter(k => k !== 'rule_da'), o = VZ.svg(el('models'), 760, 270, {t: 8, r: 14, b: 28, l: 140}), g = o.g;
+    const lo = d3.min(R, r => r[met]) - .04, hi = Math.max(d3.max(R, r => r[met]), ruleV || 0) + .04;
+    const x = d3.scaleLinear().domain([Math.min(lo, .5), hi]).range([0, o.iw]), y = d3.scaleBand().domain(names).range([0, o.ih]).padding(.3);
+    g.append('rect').attr('x', x(ruleV - .05)).attr('width', x(ruleV + .05) - x(ruleV - .05)).attr('y', 0).attr('height', o.ih).attr('fill', P.soft);
+    g.append('line').attr('x1', x(ruleV)).attr('x2', x(ruleV)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.fg2).attr('stroke-dasharray', '5 4');
+    const colOf = r => r.bench === 'ramp_long_v1' ? P.accent : r.set === 'P' ? P.muted : (r.set === 'A' ? P.muted : P.warn);
+    names.forEach(k => g.append('line').attr('x1', 0).attr('x2', o.iw).attr('y1', y(k) + y.bandwidth() / 2).attr('y2', y(k) + y.bandwidth() / 2).attr('stroke', P.line));
+    g.selectAll('circle').data(R).join('circle').attr('cx', r => x(r[met])).attr('cy', (r, i) => y(r.model) + y.bandwidth() / 2 + ((i * 7) % 5 - 2) * 2.2).attr('r', 5.5).attr('fill', colOf).attr('opacity', .85).attr('stroke', P.bg)
+      .on('mousemove', (ev, r) => tip.show('<b>' + nice[r.model] + '</b><br>' + r.bench + ', feature set ' + r.set + '<br>' + (met === 'auc' ? 'AUC ' : 'AUC (DA $150+) ') + r[met].toFixed(3) + ' on ' + r.events + ' events', ev)).on('mouseleave', tip.hide);
+    VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickFormat(k => nice[k]).tickSize(0))); VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(6)));
+    g.append('text').attr('x', x(ruleV) + 5).attr('y', 11).attr('fill', P.fg2).style('font-size', '11px').text('rule ' + ruleV.toFixed(2) + ' (grey band = noise)');
+    const beat = R.filter(r => r[met] > ruleV + .05).length;
+    el('models-so').innerHTML = '<b>' + beat + ' of ' + R.length + '</b> runs beat the rule by more than the noise band (±0.05). More training history lifts every model, but the plain price rule stays hard to beat.';
+  }
+
+  function ice() {
+    const P = VZ.pal(), D = M.iceberg.slice().sort((a, b) => b[1] - a[1]), o = VZ.svg(el('ice'), 760, 330, {t: 6, r: 70, b: 28, l: 250}), g = o.g;
+    const x = d3.scaleLog().domain([1e2, d3.max(D, d => d[1]) * 1.3]).range([0, o.iw]), y = d3.scaleBand().domain(D.map(d => d[0])).range([0, o.ih]).padding(.25);
+    const col = k => k === 'model only' ? P.muted : k === 'next' ? P.warn : P.accent;
+    g.selectAll('rect').data(D).join('rect').attr('x', 0).attr('y', d => y(d[0])).attr('width', d => x(Math.max(d[1], 100))).attr('height', y.bandwidth()).attr('fill', d => col(d[2])).attr('rx', 2).attr('opacity', .85)
+      .on('mousemove', (ev, d) => tip.show('<b>' + d[0] + '</b><br>' + VZ.fmt.int(d[1]) + ' rows' + (d[2] === 'model only' ? '<br>Feeds models only, not shown on a page' : d[2] === 'next' ? '<br>Just pulled, charts coming' : '<br>Shown on the ' + d[2] + ' page'), ev)).on('mouseleave', tip.hide);
+    g.selectAll('.n').data(D).join('text').attr('x', d => x(Math.max(d[1], 100)) + 5).attr('y', d => y(d[0]) + y.bandwidth() / 2 + 4).attr('fill', P.fg2).style('font-size', '11px').text(d => big(d[1]));
+    VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickSize(0))); VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).tickValues([1e3, 1e4, 1e5, 1e6]).tickFormat(d => big(d))));
+  }
+  function all() { hyp(); models(); ice(); }
+  all(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
+})();
 </script>
