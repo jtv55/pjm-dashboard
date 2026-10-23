@@ -148,6 +148,18 @@ table.t td, table.t th { padding: 6px 10px; font-size: 13px; vertical-align: top
     </div>
   </section>
 
+
+  <section>
+    <h2>Training versus serving, and the capacity bill</h2>
+    <p class="sub">Two questions the chain above skips. How much energy does it take to train a model compared with serving it? And once PJM's capacity-market charge is spread over the tokens, how does it compare with the electricity itself?</p>
+    <div class="two">
+      <div class="card"><h3>Energy to train one model (GWh, Meta's published GPU-hours)</h3><div id="ts-train"></div><p class="so" id="ts-train-so"></p></div>
+      <div class="card"><h3>Cost per million tokens served ($, at the current settings)</h3><div id="ts-cost"></div><p class="so" id="ts-cost-so"></p></div>
+    </div>
+    <div class="card" style="margin-top:12px"><div class="tablewrap"><table class="t"><thead><tr><th>Model</th><th class="num">Training GPU-hours</th><th class="num">Training energy at the meter</th><th class="num">Tokens per MWh served (current settings)</th><th class="num">Tokens served to match training energy</th><th class="num">Days of PJM's AI serving energy</th></tr></thead><tbody id="ts-tab"></tbody></table></div>
+      <p class="so" id="ts-note"></p></div>
+  </section>
+
   <section>
     <h2>Sanity checks</h2>
     <div class="card"><ul class="plain" style="color:var(--fg2);font-size:14px;max-width:84ch" id="checks"></ul></div>
@@ -416,7 +428,29 @@ function throughline() {
   el('thru-b').innerHTML = lines.map(l => `<tr><td><span class="swatch" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${l.col};margin-right:6px"></span>${esc(l.n)}</td>${l.v.map(v => `<td class="num">${f(v)}</td>`).join('')}</tr>`).join('');
 }
 
-function all() { hero(); drawChain(); throughline(); fuels(); dollars(); pjm(); checks(); }
+
+const LLAMA = [['Llama 3.1 8B', '8', 1.46e6], ['Llama 3.1 70B', '70', 7.0e6], ['Llama 3.1 405B', '405', 30.84e6]];   // Meta model card, H100-80GB GPU-hours
+function trainserve() {
+  const P = VZ.pal(), h = CONST.hw.h100, aiGW = PS.gw * PS.lf / 100 * PS.ai / 100, inf = 1 - PS.train / 100, servMWhDay = aiGW * 24 * 1000 * inf;
+  const rows = LLAMA.map(([n, sz, gh]) => { const trainMWh = gh * h.kw * ST.pue / 1000, tpm = perMWh({ model: sz }).tokens; return { n, gh, trainMWh, tpm, be: trainMWh * tpm, days: trainMWh / servMWhDay }; });
+  let o = VZ.svg(el('ts-train'), 520, 180, { t: 8, r: 70, b: 20, l: 110 }), g = o.g, x = d3.scaleLinear().domain([0, d3.max(rows, r => r.trainMWh) / 1000 * 1.05]).range([0, o.iw]), y = d3.scaleBand().domain(rows.map(r => r.n)).range([0, o.ih]).padding(.35);
+  rows.forEach(r => { g.append('rect').attr('y', y(r.n)).attr('height', y.bandwidth()).attr('width', x(r.trainMWh / 1000)).attr('fill', P.accent).attr('rx', 3).attr('opacity', .9).on('mousemove', e => tip.show(`<b>${r.n}</b><br>${d3.format(',.1f')(r.gh / 1e6)}M GPU-hours x ${h.kw} kW x PUE ${ST.pue}<br>${(r.trainMWh / 1000).toFixed(1)} GWh`, e)).on('mouseleave', tip.hide);
+    g.append('text').attr('x', x(r.trainMWh / 1000) + 6).attr('y', y(r.n) + y.bandwidth() / 2 + 4).attr('fill', P.fg2).style('font-size', '11px').text((r.trainMWh / 1000).toFixed(1) + ' GWh'); });
+  VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickSize(0))); VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(4)));
+  const big = rows[2];
+  el('ts-train-so').innerHTML = `Training the largest Llama 3.1 took about <b>${(big.trainMWh / 1000).toFixed(0)} GWh</b> at the meter, which is <b>${big.days.toFixed(1)} days</b> of the serving energy of PJM's AI data centers at the current settings. Training is a large one-off; serving is a bill that never stops. The training-share slider above decides how much of the fleet's power goes to the first rather than the second.`;
+  const m = perMWh(), tokYr = aiGW * 24 * 1000 * inf * 365 * m.tokens, capYr = 29.4e9 / 4 * PS.ai / 100;
+  const items = [['Electricity', ST.pw / m.tokens * 1e6, 'power at $' + ST.pw + '/MWh'], ['PJM capacity charge', capYr / tokYr * 1e6, 'AI share of $29.4B over four auctions, as $7.35B a year'], ['GPU rental', m.gpuCost / m.tokens * 1e6, 'chip-hours at $' + m.rent + '/hour']];
+  o = VZ.svg(el('ts-cost'), 520, 180, { t: 8, r: 70, b: 20, l: 130 }); g = o.g; x = d3.scaleLinear().domain([0, d3.max(items, d => d[1]) * 1.05]).range([0, o.iw]); y = d3.scaleBand().domain(items.map(d => d[0])).range([0, o.ih]).padding(.35);
+  items.forEach(d => { g.append('rect').attr('y', y(d[0])).attr('height', y.bandwidth()).attr('width', Math.max(2, x(d[1]))).attr('fill', P.accent).attr('rx', 3).attr('opacity', .9).on('mousemove', e => tip.show(`<b>${d[0]}</b><br>$${d[1].toFixed(3)} per million tokens<br>${esc(d[2])}`, e)).on('mouseleave', tip.hide);
+    g.append('text').attr('x', x(d[1]) + 6).attr('y', y(d[0]) + y.bandwidth() / 2 + 4).attr('fill', P.fg2).style('font-size', '11px').text('$' + d[1].toFixed(d[1] < 0.1 ? 3 : 2)); });
+  VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickSize(0))); VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(4)));
+  el('ts-cost-so').innerHTML = `Spread over every token PJM's AI data centers serve, the capacity charge is about <b>${(items[1][1] / items[0][1]).toFixed(1)} times</b> the electricity itself. Chips dominate both. Nobody pays the capacity charge per token: it lands on all PJM customers through capacity prices, which is why data-center load is a political question in the region and not just a power-bill line.`;
+  el('ts-tab').innerHTML = rows.map(r => `<tr><td>${r.n}</td><td class="num">${d3.format(',.2f')(r.gh / 1e6)}M</td><td class="num">${(r.trainMWh / 1000).toFixed(1)} GWh</td><td class="num">${cnt(r.tpm)}</td><td class="num">${cnt(r.be)}</td><td class="num">${r.days.toFixed(2)}</td></tr>`).join('');
+  el('ts-note').innerHTML = `GPU-hours are from <a href="https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/MODEL_CARD.md" rel="noopener">Meta's Llama 3.1 model card</a> (H100 chips, about 15 trillion training tokens; Meta lists 700 W per GPU for the chip alone, while we use the 1.3 kW all-in figure and the PUE above, so our energy is about 2.4 times a chip-only count). Serving rates use the current chip, number format, utilization and the model's own size. The capacity cost is the market monitor's figure for all data-center load, taken here as four one-year auctions and divided by the AI share slider; the token count uses the serving share only. Treat all of it as an order of magnitude.`;
+}
+
+function all() { hero(); drawChain(); throughline(); fuels(); dollars(); pjm(); trainserve(); checks(); }
 controls(); consts(); all();
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
 </script>
