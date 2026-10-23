@@ -1,0 +1,257 @@
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Energy Trading Players</title>
+<style>
+:root {
+  --bg: #fcfcfb; --surface: #ffffff; --fg: #141413; --fg2: #52514e; --muted: #7a7973;
+  --line: #e4e3de; --soft: #f4f3ef; --accent: #2a78d6; --up: #0b7a43; --down: #c03a2b; --warn: #a86b00;
+  --r-fuel: #b8541f; --r-gen: #2a78d6; --r-wire: #0e8a62; --r-equip: #6250d6; --r-load: #b0447a;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+    --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+    --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+  --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+  --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 28px; line-height: 1.2; margin: 6px 0 8px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+.lede { color: var(--fg2); max-width: 68ch; margin: 0 0 22px; }
+.sub { color: var(--fg2); font-size: 13px; margin: 0 0 12px; max-width: 74ch; }
+section { margin-bottom: 34px; }
+p { margin: 0 0 10px; }
+a { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi { border-top: 2px solid var(--line); padding-top: 8px; min-width: 0; }
+.kpi .v { font-family: var(--font-mono); font-size: 24px; font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--fg2); font-size: 13px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); } .warn { color: var(--warn); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted);
+  padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.num, td.num { text-align: right; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+tbody tr:last-child td { border-bottom: 0; }
+.pill { font: inherit; font-size: 13px; color: var(--fg2); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; cursor: pointer; }
+.pill[aria-pressed="true"] { color: var(--fg); border-color: var(--fg2); background: var(--soft); }
+button:focus-visible, input:focus-visible, th:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 10px; align-items: center; }
+.note { background: var(--soft); border-radius: 6px; padding: 10px 12px; font-size: 14px; max-width: 80ch; margin: 0 0 12px; }
+.foot { color: var(--muted); font-size: 12px; max-width: 82ch; border-top: 1px solid var(--line); padding-top: 14px; }
+.chart text { fill: var(--fg2); font-family: var(--font-body); font-size: 12px; }
+@media (max-width: 760px) { h1 { font-size: 24px; } }
+@media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi .v { font-size: 20px; } }
+
+:root { --k1: #2a78d6; --k2: #eb6834; --k3: #1baf7a; --k4: #eda100; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500; } }
+:root[data-theme="dark"] { --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 820px) { .two { grid-template-columns: 1fr; } }
+.so { font-size: 13px; color: var(--fg2); margin: 8px 0 0; max-width: 80ch; } .so b { color: var(--fg); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--fg2); margin-top: 6px; }
+.legend button { font: inherit; font-size: 12px; color: var(--fg2); background: none; border: 0; cursor: pointer; padding: 0; display: inline-flex; gap: 6px; align-items: center; }
+.legend button[aria-pressed="false"] { opacity: .4; }
+.legend svg { width: 12px; height: 12px; }
+.grid4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.fc { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 10px; display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.fc:hover, .fc[aria-pressed="true"] { border-color: var(--fg2); }
+.mono-b { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-family: var(--font-mono); font-weight: 600; font-size: 14px; }
+.fc b { font-size: 14px; display: block; } .fc span { font-size: 11px; color: var(--muted); display: block; }
+.prof { display: grid; grid-template-columns: 76px 1fr; gap: 16px; }
+.prof .mono-b { width: 76px; height: 76px; font-size: 24px; }
+.prof h3 { font-size: 20px; margin: 0; } .prof .meta { color: var(--muted); font-size: 12px; font-family: var(--font-mono); margin: 2px 0 8px; }
+.prof ul { margin: 6px 0; padding-left: 18px; color: var(--fg2); font-size: 14px; } .prof li { margin-bottom: 3px; }
+.srcs { font-size: 12px; color: var(--muted); } .srcs a { color: var(--accent); }
+.chip { font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; color: var(--muted); }
+table.t td, table.t th { padding: 6px 10px; font-size: 13px; }
+.tl2 { display: grid; grid-template-columns: 78px 1fr; gap: 4px 14px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; } .tl2:first-child { border-top: 0; } .tl2 .w { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+
+<style>html{scroll-padding-top:52px}.sitenav::-webkit-scrollbar{display:none}</style><nav class="sitenav" style="position:sticky;top:0;z-index:1000;background:var(--bg,Canvas);font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:nowrap;white-space:nowrap;overflow-x:auto;scrollbar-width:none;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="brief.html" style="color:inherit;font-weight:600">Daily brief</a><a href="index.html" style="color:inherit">Build log</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="aigap.html" style="color:inherit">Power gap</a><a href="calendar.html" style="color:inherit">Energy calendar</a><a href="spikes.html" style="color:inherit">Spike lab</a><a href="gridmap.html" style="color:inherit">Grid map</a><a href="queue.html" style="color:inherit">Queue</a><a href="strategies.html" style="color:inherit">Strategy lab</a><a href="players.html" style="color:inherit">Players</a></nav>
+<div class="wrap">
+  <div class="eyebrow">Players · who trades power and gas · <span id="asof"></span></div>
+  <h1>The firms that trade energy for a living</h1>
+  <p class="lede">Hedge funds, commodity merchants, a bank and the trading arms of utilities. Where they sit on how systematic and how physical they are, how big their trading profits are, and what moved in 2025.</p>
+  <div class="note"><b>How to read this.</b> Most of these firms are private. Sizes come from public reporting (sources on each profile). The position on the map is <b>my judgment</b>, not a measured quantity. Firms with no public profit figure appear as hollow circles. Logos are replaced by monogram badges.</div>
+
+  <section>
+    <h2>The landscape</h2>
+    <div class="card">
+      <div id="map"></div>
+      <div class="legend" id="leg"></div>
+      <p class="so" id="map-so"></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Who is who</h2>
+    <div class="grid4" id="cards"></div>
+    <div class="card" style="margin-top:12px" id="prof"></div>
+  </section>
+
+  <section>
+    <h2>How big, and how 2025 went</h2>
+    <div class="two">
+      <div class="card"><h3>Latest reported trading profit (US$ billions)</h3><div id="size"></div><p class="so" id="size-so"></p></div>
+      <div class="card"><h3>Profit change versus the year before</h3><div id="chg"></div><p class="so" id="chg-so"></p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What moved</h2>
+    <div class="card" id="moves"></div>
+  </section>
+
+  <section>
+    <h2>Who shows up in PJM?</h2>
+    <p class="sub">What our sources say about each firm's US power and PJM footprint. "Not public" means nothing was found, not that there is nothing.</p>
+    <div class="tablewrap"><table class="t"><thead><tr><th>Firm</th><th>Type</th><th>US power, gas and PJM evidence in our sources</th></tr></thead><tbody id="pjm"></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>Where this project sits</h2>
+    <div class="card"><p class="so" style="margin:0;font-size:14px" id="us"></p></div>
+  </section>
+
+  <p class="foot" id="foot"></p>
+</div>
+<script>/* Shared chart helpers (d3 v7 is loaded by the page). Colors come from the page's CSS variables so dark mode works. */
+const VZ = (() => {
+  const cs = () => getComputedStyle(document.documentElement);
+  const css = (v, fb) => (cs().getPropertyValue(v) || fb || '#888').trim();
+  const pal = () => ({
+    fg: css('--fg'), fg2: css('--fg2'), muted: css('--muted'), line: css('--line'), soft: css('--soft'), bg: css('--bg'), surface: css('--surface'),
+    up: css('--up'), down: css('--down'), warn: css('--warn'), accent: css('--accent'),
+    gen: css('--r-gen'), fuel: css('--r-fuel'), wire: css('--r-wire'), equip: css('--r-equip'), load: css('--r-load')
+  });
+  let tipEl;
+  function tip() {
+    if (!tipEl) {
+      tipEl = document.createElement('div');
+      tipEl.style.cssText = 'position:fixed;pointer-events:none;z-index:50;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.35;max-width:260px;box-shadow:0 2px 10px rgba(0,0,0,.15);display:none';
+      document.body.appendChild(tipEl);
+    }
+    return {
+      show(html, ev) {
+        tipEl.innerHTML = html; tipEl.style.display = 'block';
+        const x = Math.min(ev.clientX + 14, innerWidth - 270), y = Math.min(ev.clientY + 14, innerHeight - 80);
+        tipEl.style.left = x + 'px'; tipEl.style.top = y + 'px';
+      },
+      hide() { tipEl.style.display = 'none'; }
+    };
+  }
+  /* responsive svg with a fixed viewBox; returns {svg, g, w, h, iw, ih} */
+  function svg(el, w, h, m = { t: 12, r: 12, b: 28, l: 40 }) {
+    const root = d3.select(el); root.selectAll('*').remove();
+    const s = root.append('svg').attr('viewBox', `0 0 ${w} ${h}`).attr('class', 'chart').style('width', '100%').style('height', 'auto').attr('role', 'img');
+    const g = s.append('g').attr('transform', `translate(${m.l},${m.t})`);
+    return { svg: s, g, w, h, iw: w - m.l - m.r, ih: h - m.t - m.b, m };
+  }
+  function axisStyle(sel) {
+    const p = pal();
+    sel.selectAll('text').attr('fill', p.fg2).style('font-size', '11px');
+    sel.selectAll('path,line').attr('stroke', p.line);
+    return sel;
+  }
+  const fmt = { usd: d3.format('$,.0f'), int: d3.format(','), pct: d3.format('.0%'), bp: v => (v > 0 ? '+' : '') + Math.round(v) + ' bp' };
+  return { pal, tip, svg, axisStyle, fmt, css };
+})();
+</script>
+<script>
+const PL = {"asof":"Oct 23, 2026","fx":"A$0.65, EUR 1.10, GBP 1.30, CHF 1.10","firms":[{"id":"citadel","name":"Citadel","ab":"CI","cat":"Hedge fund","x":8,"y":3.5,"why":"Heavily quantitative firm; its energy arm moves physical gas and power but owns little.","hq":"Miami","ccy":"USD","basis":"commodities profit, 2024 (no 2025 figure found)","facts":["Commodities unit made about $4B of profit in 2024, mostly natural gas trading in Europe and North America.","Filings show traded gas volumes equal to roughly 11% of US consumption in 2025 (one report).","Bought Paloma Natural Gas in 2025 (renamed Apex Natural Gas) and is building power trading in Japan, Germany and Australia.","Star European gas trader Chris Foster is stepping down to an adviser role."],"pjm":"Large US power and gas marketer (Citadel Energy Marketing); no PJM-specific figures public.","src":[["Fortune: Citadel commodities profit","https://dc.fortune.com/2024/12/02/citadel-ken-griffin-commodities-4-billion-trading/"],["Hedgeweek: Citadel builds commodities empire","https://www.hedgeweek.com/citadel-builds-commodities-empire-beyond-hedge-fund-roots/"]],"usd":4.0,"prior_usd":null,"chg":null},{"id":"deshaw","name":"D.E. Shaw","ab":"DE","cat":"Hedge fund","x":9,"y":3.5,"why":"Founded as a computational finance firm; energy group dates to 2002; also owns renewable generation.","hq":"New York","ccy":"USD","basis":"no public energy figure; firm assets about $60 to $65B","facts":["Firm assets reported at about $60B to $65B.","An energy group has run since 2002 and was reported to have spun out a stand-alone energy fund (date unclear).","Reported among the largest independent owners of solar power in the US (2022)."],"pjm":"Among firms reported to have entered electricity derivatives; size of its power book not public.","src":[["Alternatives Watch: 2024 returns, $65B","https://www.alternativeswatch.com/2025/01/02/de-shaw-posts-strong-2024-returns-oculus-composite-hedge-funds/"],["Institutional Investor: stand-alone energy fund","https://inv.institutionalinvestor.com/article/2bsz62onl4dn8rl9pu4n4/portfolio/d-e-shaw-to-launch-new-stand-alone-energy-fund"]],"usd":null,"prior_usd":null,"chg":null},{"id":"millennium","name":"Millennium","ab":"MM","cat":"Hedge fund","x":5,"y":1,"why":"Many independent trading teams, some systematic and some discretionary; financial only.","hq":"New York","ccy":"USD","basis":"no public figure","facts":["Reported to be building its commodities franchise, hiring natural gas traders away from Castleton (Hedgeweek)."],"pjm":"Hiring gas traders; no power figures public.","src":[["Hedgeweek: Millennium lands natural gas trader","https://www.hedgeweek.com/millennium-lands-natural-gas-trader-ahead-of-point72/"]],"usd":null,"prior_usd":null,"chg":null},{"id":"point72","name":"Point72","ab":"P7","cat":"Hedge fund","x":5,"y":1,"why":"Discretionary and systematic teams in one firm; financial only.","hq":"Stamford, CT","ccy":"USD","basis":"no public figure","facts":["Reports conflict on whether a senior natural gas trader from Castleton joined Point72 or Millennium in 2026."],"pjm":"No power figures public.","src":[["Hedgeweek: Millennium lands natural gas trader ahead of Point72","https://www.hedgeweek.com/millennium-lands-natural-gas-trader-ahead-of-point72/"]],"usd":null,"prior_usd":null,"chg":null},{"id":"balyasny","name":"Balyasny","ab":"BA","cat":"Hedge fund","x":5,"y":1.5,"why":"Multi-manager with power, gas and carbon teams in Europe; financial only.","hq":"Chicago","ccy":"USD","basis":"no public figure","facts":["Two senior London power and gas traders left in March 2026 during a gas-price spike.","Was hiring in Denmark, Singapore and possibly London in 2023."],"pjm":"No US power figures public.","src":[["Bloomberg: two Europe energy traders leave Balyasny","https://www.bloomberg.com/news/articles/2026-03-09/balyasny-has-two-europe-energy-traders-leave-in-volatile-week"]],"usd":null,"prior_usd":null,"chg":null},{"id":"vitol","name":"Vitol","ab":"VT","cat":"Commodity merchant","x":3,"y":9,"why":"Huge physical oil and products business with big power and gas desks; trading is judgment-led.","hq":"Geneva and Rotterdam","ccy":"USD","basis":"net profit, 2025 (whole firm, mostly oil)","facts":["Revenue about $343B in 2025 (up 3.6%); net profit about $4.2B, down from $8.7B in 2024.","Paid $5.9B to shareholders through its buyback in 2025."],"pjm":"No PJM-specific figures public.","src":[["Reuters via Pulse 2.0: Vitol distributes $5.9B","https://pulse2.com/vitol-distributes-5-9-billion-to-shareholders-as-2025-profit-declines/"],["Tankterminals: Vitol profit drops to $4.5B (sources)","https://tankterminals.com/news/vitol-profit-drops-to-4-5-billion-in-2025-sources-say/"]],"usd":4.2,"prior_usd":8.7,"chg":-52},{"id":"trafigura","name":"Trafigura","ab":"TF","cat":"Commodity merchant","x":3,"y":9,"why":"Physical metals and oil merchant with ships, storage and terminals.","hq":"Geneva and Singapore","ccy":"USD","basis":"net profit, FY to Sept 2025 (whole firm)","facts":["Net profit $2.67B, down 3%; underlying EBITDA about $8.2B; group equity about $16.2B.","Paid $2.9B in dividends for the year."],"pjm":"Mainly oil and metals; limited public detail on US power.","src":[["Trafigura 2025 annual results","https://www.trafigura.com/news-and-insights/press-releases/2025/trafigura-publishes-2025-annual-results/"]],"usd":2.666,"prior_usd":2.75,"chg":-3},{"id":"mercuria","name":"Mercuria","ab":"MC","cat":"Commodity merchant","x":3.5,"y":8,"why":"Physical trader that has pushed into gas, power, metals and LNG.","hq":"Geneva","ccy":"USD","basis":"net income, 2025 (whole firm)","facts":["Net income $1.43B in 2025 versus $1.52B in 2024 (CFO figure); equity $6.3B.","About 65% of the business is non-oil (gas, power, metals) on roughly $130B turnover."],"pjm":"Power and gas are a growing share; no PJM figures public.","src":[["Reuters via GBAF: Mercuria profit slips, expands metals and LNG","https://www.globalbankingandfinance.com/mercuria-profit-slips-expands-metals-lng/"]],"usd":1.43,"prior_usd":1.52,"chg":-6},{"id":"gunvor","name":"Gunvor","ab":"GV","cat":"Commodity merchant","x":3,"y":8,"why":"Oil, gas and LNG merchant; judgment-led.","hq":"Geneva","ccy":"USD","basis":"reported net income, 2025 (adjusted $0.57B)","facts":["Revenue $144B; reported net income $104M (adjusted $567M) after impairments, down 85% from 2024.","Employee buyout replaced co-founder Torbjorn Tornqvist as owner; valued around $5B."],"pjm":"Mainly oil and LNG.","src":[["Gunvor 2025 results","https://gunvorgroup.com/financial/gunvor-group-results-2025/"]],"usd":0.104,"prior_usd":0.729,"chg":-85},{"id":"glencore","name":"Glencore","ab":"GL","cat":"Commodity merchant","x":2.5,"y":10,"why":"Marketing arm sits on top of the world's largest mining and coal assets.","hq":"Baar, Switzerland","ccy":"USD","basis":"Marketing adjusted EBIT, 2025","facts":["Marketing adjusted EBIT $2.9B in 2025, down 8%; strong metals trading offset softer energy."],"pjm":"Energy trading is a small part of the group; no PJM focus.","src":[["Analyst summary of Glencore FY2025 results","https://www.oldmutual.co.za/om-docs/blte85baf8b7f93ef49/Aperture_Glencore_FY_2025_Results.pdf"]],"usd":2.9,"prior_usd":3.15,"chg":-8},{"id":"castleton","name":"Castleton Commodities","ab":"CC","cat":"Commodity merchant","x":5,"y":7,"why":"Combines US gas and power trading with owned plants and batteries.","hq":"Stamford, CT","ccy":"USD","basis":"no public figure","facts":["A subsidiary bought the 169 MW Hunlock Creek gas plant in Pennsylvania (PJM) from UGI Energy Services in Nov 2024.","Closed $2.1B of credit facilities in Dec 2024.","Lost natural gas traders to Millennium in 2026 (Hedgeweek)."],"pjm":"Owns a PJM gas plant; one of the few merchants with direct PJM assets in our sources.","src":[["CB Insights: Castleton profile","https://www.cbinsights.com/company/castleton-commodities-international"],["Hedgeweek: Millennium lands natural gas trader","https://www.hedgeweek.com/millennium-lands-natural-gas-trader-ahead-of-point72/"]],"usd":null,"prior_usd":null,"chg":null},{"id":"hartree","name":"Hartree Partners","ab":"HP","cat":"Commodity merchant","x":4,"y":6,"why":"Merchant with trading plus on-site power plants; backed by Oaktree.","hq":"New York","ccy":"USD","basis":"no public figure","facts":["Owned by management and Oaktree funds; Oaktree has put in over $1B since 2015.","Oaktree was reported in Oct 2025 to be selling a minority stake.","Wholesale power and gas trading is described mainly in the UK and Europe."],"pjm":"No PJM or US power evidence found in our search.","src":[["Hartree: who we are","https://www.hartreepartners.com/who-we-are/"],["Bloomberg Government: Oaktree in talks to sell stake","https://news.bgov.com/banking-law/oaktree-in-talks-to-sell-stake-in-commodities-trader-hartree-1"]],"usd":null,"prior_usd":null,"chg":null},{"id":"macquarie","name":"Macquarie","ab":"MQ","cat":"Bank","x":5,"y":6,"why":"Bank that holds physical gas storage and transport contracts and trades with clients.","hq":"Sydney","ccy":"AUD","basis":"Commodities and Global Markets contribution, FY to Mar 2026 (division; includes a one-off gain)","facts":["Commodities and Global Markets contributed A$4.22B in FY26, up 49%.","Commodities gains came from client hedging in gas, power and oil and from stronger inventory management and trading in North American gas and power."],"pjm":"Named by the firm as a driver: North American gas and power trading.","src":[["Macquarie FY26 result announcement","https://www.macquarie.com/about/news/2026/macquarie-group-fy26-result-announcement.html"]],"usd":2.744,"prior_usd":1.839,"chg":49},{"id":"rwe","name":"RWE Supply & Trading","ab":"RW","cat":"Utility trading arm","x":5,"y":8,"why":"Trades around a large fleet of power plants in Europe.","hq":"Essen","ccy":"EUR","basis":"adjusted EBITDA, first nine months of 2025","facts":["Adjusted EBITDA EUR 150M for nine months of 2025 versus EUR 465M a year earlier, weaker mainly in proprietary trading.","Full-year 2025 guidance was EUR 100M to EUR 500M."],"pjm":"Mostly European.","src":[["RWE: first three quarters of 2025","https://www.rwe.com/en/investor-relations/financial-calendar-and-publications/news-and-ad-hoc-announcements/news/news-2025-11-12/"]],"usd":0.165,"prior_usd":0.512,"chg":-68},{"id":"centrica","name":"Centrica Energy","ab":"CE","cat":"Utility trading arm","x":4,"y":8,"why":"Gas and power trading plus gas fields, storage and generation.","hq":"Windsor, UK","ccy":"GBP","basis":"Centrica Energy adjusted operating profit, 2025","facts":["Adjusted operating profit GBP 150M in 2025 versus GBP 307M in 2024 (previous segmentation), below its GBP 250M to GBP 350M medium-term range.","Trading arm blamed challenging gas and power market conditions."],"pjm":"Mostly UK and Europe.","src":[["Centrica 2025 preliminary results","https://www.centrica.com/media-centre/news/2026/preliminary-results-for-the-year-ended-31-december-2025/"]],"usd":0.195,"prior_usd":0.399,"chg":-51},{"id":"axpo","name":"Axpo","ab":"AX","cat":"Utility trading arm","x":5,"y":8,"why":"Swiss hydro owner with a large international trading business.","hq":"Baden, Switzerland","ccy":"CHF","basis":"group adjusted EBIT, FY to Sept 2025 (trading is the largest share)","facts":["Group adjusted EBIT CHF 1.26B versus CHF 1.85B; trading could not repeat prior extraordinary results.","Says it ranked second among gas dealers and third among energy and power dealers in the 2026 Energy Risk rankings."],"pjm":"Mostly European.","src":[["Axpo annual results 2025","https://axpo.com/group/en/investor-relations/annual-results-2025.html"],["Axpo: Energy Risk ranking","https://www.axpo.com/ch/en/about-us/portrait/energy-risk-ranking.html"]],"usd":1.387,"prior_usd":2.033,"chg":-32}],"moves":[["Nov 2024","Castleton buys the 169 MW Hunlock Creek gas plant in PJM","castleton"],["2025","Citadel buys Paloma Natural Gas (renamed Apex)","citadel"],["2025","Gunvor employee buyout replaces its co-founder as owner","gunvor"],["Oct 2025","Oaktree in talks to sell a minority stake in Hartree","hartree"],["Mar 2026","Two senior London power and gas traders leave Balyasny","balyasny"],["2026","Millennium hires natural gas traders from Castleton","millennium"],["2026","Citadel's star European gas trader Chris Foster steps down to adviser","citadel"],["2026","Macquarie credits North American gas and power trading for commodities gains","macquarie"]],"extra_sources":[["BCG: how power and gas trading firms compete by 2035","https://web-assets.bcg.com/pdf-src/prod-live/how-power-gas-trading-firms-compete-by-2035.pdf"]]}, F = PL.firms, el = id => document.getElementById(id), tip = VZ.tip();
+el('asof').textContent = PL.asof;
+const CATS = ['Hedge fund', 'Commodity merchant', 'Bank', 'Utility trading arm'], cvar = ['--k1', '--k2', '--k3', '--k4'], SYM = [d3.symbolCircle, d3.symbolSquare, d3.symbolDiamond, d3.symbolTriangle];
+const cc = c => getComputedStyle(document.documentElement).getPropertyValue(cvar[CATS.indexOf(c)]).trim();
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const JIT = { vitol: [-.55, -.25], trafigura: [.75, .35], mercuria: [.35, -.3], gunvor: [-.75, -.2], glencore: [0, 0], millennium: [-.35, 0], point72: [.35, 0], balyasny: [0, .5], rwe: [.3, 0], axpo: [-.3, 0], citadel: [-.2, 0], deshaw: [.3, 0], castleton: [0, 0], macquarie: [0, 0] };
+let sel = 'castleton'; const off = new Set();
+
+function map() {
+  const P = VZ.pal(), o = VZ.svg(el('map'), 900, 520, { t: 16, r: 46, b: 46, l: 104 }), g = o.g;
+  const x = d3.scaleLinear().domain([0, 10]).range([0, o.iw]), y = d3.scaleLinear().domain([0, 10.8]).range([o.ih, 0]);
+  g.append('line').attr('x1', x(5)).attr('x2', x(5)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.line); g.append('line').attr('x1', 0).attr('x2', o.iw).attr('y1', y(5)).attr('y2', y(5)).attr('stroke', P.line);
+  [['Physical, judgment-led', 6, 10.2, 'start'], ['Physical and systematic', o.iw - 6, 10.2, 'end'], ['Financial, judgment-led', 6, o.ih - 8, 'start'], ['Financial and quantitative', o.iw - 6, o.ih - 8, 'end']].forEach(([t, a, b, an]) => g.append('text').attr('x', a).attr('y', typeof b === 'number' && b < 11 ? y(b) : b).attr('text-anchor', an).attr('fill', P.muted).style('font-size', '12px').style('letter-spacing', '.03em').text(t.toUpperCase()));
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).tickValues([0, 2.5, 5, 7.5, 10]).tickFormat(d => ['Judgment-led', '', 'Mixed', '', 'Systematic'][d / 2.5]).tickSize(3)));
+  VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickValues([0, 2.5, 5, 7.5, 10]).tickFormat(d => ['Financial only', '', 'Mixed', '', 'Asset-backed'][d / 2.5]).tickSize(3)));
+  g.append('text').attr('x', o.iw / 2).attr('y', o.ih + 38).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '12px').text('How the trading is done (my judgment)');
+  g.append('text').attr('transform', 'rotate(-90)').attr('x', -o.ih / 2).attr('y', -42).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '12px').text('How much physical business backs it (my judgment)');
+  const rs = d3.scaleSqrt().domain([0, 5]).range([5, 22]);
+  const vis = F.filter(f => !off.has(f.cat));
+  vis.slice().sort((a, b) => (b.usd || 0) - (a.usd || 0)).forEach(f => {
+    const j = JIT[f.id] || [0, 0], px = x(f.x + j[0]), py = y(f.y + j[1]), r = f.usd != null ? rs(f.usd) : 9, ci = CATS.indexOf(f.cat), col = cc(f.cat);
+    const gg = g.append('g').attr('transform', `translate(${px},${py})`).style('cursor', 'pointer').on('click', () => { sel = f.id; render(); }).on('mousemove', e => tip.show(`<b>${esc(f.name)}</b> · ${f.cat}<br>${f.usd != null ? '$' + f.usd.toFixed(2) + 'B: ' + esc(f.basis) : esc(f.basis)}<br><span style="color:var(--muted)">${esc(f.why)}</span>`, e)).on('mouseleave', tip.hide);
+    const sz = Math.PI * r * r * (ci === 0 ? 1 : ci === 1 ? 1.15 : ci === 2 ? .8 : .9) * (f.usd != null ? 1 : 1);
+    gg.append('path').attr('d', d3.symbol().type(SYM[ci]).size(sz)()).attr('fill', f.usd != null ? col : 'none').attr('fill-opacity', .72).attr('stroke', f.usd != null ? P.surface : col).attr('stroke-width', f.usd != null ? 2 : 2).attr('stroke-dasharray', f.usd != null ? null : '3 2');
+    if (f.id === sel) gg.append('path').attr('d', d3.symbol().type(SYM[ci]).size(sz * 1.7 + 200)()).attr('fill', 'none').attr('stroke', P.fg).attr('stroke-width', 1.6);
+    gg.append('text').attr('y', r + 12).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '10.5px').text(f.name.replace(' Commodities', '').replace(' Partners', '').replace(' Supply & Trading', ' S&T'));
+  });
+  g.append('g').attr('transform', `translate(${x(6.6)},${y(1.7)})`).call(s => { s.append('circle').attr('r', 4).attr('fill', P.fg); s.append('text').attr('x', 8).attr('y', 4).attr('fill', P.fg).style('font-size', '11px').text('This project (retail, paper)'); });
+  const big = F.filter(f => f.usd).sort((a, b) => b.usd - a.usd)[0], phys = F.filter(f => f.y >= 6 && f.x >= 5).map(f => f.name);
+  el('map-so').innerHTML = `The two most systematic firms in the set, Citadel and D.E. Shaw, are hedge funds with little physical business; the merchants, with the biggest balance sheets, are the most judgment-led and physical. Almost nobody is both highly systematic and heavily asset-backed. Closest to that corner: ${phys.join(', ') || 'none'}. Area is trading profit (largest: ${big.name}, $${big.usd.toFixed(1)}B); shape and color are the type. Dashed outlines have no public profit figure. Overlapping firms are nudged apart slightly.`;
+  el('leg').innerHTML = CATS.map((c, i) => `<button data-c="${c}" aria-pressed="${!off.has(c)}"><svg viewBox="-8 -8 16 16"><path d="${d3.symbol().type(SYM[i]).size(120)()}" fill="${cc(c)}"/></svg>${c} (${F.filter(f => f.cat === c).length})</button>`).join('') + '<span>Click a type to hide or show it.</span>';
+  el('leg').onclick = e => { const b = e.target.closest('[data-c]'); if (b) { off.has(b.dataset.c) ? off.delete(b.dataset.c) : off.add(b.dataset.c); map(); } };
+}
+
+function cards() {
+  el('cards').innerHTML = F.map(f => `<button class="fc" data-id="${f.id}" aria-pressed="${f.id === sel}"><span class="mono-b" style="background:${cc(f.cat)}">${esc(f.ab)}</span><span><b>${esc(f.name)}</b><span>${esc(f.cat)} · ${esc(f.hq)}</span><span>${f.usd != null ? '$' + f.usd.toFixed(1) + 'B profit' : 'no public figure'}</span></span></button>`).join('');
+  el('cards').onclick = e => { const b = e.target.closest('[data-id]'); if (b) { sel = b.dataset.id; render(); el('prof').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } };
+}
+function prof() {
+  const f = F.find(x => x.id === sel);
+  el('prof').innerHTML = `<div class="prof"><span class="mono-b" style="background:${cc(f.cat)}">${esc(f.ab)}</span><div><h3>${esc(f.name)}</h3><div class="meta">${esc(f.cat)} · ${esc(f.hq)}${f.chg != null ? ' · profit ' + (f.chg > 0 ? '+' : '') + f.chg + '% vs prior year' : ''}</div>
+    <div style="font-size:14px;margin-bottom:4px"><b>Why it sits where it does:</b> ${esc(f.why)}</div>
+    <ul>${f.facts.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+    <div style="font-size:14px"><b>In PJM and US power:</b> <span style="color:var(--fg2)">${esc(f.pjm)}</span></div>
+    <div class="srcs" style="margin-top:8px">Size basis: ${esc(f.basis)}. Sources: ${f.src.map(s => `<a href="${esc(s[1])}" rel="noopener">${esc(s[0])}</a>`).join(' · ')}</div></div></div>`;
+}
+function size() {
+  const P = VZ.pal(), D = F.filter(f => f.usd != null).sort((a, b) => b.usd - a.usd), none = F.filter(f => f.usd == null).map(f => f.name);
+  const o = VZ.svg(el('size'), 520, 330, { t: 6, r: 56, b: 24, l: 110 }), g = o.g, y = d3.scaleBand().domain(D.map(d => d.name)).range([0, o.ih]).padding(.3), x = d3.scaleLinear().domain([0, d3.max(D, d => d.usd)]).nice().range([0, o.iw]);
+  D.forEach(d => { g.append('rect').attr('y', y(d.name)).attr('height', y.bandwidth()).attr('width', x(d.usd)).attr('fill', cc(d.cat)).attr('rx', 3).attr('opacity', .85).on('mousemove', e => tip.show(`<b>${esc(d.name)}</b><br>$${d.usd.toFixed(2)}B<br>${esc(d.basis)}`, e)).on('mouseleave', tip.hide);
+    g.append('text').attr('x', x(d.usd) + 5).attr('y', y(d.name) + y.bandwidth() / 2 + 4).attr('fill', P.fg2).style('font-size', '11px').text('$' + d.usd.toFixed(1)); });
+  VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickSize(0).tickFormat(t => t.replace(' Commodities', '').replace(' Partners', '').replace(' Supply & Trading', ' S&T')))); VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(5)));
+  el('size-so').innerHTML = `The bases differ: Vitol, Trafigura, Mercuria and Gunvor are whole-firm profit (mostly oil); Glencore and Macquarie are divisions; Citadel is 2024; RWE, Centrica and Axpo are trading-adjacent measures. Treat it as an order of magnitude, not a league table. No public profit figure: ${none.join(', ')}. Converted at ${PL.fx}.`;
+}
+function chg() {
+  const P = VZ.pal(), D = F.filter(f => f.chg != null).sort((a, b) => a.chg - b.chg), o = VZ.svg(el('chg'), 520, 330, { t: 6, r: 50, b: 24, l: 110 }), g = o.g;
+  const y = d3.scaleBand().domain(D.map(d => d.name)).range([0, o.ih]).padding(.3), mn = d3.min(D, d => d.chg), mx = d3.max(D, d => d.chg), x = d3.scaleLinear().domain([Math.min(mn, -10) * 1.05, Math.max(mx, 10) * 1.2]).nice().range([0, o.iw]);
+  g.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.muted);
+  D.forEach(d => { g.append('rect').attr('y', y(d.name)).attr('height', y.bandwidth()).attr('x', x(Math.min(0, d.chg))).attr('width', Math.abs(x(d.chg) - x(0))).attr('fill', cc(d.cat)).attr('rx', 3).attr('opacity', .85).on('mousemove', e => tip.show(`<b>${esc(d.name)}</b><br>${d.chg > 0 ? '+' : ''}${d.chg}%<br>${esc(d.basis)}`, e)).on('mouseleave', tip.hide);
+    g.append('text').attr('x', d.chg < 0 ? x(d.chg) - 5 : x(d.chg) + 5).attr('text-anchor', d.chg < 0 ? 'end' : 'start').attr('y', y(d.name) + y.bandwidth() / 2 + 4).attr('fill', P.fg2).style('font-size', '11px').text((d.chg > 0 ? '+' : '') + d.chg + '%'); });
+  VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickSize(0).tickFormat(t => t.replace(' Commodities', '').replace(' Partners', '').replace(' Supply & Trading', ' S&T')).tickPadding(70))); VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(5).tickFormat(d => d + '%')));
+  g.selectAll('.tick text').attr('x', -4).style('text-anchor', 'end');
+  const neg = D.filter(d => d.chg < 0).length;
+  el('chg-so').innerHTML = `<b>${neg} of ${D.length}</b> firms reported lower profit than the year before. Mercuria, Axpo and Centrica blame calmer markets and lower volatility; RWE blames weaker proprietary trading. The exception is Macquarie (+49%), whose commodities arm credits North American gas and power trading (the division figure also includes a one-off gain elsewhere). Periods differ by firm.`;
+}
+function moves() {
+  el('moves').innerHTML = PL.moves.map(m => { const f = F.find(x => x.id === m[2]); return `<div class="tl2"><div class="w">${esc(m[0])}</div><div>${esc(m[1])} <span class="chip">${esc(f.name)}</span></div></div>`; }).join('');
+  el('pjm').innerHTML = F.map(f => `<tr><td><b>${esc(f.name)}</b></td><td>${esc(f.cat)}</td><td>${esc(f.pjm)}</td></tr>`).join('');
+  el('us').innerHTML = `We sit in the bottom-right of the map's financial half, with a hobby budget and no physical business. None of these firms is a competitor in the ordinary sense: their edge is scale, speed, balance sheets and asset ownership. Where a small account can still play is in slower, public-data ideas such as the event-driven and calendar-based studies on our other pages. BCG's outlook on how power and gas trading firms compete by 2035 is a good companion read: <a href="${esc(PL.extra_sources[0][1])}" rel="noopener">${esc(PL.extra_sources[0][0])}</a>.`;
+  el('foot').innerHTML = 'Sources are listed on each profile. Figures were gathered from press reports and company releases on ' + PL.asof + ' and may be revised or differ by outlet (for example Vitol 2025 profit was reported as both $4.5B and $4.2B; we use the filing-based $4.2B). Monograms replace logos to avoid using company marks without permission. Positions are opinion. Not investment advice.';
+}
+function render() { map(); cards(); prof(); }
+render(); size(); chg(); moves();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { render(); size(); chg(); });
+</script>
