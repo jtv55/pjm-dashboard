@@ -108,7 +108,7 @@ tbody tr[aria-selected="true"] { background: var(--soft); box-shadow: inset 3px 
 .mso { font-size: 12px; color: var(--fg2); margin: 6px 0 0; } .mso b { color: var(--fg); }
 
 /* topic filter + evidence */
-@media (min-width: 900px) { .topicbar { position: sticky !important; top: 0; } }
+@media (min-width: 900px) { .topicbar { position: sticky !important; top: 40px; z-index: 900; } }
 .topicbar { position: static; z-index: 5; background: var(--bg); padding: 10px 0 8px; border-bottom: 1px solid var(--line); margin: 0 0 24px; }
 .topicbar .ctl { margin-bottom: 4px; }
 .topicnote { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
@@ -144,7 +144,7 @@ a { color: var(--accent); }
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<nav style="font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="brief.html" style="color:inherit;font-weight:600">Daily brief</a><a href="index.html" style="color:inherit">Build log</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="aigap.html" style="color:inherit">Power gap</a><a href="calendar.html" style="color:inherit">Energy calendar</a><a href="spikes.html" style="color:inherit">Spike lab</a><a href="gridmap.html" style="color:inherit">Grid map</a><a href="queue.html" style="color:inherit">Queue</a><a href="strategies.html" style="color:inherit">Strategy lab</a></nav>
+<style>html{scroll-padding-top:52px}.sitenav::-webkit-scrollbar{display:none}</style><nav class="sitenav" style="position:sticky;top:0;z-index:1000;background:var(--bg,Canvas);font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:nowrap;white-space:nowrap;overflow-x:auto;scrollbar-width:none;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="brief.html" style="color:inherit;font-weight:600">Daily brief</a><a href="index.html" style="color:inherit">Build log</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="aigap.html" style="color:inherit">Power gap</a><a href="calendar.html" style="color:inherit">Energy calendar</a><a href="spikes.html" style="color:inherit">Spike lab</a><a href="gridmap.html" style="color:inherit">Grid map</a><a href="queue.html" style="color:inherit">Queue</a><a href="strategies.html" style="color:inherit">Strategy lab</a></nav>
 <div class="wrap">
   <div class="eyebrow">Equities · proxies for PJM exposure · snapshot <span id="asof"></span></div>
   <h1>Who gets paid when PJM power gets tight?</h1>
