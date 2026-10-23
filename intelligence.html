@@ -107,6 +107,19 @@ table.t td, table.t th { padding: 6px 10px; font-size: 13px; vertical-align: top
     <p class="so" id="chain-so"></p>
   </section>
 
+
+  <section>
+    <h2>The through line</h2>
+    <p class="sub">One line per route, from heat to dollars. The vertical axis is a log scale of the number at each step, and each step has its own unit (so read the shape, not the height). Two views: how little the fuel changes the line, and how much the chip and model choices do.</p>
+    <div class="card">
+      <div class="ctlrow" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px" id="thru-pick"></div>
+      <div id="thru"></div>
+      <div class="legend" id="thru-leg"></div>
+      <p class="so" id="thru-so"></p>
+      <div class="tablewrap" style="margin-top:10px"><table class="t"><thead id="thru-h"></thead><tbody id="thru-b"></tbody></table></div>
+    </div>
+  </section>
+
   <section>
     <h2>Every fuel on the same ruler</h2>
     <div class="two">
@@ -220,10 +233,10 @@ const num = (v, d = 2) => v >= 1000 ? d3.format(',.0f')(v) : v >= 10 ? v.toFixed
 const usd = v => v >= 1e9 ? '$' + (v / 1e9).toFixed(1) + 'B' : v >= 1e6 ? '$' + (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? '$' + d3.format(',.0f')(v) : '$' + v.toFixed(v >= 10 ? 0 : 2);
 
 /* ---- the model ---- */
-function perMWh() {                       // everything per 1 MWh delivered to the data-center meter
-  const hw = CONST.hw[ST.hw], it = 1 / ST.pue, kwh = it * 1000, gpuh = kwh / hw.kw, peak = hw.peak[ST.prec];
-  const flops = gpuh * 3600 * peak * (ST.mfu / 100), fpt = 2 * (+ST.model) * 1e9, tokens = flops / fpt, rent = ST.rent == null ? hw.rent : ST.rent;
-  return { gpuh, flops, fpt, tokens, power: ST.pw, gpuCost: gpuh * rent, revenue: tokens * ST.tp / 1e6, rent };
+function perMWh(o = {}) {                 // everything per 1 MWh delivered to the data-center meter; o overrides the settings
+  const q = Object.assign({}, ST, o), hw = CONST.hw[q.hw], it = 1 / q.pue, kwh = it * 1000, gpuh = kwh / hw.kw, peak = hw.peak[q.prec];
+  const flops = gpuh * 3600 * peak * (q.mfu / 100), fpt = 2 * (+q.model) * 1e9, tokens = flops / fpt, rent = o.hw ? hw.rent : (q.rent == null ? hw.rent : q.rent);
+  return { gpuh, flops, fpt, tokens, power: q.pw, gpuCost: gpuh * rent, revenue: tokens * q.tp / 1e6, rent, kwh };
 }
 function mwhPerUnit(f) { if (f.mwh) return f.mwh; if (f.cf != null) return 8.76 * 1000 * f.cf / 1000 * 1000 / 1000 * 1; return f.mm / f.hr; }
 const mwhUnit = f => f.mwh ? f.mwh : f.cf != null ? 8760 * f.cf : f.mm / f.hr;   // MWh generated per unit (MW-year: 8,760 h times capacity factor)
@@ -360,7 +373,50 @@ function consts() {
   ];
   el('consts').innerHTML = rows.map(r => `<tr><td><b>${esc(r[0])}</b></td><td class="num" style="text-align:left">${esc(r[1])}</td><td>${esc(r[2])}</td><td>${Array.isArray(r[3]) ? `<a href="${esc(r[3][1])}" rel="noopener">${esc(r[3][0])}</a>` : esc(r[3])}</td></tr>`).join('');
 }
-function all() { hero(); drawChain(); fuels(); dollars(); pjm(); checks(); }
+
+const SETUPS = [
+  { n: 'Older chip, 70B, BF16', o: { hw: 'h100', prec: 'bf16', model: '70', mfu: 25 }, c: '--k2' },
+  { n: 'Default: H100, FP8, 100B', o: { hw: 'h100', prec: 'fp8', model: '100', mfu: 20 }, c: '--k1' },
+  { n: 'B200, FP8, 70B', o: { hw: 'b200', prec: 'fp8', model: '70', mfu: 35 }, c: '--k3' },
+  { n: 'Best case: B200, FP4, 70B', o: { hw: 'b200', prec: 'fp4', model: '70', mfu: 35 }, c: '--k4' },
+  { n: 'Frontier: B200, FP8, 400B', o: { hw: 'b200', prec: 'fp8', model: '400', mfu: 25 }, c: '--k7' },
+  { n: 'Small model: H100, BF16, 8B', o: { hw: 'h100', prec: 'bf16', model: '8', mfu: 30 }, c: '--k5' }
+];
+const STAGES = [['Heat', 'MMBtu'], ['Electricity made', 'MWh'], ['At the data center', 'MWh'], ['Chip energy', 'kWh'], ['Chip-hours', 'GPU-hours'], ['Arithmetic', 'FLOPs'], ['Tokens', 'tokens'], ['Token value', '$']];
+let thruView = 'fuel';
+function stageVals(hr, o) {              // values at each stage for 1 MMBtu of heat
+  const m = perMWh(o), gen = 1 / hr, del = gen * (1 - CONST.loss);
+  return [1, gen, del, del * m.kwh, del * m.gpuh, del * m.flops, del * m.tokens, del * m.revenue];
+}
+function throughline() {
+  el('thru-pick').innerHTML = [['fuel', 'By fuel (current settings)'], ['setup', 'By chip and model (natural gas)']].map(([k, n]) => `<button class="pill" data-v="${k}" aria-pressed="${thruView === k}">${n}</button>`).join('');
+  el('thru-pick').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { thruView = b.dataset.v; throughline(); } };
+  const P = VZ.pal(), css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const lines = thruView === 'fuel' ? FUELS.filter(f => f.hr).map(f => ({ n: f.n + ' (' + f.hr.toFixed(2) + ' MMBtu/MWh)', col: css(f.c), v: stageVals(f.hr, {}) }))
+    : SETUPS.map(s => ({ n: s.n, col: css(s.c), v: stageVals(HR.gas, s.o) }));
+  const o = VZ.svg(el('thru'), 900, 380, { t: 16, r: 150, b: 56, l: 54 }), g = o.g, n = STAGES.length;
+  const x = d3.scalePoint().domain(d3.range(n)).range([0, o.iw]).padding(.05);
+  const all = lines.flatMap(l => l.v), lo = Math.floor(Math.log10(d3.min(all))) - 0.2, hi = Math.ceil(Math.log10(d3.max(all))) + 0.2;
+  const y = d3.scaleLinear().domain([lo, hi]).range([o.ih, 0]);
+  for (let k = Math.ceil(lo); k <= Math.floor(hi); k += 3) { g.append('line').attr('x1', 0).attr('x2', o.iw).attr('y1', y(k)).attr('y2', y(k)).attr('stroke', P.line); g.append('text').attr('x', -8).attr('y', y(k) + 4).attr('text-anchor', 'end').attr('fill', P.muted).style('font-size', '11px').text('10' + (k < 0 ? '⁻' : '') + String(Math.abs(k)).replace(/\d/g, c => '⁰¹²³⁴⁵⁶⁷⁸⁹'[c])); }
+  STAGES.forEach((s, i) => { g.append('line').attr('x1', x(i)).attr('x2', x(i)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.line).attr('opacity', .5); g.append('text').attr('x', x(i)).attr('y', o.ih + 18).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '11px').text(s[0]); g.append('text').attr('x', x(i)).attr('y', o.ih + 32).attr('text-anchor', 'middle').attr('fill', P.muted).style('font-size', '10px').text(s[1]); });
+  lines.forEach(l => { g.append('path').datum(l.v).attr('fill', 'none').attr('stroke', l.col).attr('stroke-width', 2.2).attr('stroke-linejoin', 'round').attr('d', d3.line().x((d, i) => x(i)).y(d => y(Math.log10(d))));
+    l.v.forEach((v, i) => g.append('circle').attr('cx', x(i)).attr('cy', y(Math.log10(v))).attr('r', 4).attr('fill', l.col).attr('stroke', P.surface).attr('stroke-width', 1.5)
+      .on('mousemove', e => tip.show(`<b>${esc(l.n)}</b><br>${STAGES[i][0]}: ${i >= 6 ? (i === 6 ? cnt(v) + ' tokens' : usd(v)) : i === 5 ? flop(v) : num(v, 3) + ' ' + STAGES[i][1]}`, e)).on('mouseleave', tip.hide));
+  });
+  const ends = lines.map(l => ({ l, yy: y(Math.log10(l.v[n - 1])) })).sort((a, b) => a.yy - b.yy); let last = -99;
+  ends.forEach(e => { const yy = Math.max(e.yy, last + 13); last = yy; g.append('text').attr('x', x(n - 1) + 10).attr('y', yy + 4).attr('fill', P.fg2).style('font-size', '11px').text(e.l.n.replace(/ \(.*$/, '')); });
+  el('thru-leg').innerHTML = '<span>Axis: log10 of the number at each step. 10³ is a thousand, 10⁹ a billion, 10²⁰ a hundred quintillion.</span>';
+  const tok = lines.map(l => l.v[6]), spread = Math.max(...tok) / Math.min(...tok);
+  el('thru-so').innerHTML = thruView === 'fuel'
+    ? `Per MMBtu of heat the lines are nearly one: fuels differ only in how efficiently they turn heat into electricity, so the spread from best to worst fuel is just <b>${spread.toFixed(2)}×</b> in tokens. Renewables have no heat step; per megawatt-hour they sit on the same line from the electricity step on.`
+    : `Same heat, six ways to spend it. The best and worst routes differ by <b>${num(spread, 0)}×</b> in tokens (${Math.log10(spread).toFixed(1)} orders of magnitude): chip generation, number format, model size and utilization move the answer enormously, while the choice of fuel moves it by tens of percent. A route wider than these six, say an 8B model at FP4 against a 1T-parameter one, would stretch the spread further. The line is set by the chips, not the fuel.`;
+  const f = v => (v >= 1e4 || v < 0.01) ? v.toExponential(1) : num(v, 3);
+  el('thru-h').innerHTML = '<tr><th>Route</th>' + STAGES.map(s => `<th class="num">${s[0]}<br><span style="font-weight:400;text-transform:none">${s[1]}</span></th>`).join('') + '</tr>';
+  el('thru-b').innerHTML = lines.map(l => `<tr><td><span class="swatch" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${l.col};margin-right:6px"></span>${esc(l.n)}</td>${l.v.map(v => `<td class="num">${f(v)}</td>`).join('')}</tr>`).join('');
+}
+
+function all() { hero(); drawChain(); throughline(); fuels(); dollars(); pjm(); checks(); }
 controls(); consts(); all();
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
 </script>
