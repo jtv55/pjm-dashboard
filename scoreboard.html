@@ -1,0 +1,300 @@
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Scoreboard: What Has Earned Trust</title>
+<style>
+:root {
+  --bg: #fcfcfb; --surface: #ffffff; --fg: #141413; --fg2: #52514e; --muted: #7a7973;
+  --line: #e4e3de; --soft: #f4f3ef; --accent: #2a78d6; --up: #0b7a43; --down: #c03a2b; --warn: #a86b00;
+  --r-fuel: #b8541f; --r-gen: #2a78d6; --r-wire: #0e8a62; --r-equip: #6250d6; --r-load: #b0447a;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+    --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+    --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+  --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+  --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 28px; line-height: 1.2; margin: 6px 0 8px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+.lede { color: var(--fg2); max-width: 68ch; margin: 0 0 22px; }
+.sub { color: var(--fg2); font-size: 13px; margin: 0 0 12px; max-width: 74ch; }
+section { margin-bottom: 34px; }
+p { margin: 0 0 10px; }
+a { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi { border-top: 2px solid var(--line); padding-top: 8px; min-width: 0; }
+.kpi .v { font-family: var(--font-mono); font-size: 24px; font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--fg2); font-size: 13px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); } .warn { color: var(--warn); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted);
+  padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.num, td.num { text-align: right; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+tbody tr:last-child td { border-bottom: 0; }
+.pill { font: inherit; font-size: 13px; color: var(--fg2); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; cursor: pointer; }
+.pill[aria-pressed="true"] { color: var(--fg); border-color: var(--fg2); background: var(--soft); }
+button:focus-visible, input:focus-visible, th:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 10px; align-items: center; }
+.note { background: var(--soft); border-radius: 6px; padding: 10px 12px; font-size: 14px; max-width: 80ch; margin: 0 0 12px; }
+.foot { color: var(--muted); font-size: 12px; max-width: 82ch; border-top: 1px solid var(--line); padding-top: 14px; }
+.chart text { fill: var(--fg2); font-family: var(--font-body); font-size: 12px; }
+@media (max-width: 760px) { h1 { font-size: 24px; } }
+@media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi .v { font-size: 20px; } }
+
+:root { --k1: #2a78d6; --k2: #eb6834; --k3: #1baf7a; --k4: #eda100; --k5: #e87ba4; --k6: #008300; --k7: #6250d6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500; --k5: #d55181; --k6: #008300; --k7: #9085e9; } }
+:root[data-theme="dark"] { --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500; --k5: #d55181; --k6: #008300; --k7: #9085e9; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 900px) { .two, .three { grid-template-columns: 1fr; } }
+.so { font-size: 13px; color: var(--fg2); margin: 8px 0 0; max-width: 84ch; } .so b { color: var(--fg); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--fg2); margin-top: 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.pipe { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; align-items: stretch; }
+.stage { border: 1px solid var(--line); background: var(--surface); padding: 12px; position: relative; min-height: 150px; }
+.stage:not(:last-child)::after { content: ""; position: absolute; right: -8px; top: 50%; width: 14px; height: 14px; background: var(--surface); border-top: 1px solid var(--line); border-right: 1px solid var(--line); transform: translateY(-50%) rotate(45deg); z-index: 2; }
+.stage h4 { margin: 0 0 2px; font-size: 13px; } .stage .c { font-family: var(--font-mono); font-size: 22px; font-weight: 600; } .stage .d { font-size: 11px; color: var(--muted); margin-bottom: 8px; min-height: 28px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-family: var(--font-mono); font-size: 11px; border-radius: 4px; padding: 1px 6px; color: #fff; cursor: pointer; border: 0; }
+@media (max-width: 900px) { .pipe { grid-template-columns: 1fr; } .stage:not(:last-child)::after { display: none; } .stage { min-height: 0; } }
+.vb { display: inline-block; font-size: 11px; font-family: var(--font-mono); border-radius: 4px; padding: 1px 7px; color: #fff; white-space: nowrap; }
+table.t td, table.t th { padding: 8px 10px; font-size: 13px; vertical-align: top; } table.t td.id { font-family: var(--font-mono); font-weight: 600; white-space: nowrap; }
+table.t a { color: var(--accent); display: block; font-size: 12px; }
+.prog { margin: 10px 0 14px; } .prog .top { display: flex; justify-content: space-between; font-size: 13px; } .prog .bar { height: 10px; border-radius: 5px; background: var(--soft); overflow: hidden; margin-top: 4px; } .prog .bar i { display: block; height: 100%; background: var(--k1); }
+.prog .sub2 { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.gate { display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); } .gate:first-child { border-top: 0; }
+.gate .ic { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 700; } .gate b { font-size: 14px; } .gate p { margin: 2px 0 0; font-size: 12.5px; color: var(--fg2); }
+.up { display: grid; grid-template-columns: 90px 1fr 90px; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; } .up:first-child { border-top: 0; } .up .w { font-family: var(--font-mono); color: var(--muted); font-size: 12px; } .up .h { color: var(--muted); font-size: 12px; text-align: right; }
+.kpis .kpi .s { font-size: 11px; color: var(--muted); }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+
+<style>html{scroll-padding-top:52px}.sitenav::-webkit-scrollbar{display:none}</style><nav class="sitenav" style="position:sticky;top:0;z-index:1000;background:var(--bg,Canvas);font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:nowrap;white-space:nowrap;overflow-x:auto;scrollbar-width:none;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="brief.html" style="color:inherit;font-weight:600">Daily brief</a><a href="index.html" style="color:inherit">Build log</a><a href="scoreboard.html" style="color:inherit;font-weight:600">Scoreboard</a><a href="spreadlab.html" style="color:inherit">Spread lab</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="aigap.html" style="color:inherit">Power gap</a><a href="calendar.html" style="color:inherit">Energy calendar</a><a href="spikes.html" style="color:inherit">Spike lab</a><a href="gridmap.html" style="color:inherit">Grid map</a><a href="queue.html" style="color:inherit">Queue</a><a href="strategies.html" style="color:inherit">Strategy lab</a><a href="players.html" style="color:inherit">Players</a><a href="intelligence.html" style="color:inherit">Intelligence</a><a href="maths.html" style="color:inherit">Maths</a><a href="discourse.html" style="color:inherit">Discourse</a></nav>
+<div class="wrap">
+  <div class="eyebrow">Scoreboard · every hypothesis, its evidence, and what is still to prove · <span id="asof"></span></div>
+  <h1>What has earned trust, and what has not</h1>
+  <p class="lede">This project writes down every idea and its test before running it, records the nulls, and refuses to trade anything that has not survived a forward test. This page is the whole record in one place: how ideas move from a hunch to something worth money, what the evidence for each looks like, what is being tested live, and what would have to be true before real capital goes anywhere near it.</p>
+  <div class="note"><b>Read this first.</b> Research and education, not investment advice. No real-money trades have been made. Every performance number is gross of costs unless it says otherwise, and every in-sample result is a lead, not a result.</div>
+
+  <section><div class="kpis" id="kpis"></div></section>
+
+  <section id="pipe">
+    <h2>1. How an idea earns trust</h2>
+    <p class="sub">An idea starts as a sentence and must clear each stage in order. Most die at the second. Click a chip to jump to its row.</p>
+    <div class="pipe" id="pipe-g"></div>
+    <p class="so" id="pipe-so"></p>
+  </section>
+
+  <section id="board">
+    <h2>2. The scoreboard</h2>
+    <p class="sub">All 17 entries, in the order they were registered. The verdict is what the evidence supports today, not what we hope.</p>
+    <div class="card">
+      <div class="row" id="b-pick"></div>
+      <div class="tablewrap"><table class="t"><thead><tr><th>ID</th><th>Question</th><th>Verdict</th><th>Evidence</th><th>Sample</th><th>What settles it</th><th>Evidence page</th></tr></thead><tbody id="b-b"></tbody></table></div>
+    </div>
+  </section>
+
+  <section id="evidence">
+    <h2>3. What the evidence looks like</h2>
+    <p class="sub">Three kinds of test, each against its own yardstick. A plain rule beat every model; a few stock reactions look strong but rest on a handful of events; and option trades are compared with the same trade on other days.</p>
+    <div class="card"><h3>Option trades: how much better than the same trade on other days</h3><div id="forest"></div><div class="legend"><span><i style="background:var(--k2)"></i>null</span><span><i style="background:var(--k4)"></i>lead, not independent</span><span><i style="background:var(--k1)"></i>lead, forward test running</span></div><p class="so" id="forest-so"></p></div>
+    <div class="two" style="margin-top:12px">
+      <div class="card"><h3>Predictive models against the plain day-ahead rule (accuracy, AUC)</h3><div id="models"></div><p class="so" id="models-so"></p></div>
+      <div class="card"><h3>Stock reactions, in basis points</h3><div id="events"></div><p class="so" id="events-so"></p></div>
+    </div>
+  </section>
+
+  <section id="fwd">
+    <h2>4. What is being tested live</h2>
+    <p class="sub">Forward tests only count events logged before the outcome. Each is written to a hash-chained file, so history cannot be edited after the fact.</p>
+    <div class="two">
+      <div class="card" id="fwd-cards"></div>
+      <div class="card"><h3>What resolves when</h3><div id="upc"></div><p class="so" id="upc-so"></p></div>
+    </div>
+  </section>
+
+  <section id="gates">
+    <h2>5. The road to real money</h2>
+    <p class="sub">The conditions this project's own record says should be met first. They are research criteria written before the answer, not advice about what you should do with your money.</p>
+    <div class="card" id="gate-l"></div>
+    <p class="so" id="gate-so"></p>
+  </section>
+
+  <section id="others">
+    <h2>6. And everyone else's predictions</h2>
+    <div class="card"><p class="so" style="margin:0;font-size:14px">The same discipline, applied to other people: the <a href="discourse.html">Discourse page</a> records dated claims from podcasts, regulators and analysts and checks each against what happened. Our own seven event predictions are in the table above as H10 and sit alongside them there.</p></div>
+  </section>
+
+  <section>
+    <h2>Method notes</h2>
+    <div class="card"><ul class="plain" style="color:var(--fg2);font-size:14px;max-width:86ch" id="notes"></ul></div>
+  </section>
+  <p class="foot" id="foot"></p>
+</div>
+<script>/* Shared chart helpers (d3 v7 is loaded by the page). Colors come from the page's CSS variables so dark mode works. */
+const VZ = (() => {
+  const cs = () => getComputedStyle(document.documentElement);
+  const css = (v, fb) => (cs().getPropertyValue(v) || fb || '#888').trim();
+  const pal = () => ({
+    fg: css('--fg'), fg2: css('--fg2'), muted: css('--muted'), line: css('--line'), soft: css('--soft'), bg: css('--bg'), surface: css('--surface'),
+    up: css('--up'), down: css('--down'), warn: css('--warn'), accent: css('--accent'),
+    gen: css('--r-gen'), fuel: css('--r-fuel'), wire: css('--r-wire'), equip: css('--r-equip'), load: css('--r-load')
+  });
+  let tipEl;
+  function tip() {
+    if (!tipEl) {
+      tipEl = document.createElement('div');
+      tipEl.style.cssText = 'position:fixed;pointer-events:none;z-index:50;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.35;max-width:260px;box-shadow:0 2px 10px rgba(0,0,0,.15);display:none';
+      document.body.appendChild(tipEl);
+    }
+    return {
+      show(html, ev) {
+        tipEl.innerHTML = html; tipEl.style.display = 'block';
+        const x = Math.min(ev.clientX + 14, innerWidth - 270), y = Math.min(ev.clientY + 14, innerHeight - 80);
+        tipEl.style.left = x + 'px'; tipEl.style.top = y + 'px';
+      },
+      hide() { tipEl.style.display = 'none'; }
+    };
+  }
+  /* responsive svg with a fixed viewBox; returns {svg, g, w, h, iw, ih} */
+  function svg(el, w, h, m = { t: 12, r: 12, b: 28, l: 40 }) {
+    const root = d3.select(el); root.selectAll('*').remove();
+    const s = root.append('svg').attr('viewBox', `0 0 ${w} ${h}`).attr('class', 'chart').style('width', '100%').style('height', 'auto').attr('role', 'img');
+    const g = s.append('g').attr('transform', `translate(${m.l},${m.t})`);
+    return { svg: s, g, w, h, iw: w - m.l - m.r, ih: h - m.t - m.b, m };
+  }
+  function axisStyle(sel) {
+    const p = pal();
+    sel.selectAll('text').attr('fill', p.fg2).style('font-size', '11px');
+    sel.selectAll('path,line').attr('stroke', p.line);
+    return sel;
+  }
+  const fmt = { usd: d3.format('$,.0f'), int: d3.format(','), pct: d3.format('.0%'), bp: v => (v > 0 ? '+' : '') + Math.round(v) + ' bp' };
+  return { pal, tip, svg, axisStyle, fmt, css };
+})();
+</script>
+<script>
+const SB = {"asof":"Oct 24, 2026","stages":["Idea","Tested: null","Tested: lead","Forward test live or registered","Cleared for money"],"hyps":[{"id":"H1","q":"IPP stocks fall the day after a PJM up-spike","stage":3,"verdict":"lead","evidence":"In-sample about -112 bp intraday and -135 bp next day, t about -3, 28 episodes. Survives rates, oil, gas and bond factors (H1 robust).","n":"28 episodes","settles":"About 20 forward signals; none yet","links":[["Strategy lab","strategies.html"],["Spike lab","spikes.html"]]},{"id":"H1 robust","q":"The H1 drop is not explained by rates, oil, gas or bonds","stage":2,"verdict":"held","evidence":"-129 to -135 bp with extra factors versus -135 bp with SPY and QQQ only.","n":"28 episodes","settles":"Same as H1","links":[["Strategy lab","strategies.html"]]},{"id":"H1b","q":"Cheap puts on the H1 signal pay after costs","stage":3,"verdict":"open","evidence":"+10% gross on premium against -4% to -7% on random days, break-even near 5% slippage per side, 60% fill rate, TLN the opposite sign. Quoted spreads often exceed 5% a side.","n":"H1 sample","settles":"Real quotes on forward signals (capture running)","links":[["Strategy lab","strategies.html"]]},{"id":"H2","q":"Reserve margin and ramp explain the spread's sign","stage":1,"verdict":"null","evidence":"Extra features lift the model's AUC from 0.745 to 0.790 but not past the plain day-ahead rule (0.832).","n":"frozen test set","settles":"Closed unless the data changes","links":[["Spike lab","spikes.html"]]},{"id":"H3","q":"A model adds information in high day-ahead hours","stage":1,"verdict":"null","evidence":"Models 0.52 to 0.60 against 0.63 for the rule.","n":"high-price hours","settles":"Closed","links":[["Spike lab","spikes.html"]]},{"id":"H4","q":"Seven hubs together beat one hub","stage":1,"verdict":"null","evidence":"0.846 against 0.864 for the rule.","n":"7 hubs","settles":"Closed","links":[["Spike lab","spikes.html"]]},{"id":"H5","q":"Generators fall on affordability risk, not other factors","stage":0,"verdict":"idea","evidence":"Needs news and policy tagging first.","n":"-","settles":"Not registered","links":[["Energy calendar","calendar.html"]]},{"id":"H6","q":"The 2029/30 auction clears at the cap, 7 to 10 GW short","stage":3,"verdict":"open","evidence":"Written before the event: central estimate 8.5 GW short. A shortfall under 4 GW or a clear below the cap counts against the model.","n":"1 auction","settles":"PJM results, auction closes Dec 15, 2026","links":[["Power gap","aigap.html"]]},{"id":"H7","q":"PJM's next forecast does not raise 2030 data-center adds","stage":3,"verdict":"open","evidence":"Written before the event; PJM's stricter vetting makes a trim more likely.","n":"1 forecast","settles":"PJM 2027 load forecast, expected January 2027","links":[["Power gap","aigap.html"]]},{"id":"H8","q":"Generators fall after unscheduled federal and PJM decisions","stage":2,"verdict":"lead","evidence":"11 events: day +1 about -189 bp (p about 0.02); 4 state events day 0 about -196 bp. Small n, many comparisons.","n":"11 + 4 events","settles":"Log new events as they occur","links":[["Energy calendar","calendar.html"]]},{"id":"H9","q":"Generators rise the day after a cap-clearing auction","stage":3,"verdict":"lead","evidence":"4 of 4 auctions: day +1 about +372 bp (p about 0.01).","n":"4 auctions","settles":"The Dec 15, 2026 auction is the first independent test","links":[["Energy calendar","calendar.html"]]},{"id":"H10","q":"Our logged event predictions come true at their stated odds","stage":3,"verdict":"open","evidence":"Seven predictions written before their events, hash-chained.","n":"7 predictions","settles":"Brier score; first resolutions Nov 20 and Dec 15, 2026","links":[["Energy calendar","calendar.html"],["Discourse","discourse.html"]]},{"id":"H11","q":"My stakeholder impact scores match the market's reaction","stage":1,"verdict":"null","evidence":"9 of 19 match, a coin flip; after the fact, not a forecasting result.","n":"19 events","settles":"Closed","links":[["Energy calendar","calendar.html"]]},{"id":"H12","q":"Buying straddles through generator earnings pays","stage":1,"verdict":"null","evidence":"-6% gross on 22 filled events against +1% on random days; worse after costs.","n":"22 events","settles":"Closed","links":[["Strategy lab","strategies.html"]]},{"id":"H13","q":"Straddles over capacity-auction reactions pay","stage":3,"verdict":"lead","evidence":"+37% gross on 8 filled trades, but from the same four auctions that produced H9. Forward test registered for the Dec 2026 auction.","n":"8 trades","settles":"2029/30 auction results","links":[["Maths","maths.html"],["Strategy lab","strategies.html"]]},{"id":"H14","q":"A strangle after a high day-ahead evening (P90) pays","stage":3,"verdict":"open","evidence":"In-sample +15% gross on trigger days against -1.5% on matched days (118 and 115 trades), threshold from the same sample. Registered Oct 23, 2026; the daily brief logs every day.","n":"118 + 115 trades","settles":"20 settled trigger days or end of 2027","links":[["Maths","maths.html#acf"]]},{"id":"Stock model","q":"Macro, rates, oil, gas and event features improve next-day returns","stage":1,"verdict":"null","evidence":"Information coefficient stays near zero, within noise.","n":"-","settles":"Closed","links":[["Spike lab","spikes.html"]]}],"forest":[{"id":"H12","label":"H12: earnings straddle","n":22,"n0":32,"event":-0.0605,"placebo":0.008,"diff":-0.0685,"lo":-0.1799,"hi":0.0376,"forward":false},{"id":"H13","label":"H13: auction straddle","n":8,"n0":32,"event":0.3662,"placebo":0.008,"diff":0.3582,"lo":0.0573,"hi":0.7798,"forward":true},{"id":"H14","label":"H14: high day-ahead evening, strangle","n":118,"n0":115,"event":0.1547,"placebo":-0.0146,"diff":0.1693,"lo":0.0417,"hi":0.3242,"forward":true}],"models":[{"id":"H2","label":"Reserve margin and ramp features","model":0.79,"rule":0.832},{"id":"H3","label":"Spike model in high-price hours","model":0.6,"rule":0.63},{"id":"H4","label":"Seven hubs together","model":0.846,"rule":0.864}],"events":[{"id":"H1","label":"Generators, day after a PJM up-spike","bp":-135,"n":28,"p":"t about -3"},{"id":"H8","label":"After unscheduled federal and PJM decisions, day +1","bp":-189,"n":11,"p":"p about 0.02"},{"id":"H9","label":"Day after a cap-clearing auction, day +1","bp":372,"n":4,"p":"p about 0.01"}],"forward":{"h1":{"days":3,"signals":0,"scored":0,"need":20,"snapshots":22,"rate_per_year":10.0,"chain_ok":true},"h14":{"days":1,"triggers":0,"settled":0,"need":20,"rate_per_year":28,"since":"2026-10-23","threshold":179.9,"chain_ok":true,"last_signal":{"day":"2026-10-23","threshold":179.9,"tradeable":true,"trigger":false,"western_ramp_da":75.3}},"h13":{"registered":"2026-10-23","resolves":"2026-12-15"}},"house":[{"id":"bra-2029-30-close","outcome":"Auction clears at the price cap with a reliability shortfall of 7 to 10 GW (matches H6)","p":0.8},{"id":"doe-eddystone-2026-11","outcome":"DOE renews the Eddystone order again before Nov 20 for another 90 days","p":0.9},{"id":"va-scc-merger-deadline-2027","outcome":"Virginia SCC approves the NextEra-Dominion merger with conditions on customer bills and data center costs","p":0.65},{"id":"pjm-rbp-effective-2027","outcome":"FERC final order on the backstop procurement lets it proceed with cost-allocation changes, not as filed","p":0.6},{"id":"wv-psc-maidsville-2026","outcome":"West Virginia PSC grants FirstEnergy the certificate for the Maidsville gas plant","p":0.75},{"id":"pjm-bra-2030-31","outcome":"The 2030/31 auction happens on a three-year-ahead schedule and again clears at or near the cap","p":0.6},{"id":"pjm-colo-response-2026","outcome":"FERC does not decide the co-location compliance before April 2027","p":0.7}],"resolved_house":0,"upcoming":[["2026-11-20","DOE Eddystone order due for renewal","H10"],["2026-12-15","PJM 2029/30 capacity auction closes (results follow)","H6, H9, H13"],["2027-01","PJM's 2027 load forecast","H7"],["2027-07","H14 reaches about 20 trigger days at the in-sample rate","H14"],["2027-12-31","H14 deadline whatever the count","H14"],["2028-10","H1 reaches about 20 forward signals at the in-sample rate","H1, H1b"]],"rates":{"h1_years_to_20":2.0,"h14_months_to_20":8.6},"gates":[{"g":"Idea written down with its test before the result","met":true,"note":"Every hypothesis here; H14 registered Oct 23, 2026 in a hash-chained log."},{"g":"In-sample effect beats a placebo, with a range that excludes zero","met":true,"note":"Only H14 (and the in-sample leads). The threshold came from the same data, so this gate is weak by design."},{"g":"Survives realistic costs (quoted spreads, not trade prints)","met":false,"note":"22 quote snapshots captured; spreads often exceed 5% per side, and break-even for H1b is near that."},{"g":"Forward sample of about 20 independent events, logged before the outcome","met":false,"note":"H1: 0 of 20 scored trades. H14: 0 of 20 settled trigger days."},{"g":"Positive after costs, and not carried by one trade","met":false,"note":"Cannot be assessed until the forward sample exists."},{"g":"Execution plumbing proven on paper (orders, fills, slippage record)","met":false,"note":"Not built; the first step if we move toward live."},{"g":"Hard loss limits and a kill switch in code","met":false,"note":"Not built."},{"g":"A broker account that allows the strategy, with approvals confirmed","met":false,"note":"Open; see the broker comparison. Not something this project can do for you."}],"gates_met":2,"counts":{"total":17,"null":6,"lead":5,"open":5,"idea":1}}, el = id => document.getElementById(id), tip = VZ.tip();
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const VC = { null: '--k2', lead: '--k4', held: '--k4', open: '--k1', idea: '--muted' };
+const vcol = v => css(VC[v]) || '#888';
+const pct = v => (v >= 0 ? '+' : '') + (v * 100).toFixed(0) + '%';
+
+function kpis() {
+  const C = SB.counts, F = SB.forward;
+  el('kpis').innerHTML = [[C.total, 'hypotheses logged', 'including nulls'], [C.null, 'nulls', 'recorded, not hidden'], [C.lead, 'leads', 'in-sample, unconfirmed'], [C.open + C.idea, 'open or idea', 'waiting on events or data'], [0, 'cleared for money', SB.gates_met + ' of ' + SB.gates.length + ' research gates met'], [F.h14.triggers + ' / ' + F.h14.need, 'H14 trigger days logged', F.h14.days + ' day' + (F.h14.days === 1 ? '' : 's') + ' observed so far']].map(k => `<div class="kpi"><div class="v">${k[0]}</div><div class="l">${k[1]}</div><div class="s">${k[2]}</div></div>`).join('');
+  el('asof').textContent = SB.asof;
+}
+
+function pipe() {
+  const H = SB.hyps, desc = ['Written down, not yet tested', 'Tested in-sample against a placebo; no effect', 'An effect in-sample, waiting for fresh data', 'Registered before the event; hash-chained', 'Forward result after costs, gates met'];
+  el('pipe-g').innerHTML = SB.stages.map((s, i) => { const items = H.filter(h => h.stage === i); return `<div class="stage"><h4>${i + 1}. ${esc(s)}</h4><div class="c">${items.length}</div><div class="d">${desc[i]}</div><div class="chips">${items.map(h => `<button class="chip" style="background:${vcol(h.verdict)}" data-id="${esc(h.id)}">${esc(h.id)}</button>`).join('') || '<span style="font-size:12px;color:var(--muted)">none yet</span>'}</div></div>`; }).join('');
+  el('pipe-g').onclick = e => { const b = e.target.closest('[data-id]'); if (b) { const r = document.getElementById('r-' + b.dataset.id.replace(/\s/g, '_')); if (r) { r.scrollIntoView({ behavior: 'smooth', block: 'center' }); r.style.outline = '2px solid ' + css('--k1'); setTimeout(() => r.style.outline = '', 1800); } } };
+  const nul = H.filter(h => h.stage === 1).length;
+  el('pipe-so').innerHTML = `<b>${nul} of ${H.length}</b> entries ended as nulls at stage 2, and <b>none</b> has reached stage 5. Colors show the verdict: <span class="vb" style="background:${vcol('null')}">null</span> <span class="vb" style="background:${vcol('lead')}">lead</span> <span class="vb" style="background:${vcol('open')}">open</span> <span class="vb" style="background:${vcol('idea')}">idea</span>. The stages after the in-sample test exist because in-sample results that look good are common and often fade: the leads in the table were all found by looking at the same data they are measured on.`;
+}
+
+let bV = 'all';
+function board() {
+  const vs = ['all', 'null', 'lead', 'open', 'idea'];
+  el('b-pick').innerHTML = vs.map(v => `<button class="pill" data-v="${v}" aria-pressed="${bV === v}">${v}</button>`).join('');
+  el('b-pick').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { bV = b.dataset.v; board(); } };
+  el('b-b').innerHTML = SB.hyps.filter(h => bV === 'all' || h.verdict === bV || (bV === 'lead' && h.verdict === 'held')).map(h => `<tr id="r-${esc(h.id.replace(/\s/g, '_'))}"><td class="id">${esc(h.id)}</td><td>${esc(h.q)}</td><td><span class="vb" style="background:${vcol(h.verdict)}">${esc(h.verdict)}</span><div style="font-size:11px;color:var(--muted);margin-top:4px">${esc(SB.stages[h.stage])}</div></td><td>${esc(h.evidence)}</td><td>${esc(h.n)}</td><td>${esc(h.settles)}</td><td>${h.links.map(l => `<a href="${esc(l[1])}">${esc(l[0])}</a>`).join('')}</td></tr>`).join('');
+}
+
+function forest() {
+  const F = SB.forest, P = VZ.pal(), o = VZ.svg(el('forest'), 900, F.length * 54 + 50, { t: 14, r: 40, b: 30, l: 250 }), g = o.g, x = d3.scaleLinear().domain([Math.min(-0.3, d3.min(F, d => d.lo) - .03), d3.max(F, d => d.hi) + .05]).range([0, o.iw]), y = d3.scaleBand().domain(F.map(f => f.id)).range([0, o.ih]).padding(.5);
+  g.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.fg2).attr('stroke-dasharray', '3 3');
+  F.forEach(f => { const c = css(f.id === 'H12' ? '--k2' : f.forward ? '--k1' : '--k4'), yy = y(f.id) + y.bandwidth() / 2, lead = f.id === 'H13';
+    g.append('text').attr('x', -10).attr('y', yy - 3).attr('text-anchor', 'end').attr('fill', P.fg).style('font-size', '12px').style('font-weight', 600).text(f.label);
+    g.append('text').attr('x', -10).attr('y', yy + 12).attr('text-anchor', 'end').attr('fill', P.muted).style('font-size', '11px').text(`${f.n} trades vs ${f.n0} other days`);
+    g.append('line').attr('x1', x(f.lo)).attr('x2', x(f.hi)).attr('y1', yy).attr('y2', yy).attr('stroke', lead ? css('--k4') : c).attr('stroke-width', 3).attr('opacity', .6);
+    g.append('circle').attr('cx', x(f.diff)).attr('cy', yy).attr('r', 7).attr('fill', lead ? css('--k4') : c).attr('stroke', P.surface).attr('stroke-width', 2)
+      .on('mousemove', e => tip.show(`<b>${esc(f.label)}</b><br>event trades ${pct(f.event)} gross, other days ${pct(f.placebo)}<br>difference ${pct(f.diff)} (95% range ${pct(f.lo)} to ${pct(f.hi)})`, e)).on('mouseleave', tip.hide);
+    g.append('text').attr('x', x(f.hi) + 8).attr('y', yy + 4).attr('fill', P.fg2).style('font-size', '12px').text(pct(f.diff)); });
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(7).tickFormat(d3.format('+.0%'))));
+  g.append('text').attr('x', o.iw / 2).attr('y', o.ih + 28).attr('text-anchor', 'middle').attr('fill', P.muted).style('font-size', '11px').text('average gross return of the event trade minus the same trade on random or non-trigger days (dot) with a 95% bootstrap range');
+  const h14 = F.find(f => f.id === 'H14'), h12 = F.find(f => f.id === 'H12'), h13 = F.find(f => f.id === 'H13');
+  el('forest-so').innerHTML = `<b>H12</b> is a null: earnings straddles did about ${Math.abs(h12.diff * 100).toFixed(0)} points worse than random days, with a range that includes zero. <b>H13</b> looks large (${pct(h13.diff)}) but rests on eight trades from the four auctions that already produced H9, so it is not independent evidence. <b>H14</b> is the cleanest lead: ${pct(h14.diff)} with a range of ${pct(h14.lo)} to ${pct(h14.hi)}, but its threshold was chosen on the same two years, the figures are gross of costs, and the range treats trades as independent although four stocks move together on the same night. That is exactly what the forward test is for.`;
+}
+
+function models() {
+  const M = SB.models, P = VZ.pal(), o = VZ.svg(el('models'), 440, M.length * 56 + 40, { t: 10, r: 20, b: 26, l: 190 }), g = o.g, x = d3.scaleLinear().domain([0.5, 0.9]).range([0, o.iw]), y = d3.scaleBand().domain(M.map(m => m.id)).range([0, o.ih]).padding(.5);
+  M.forEach(m => { const yy = y(m.id) + y.bandwidth() / 2; g.append('text').attr('x', -8).attr('y', yy + 4).attr('text-anchor', 'end').attr('fill', P.fg2).style('font-size', '11px').text(m.id + ': ' + m.label);
+    g.append('line').attr('x1', x(m.model)).attr('x2', x(m.rule)).attr('y1', yy).attr('y2', yy).attr('stroke', P.muted).attr('stroke-width', 3);
+    g.append('circle').attr('cx', x(m.model)).attr('cy', yy).attr('r', 6).attr('fill', css('--k2')).on('mousemove', e => tip.show(`${esc(m.label)}<br>model ${m.model.toFixed(3)}`, e)).on('mouseleave', tip.hide);
+    g.append('circle').attr('cx', x(m.rule)).attr('cy', yy).attr('r', 6).attr('fill', css('--k1')).on('mousemove', e => tip.show(`plain day-ahead rule ${m.rule.toFixed(3)}`, e)).on('mouseleave', tip.hide); });
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(5)));
+  el('models-so').innerHTML = `<span style="color:${css('--k2')}">●</span> the model, <span style="color:${css('--k1')}">●</span> the plain rule "a high day-ahead price means a spike". In all three tests the rule wins or ties. H3's model figure is the top of a 0.52 to 0.60 range. Complexity did not buy accuracy here.`;
+}
+
+function events() {
+  const E = SB.events, P = VZ.pal(), o = VZ.svg(el('events'), 440, E.length * 56 + 40, { t: 10, r: 40, b: 26, l: 190 }), g = o.g, x = d3.scaleLinear().domain([-250, 420]).range([0, o.iw]), y = d3.scaleBand().domain(E.map(m => m.id)).range([0, o.ih]).padding(.5);
+  g.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.fg2);
+  E.forEach(m => { const yy = y(m.id) + y.bandwidth() / 2; g.append('text').attr('x', -8).attr('y', yy - 2).attr('text-anchor', 'end').attr('fill', P.fg2).style('font-size', '11px').text(m.id + ': ' + m.label.split(',')[0].slice(0, 30));
+    g.append('text').attr('x', -8).attr('y', yy + 11).attr('text-anchor', 'end').attr('fill', P.muted).style('font-size', '10.5px').text(`n = ${m.n}, ${m.p}`);
+    g.append('line').attr('x1', x(0)).attr('x2', x(m.bp)).attr('y1', yy).attr('y2', yy).attr('stroke', css('--k4')).attr('stroke-width', 3);
+    g.append('circle').attr('cx', x(m.bp)).attr('cy', yy).attr('r', Math.max(5, 11 - m.n / 5)).attr('fill', css('--k4')).on('mousemove', e => tip.show(`${esc(m.label)}<br>${m.bp} bp over ${m.n} events (${esc(m.p)})`, e)).on('mouseleave', tip.hide);
+    g.append('text').attr('x', x(m.bp) + (m.bp > 0 ? 10 : -10)).attr('y', yy + 4).attr('text-anchor', m.bp > 0 ? 'start' : 'end').attr('fill', P.fg2).style('font-size', '11px').text(m.bp + ' bp'); });
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(5)));
+  el('events-so').innerHTML = `Big effects, tiny samples: the smallest dots are the fewest events, and the most extreme result (H9, +372 bp) is four auctions. With many comparisons made on the same data, a few striking numbers are expected by chance. Leads, not findings.`;
+}
+
+function fwd() {
+  const F = SB.forward, R = SB.rates, bar = (a, b, lab, sub) => `<div class="prog"><div class="top"><b>${lab}</b><span>${a} of ${b}</span></div><div class="bar"><i style="width:${Math.max(a / b * 100, a > 0 ? 3 : 0)}%"></i></div><div class="sub2">${sub}</div></div>`;
+  el('fwd-cards').innerHTML = `<h3>Progress toward a verdict</h3>`
+    + bar(F.h1.scored, F.h1.need, 'H1 and H1b: forward spike signals scored', `${F.h1.days} days observed, ${F.h1.signals} up-spike signals so far. At the in-sample rate of about ${F.h1.rate_per_year} a year, 20 scored signals takes roughly ${R.h1_years_to_20} years. ${F.h1.snapshots} option-quote snapshots captured for the costs test.`)
+    + bar(F.h14.settled, F.h14.need, 'H14: settled trigger days', `${F.h14.days} day logged since ${F.h14.since} (${F.h14.triggers} triggers). At about ${F.h14.rate_per_year} trigger days a year, 20 takes roughly ${R.h14_months_to_20} months. Threshold $${F.h14.threshold}/MWh. Log chain ${F.h14.chain_ok ? 'intact' : 'BROKEN'}.`)
+    + bar(0, 1, 'H6, H9 and H13: the Dec 15 auction', 'One event settles three hypotheses at once: whether it clears at the cap and short, whether generators rise the day after, and whether the straddle pays. It will be the first independent test of H9 and H13.')
+    + bar(SB.resolved_house, SB.house.length, 'H10: our event predictions resolved', 'Seven predictions logged before their events, each with a probability and a "wrong if" condition; scored with a Brier score.');
+  el('upc').innerHTML = SB.upcoming.map(u => `<div class="up"><div class="w">${esc(u[0])}</div><div>${esc(u[1])}</div><div class="h">${esc(u[2])}</div></div>`).join('');
+  el('upc-so').innerHTML = `Dates after Dec 15 are projections from in-sample rates, which could be wrong in either direction. Spike signals are rare (about ${F.h1.rate_per_year} a year), which is why H1's forward test is slow and H14's, which triggers on about one weekday in nine, is faster.`;
+}
+
+function gates() {
+  const G = SB.gates;
+  el('gate-l').innerHTML = G.map(g => `<div class="gate"><div class="ic" style="background:${g.met ? css('--k3') : css('--muted')}">${g.met ? '✓' : ''}</div><div><b>${esc(g.g)}</b><p>${esc(g.note)}</p></div></div>`).join('');
+  el('gate-so').innerHTML = `<b>${SB.gates_met} of ${G.length}</b> gates met, and the two that are met are the easy ones. The next real step is not a funded account but the paper-trading plumbing and the forward sample: a paper account can record fills and slippage against the same signals at no risk, and the forward log keeps counting whatever the calendar pressure. Whether and how to put capital behind anything is a personal decision outside what this record can answer.`;
+}
+
+function notes() {
+  const items = [
+    `<b>Source of truth.</b> The hypotheses and their wording come from the project's hypothesis log (HYPOTHESES.md); each was written before its test. The verdict column is our current reading of the evidence, not a score.`,
+    `<b>Option effects.</b> Gross return of the trade (buy near the close, sell in the first hour of the next session) on Alpaca historical option trades, against the same trade on random or non-trigger days. The range is a 3,000-resample bootstrap and treats trades as independent, so it is too narrow where several tickers trade the same night.`,
+    `<b>Stock reactions.</b> Abnormal returns of the generator basket against the market, in basis points, from the event ledger; counts are as logged on Oct 19 to 24, 2026.`,
+    `<b>Models.</b> Area under the ROC curve for predicting an upward price spike, on a frozen test set; the rule is "day-ahead price at or above a threshold".`,
+    `<b>Forward logs.</b> The forward ledger, the H14 signal log and the event predictions are hash-chained files committed to the repository, so any later edit is detectable.`,
+    `<b>Not here.</b> Costs beyond the quoted-spread analysis, tax, and anything about position sizing for an individual.`
+  ];
+  el('notes').innerHTML = items.map(i => `<li>${i}</li>`).join('');
+  el('foot').innerHTML = 'Educational research. No real-money trades have been made. Past in-sample results do not predict future results.';
+}
+
+function drawAll() { kpis(); pipe(); board(); forest(); models(); events(); fwd(); gates(); notes(); }
+drawAll();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+</script>
