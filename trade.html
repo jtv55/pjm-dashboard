@@ -1,0 +1,621 @@
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Trade: Strategies and Players</title>
+<style>
+:root {
+  --bg: #fcfcfb; --surface: #ffffff; --fg: #141413; --fg2: #52514e; --muted: #7a7973;
+  --line: #e4e3de; --soft: #f4f3ef; --accent: #2a78d6; --up: #0b7a43; --down: #c03a2b; --warn: #a86b00;
+  --r-fuel: #b8541f; --r-gen: #2a78d6; --r-wire: #0e8a62; --r-equip: #6250d6; --r-load: #b0447a;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+    --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+    --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+  --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+  --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 28px; line-height: 1.2; margin: 6px 0 8px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+.lede { color: var(--fg2); max-width: 68ch; margin: 0 0 22px; }
+.sub { color: var(--fg2); font-size: 13px; margin: 0 0 12px; max-width: 74ch; }
+section { margin-bottom: 34px; }
+p { margin: 0 0 10px; }
+a { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi { border-top: 2px solid var(--line); padding-top: 8px; min-width: 0; }
+.kpi .v { font-family: var(--font-mono); font-size: 24px; font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--fg2); font-size: 13px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); } .warn { color: var(--warn); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted);
+  padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.num, td.num { text-align: right; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+tbody tr:last-child td { border-bottom: 0; }
+.pill { font: inherit; font-size: 13px; color: var(--fg2); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; cursor: pointer; }
+.pill[aria-pressed="true"] { color: var(--fg); border-color: var(--fg2); background: var(--soft); }
+button:focus-visible, input:focus-visible, th:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 10px; align-items: center; }
+.note { background: var(--soft); border-radius: 6px; padding: 10px 12px; font-size: 14px; max-width: 80ch; margin: 0 0 12px; }
+.foot { color: var(--muted); font-size: 12px; max-width: 82ch; border-top: 1px solid var(--line); padding-top: 14px; }
+.chart text { fill: var(--fg2); font-family: var(--font-body); font-size: 12px; }
+@media (max-width: 760px) { h1 { font-size: 24px; } }
+@media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi .v { font-size: 20px; } }
+
+.tabbar { display: flex; gap: 6px; margin: 4px 0 18px; border-bottom: 1px solid var(--line); padding-bottom: 10px; flex-wrap: wrap; }
+.tabbtn { font: inherit; font-size: 14px; color: var(--fg2); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 5px 16px; cursor: pointer; }
+.tabbtn[aria-selected="true"] { color: var(--fg); border-color: var(--fg2); background: var(--soft); font-weight: 600; }
+.pane[hidden] { display: none; }
+#pane-strategies .two {  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;  }
+#pane-strategies .three {  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;  }
+@media (max-width: 820px) { #pane-strategies .two {  grid-template-columns: 1fr;  } }
+#pane-strategies .so {  font-size: 13px; color: var(--fg2); margin: 8px 0 0; max-width: 80ch;  }
+#pane-strategies .so b {  color: var(--fg);  }
+#pane-strategies .legend {  display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--fg2); margin-top: 6px;  }
+#pane-strategies .legend i {  display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px;  }
+#pane-strategies .ctlrow {  display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-bottom: 10px; font-size: 13px; color: var(--fg2);  }
+#pane-strategies .ctlrow label {  display: inline-flex; gap: 6px; align-items: center;  }
+#pane-strategies .ctlrow input[type=number], #pane-strategies .ctlrow select {  font: inherit; font-size: 13px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--fg); width: 90px;  }
+#pane-strategies .ctlrow select {  width: auto;  }
+#pane-strategies .chip {  font-family: var(--font-mono); font-size: 11px; border-radius: 4px; padding: 1px 6px; border: 1px solid var(--line); color: var(--muted);  }
+#pane-strategies .chip.lead {  color: var(--warn); border-color: var(--warn);  }
+#pane-strategies .chip.null {  color: var(--down); border-color: var(--down);  }
+#pane-strategies .chip.edu {  color: var(--accent); border-color: var(--accent);  }
+#pane-strategies .scard h3 {  display: flex; justify-content: space-between; gap: 8px; align-items: baseline;  }
+#pane-strategies .scard p {  font-size: 13px; color: var(--fg2); margin: 6px 0 0;  }
+#pane-strategies .big {  font-family: var(--font-body); font-size: 30px; line-height: 1.1;  }
+#pane-strategies table.t td, #pane-strategies table.t th {  padding: 6px 10px; font-size: 13px;  }
+#pane-strategies .mini {  display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 8px;  }
+#pane-strategies .mini div {  background: var(--soft); border-radius: 6px; padding: 6px 10px; font-size: 12px; color: var(--fg2);  }
+#pane-strategies .mini b {  display: block; font-size: 18px; color: var(--fg); font-family: var(--font-mono); font-weight: 600;  }
+:root {  --k1: #2a78d6; --k2: #eb6834; --k3: #1baf7a; --k4: #eda100;  }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {  --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500;  } }
+:root[data-theme="dark"] {  --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500;  }
+#pane-players .two {  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;  }
+@media (max-width: 820px) { #pane-players .two {  grid-template-columns: 1fr;  } }
+#pane-players .so {  font-size: 13px; color: var(--fg2); margin: 8px 0 0; max-width: 80ch;  }
+#pane-players .so b {  color: var(--fg);  }
+#pane-players .legend {  display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--fg2); margin-top: 6px;  }
+#pane-players .legend button {  font: inherit; font-size: 12px; color: var(--fg2); background: none; border: 0; cursor: pointer; padding: 0; display: inline-flex; gap: 6px; align-items: center;  }
+#pane-players .legend button[aria-pressed="false"] {  opacity: .4;  }
+#pane-players .legend svg {  width: 12px; height: 12px;  }
+#pane-players .grid4 {  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px;  }
+#pane-players .fc {  border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 10px; display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; cursor: pointer; text-align: left; font: inherit; color: inherit;  }
+#pane-players .fc:hover, #pane-players .fc[aria-pressed="true"] {  border-color: var(--fg2);  }
+#pane-players .mono-b {  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-family: var(--font-mono); font-weight: 600; font-size: 14px;  }
+#pane-players .fc b {  font-size: 14px; display: block;  }
+#pane-players .fc span {  font-size: 11px; color: var(--muted); display: block;  }
+#pane-players .prof {  display: grid; grid-template-columns: 76px 1fr; gap: 16px;  }
+#pane-players .prof .mono-b {  width: 76px; height: 76px; font-size: 24px;  }
+#pane-players .prof h3 {  font-size: 20px; margin: 0;  }
+#pane-players .prof .meta {  color: var(--muted); font-size: 12px; font-family: var(--font-mono); margin: 2px 0 8px;  }
+#pane-players .prof ul {  margin: 6px 0; padding-left: 18px; color: var(--fg2); font-size: 14px;  }
+#pane-players .prof li {  margin-bottom: 3px;  }
+#pane-players .srcs {  font-size: 12px; color: var(--muted);  }
+#pane-players .srcs a {  color: var(--accent);  }
+#pane-players .chip {  font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; color: var(--muted);  }
+#pane-players table.t td, #pane-players table.t th {  padding: 6px 10px; font-size: 13px;  }
+#pane-players .tl2 {  display: grid; grid-template-columns: 78px 1fr; gap: 4px 14px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px;  }
+#pane-players .tl2:first-child {  border-top: 0;  }
+#pane-players .tl2 .w {  font-family: var(--font-mono); font-size: 12px; color: var(--muted);  }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+
+<style>html{scroll-padding-top:52px}.sitenav::-webkit-scrollbar{display:none}</style><nav class="sitenav" style="position:sticky;top:0;z-index:1000;background:var(--bg,Canvas);font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:nowrap;white-space:nowrap;overflow-x:auto;scrollbar-width:none;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="brief.html" style="color:inherit;font-weight:600">Daily brief</a><a href="index.html" style="color:inherit">Build log</a><a href="scoreboard.html" style="color:inherit;font-weight:600">Scoreboard</a><a href="thesis.html" style="color:inherit;font-weight:600">Thesis</a><a href="natgas.html" style="color:inherit;font-weight:600">Natgas</a><a href="spreads.html" style="color:inherit">Spreads</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="ai.html" style="color:inherit">AI power</a><a href="calendar.html" style="color:inherit">Energy calendar</a><a href="grid.html" style="color:inherit">Grid</a><a href="trade.html" style="color:inherit">Trade</a><a href="maths.html" style="color:inherit">Maths</a><a href="discourse.html" style="color:inherit">Discourse</a></nav>
+<div class="wrap">
+<div class="tabbar" role="tablist"><button class="tabbtn" role="tab" data-k="strategies" aria-selected="false">Strategies</button><button class="tabbtn" role="tab" data-k="players" aria-selected="false">Players</button></div>
+<div class="pane" id="pane-strategies" role="tabpanel" hidden>
+  <div class="eyebrow">Strategy lab · paper trading only · <span id="asof">Oct 2026</span></div>
+  <h1>Three ways a small account could trade what we have learned</h1>
+  <p class="lede">Each idea comes from our own research, is tested on real prices where we can, and ends with the honest number: does it survive costs? Nothing here is a recommendation. It is a lab for deciding what deserves a forward test.</p>
+  <div class="note"><b>Read this first.</b> Research and education, not investment advice. Options and futures can lose more than you put in. The historical results are in-sample, from small samples, and exclude many real-world frictions. We trade on paper until a forward record exists.</div>
+  <div class="kpis" id="kpis"></div>
+
+  <section>
+    <div class="three" id="cards"></div>
+  </section>
+
+  <section>
+    <h2>Strategy 1: Put the spike</h2>
+    <p class="sub">After a PJM evening price spike, generator stocks tend to fall the next session (H1). The retail way to express that without shorting is a cheap out-of-the-money put. We priced it with real option trades.</p>
+    <div class="two">
+      <div class="card"><h3>What the bet pays</h3>
+        <div class="ctlrow"><label>Stock $ <input type="number" id="p-spot" value="150" min="5" step="5"></label><label>Strike <input type="range" id="p-k" min="85" max="100" value="95"> <span class="mono" id="p-kv">95%</span></label><label>Days <input type="range" id="p-d" min="2" max="30" value="7"> <span class="mono" id="p-dv">7</span></label><label>Implied vol <input type="range" id="p-iv" min="30" max="120" value="60"> <span class="mono" id="p-ivv">60%</span></label></div>
+        <div id="payoff"></div>
+        <div class="legend"><span><i style="background:var(--down)"></i>value at expiry</span><span><i style="background:var(--accent)"></i>value tomorrow morning (what this strategy actually holds)</span></div>
+        <div class="mini" id="p-mini"></div>
+        <p class="so" id="payoff-so"></p>
+      </div>
+      <div class="card"><h3>What actually happened (real option trades)</h3>
+        <div class="ctlrow"><span id="h-otm"></span></div>
+        <div id="hist"></div>
+        <div class="legend"><span><i style="background:var(--down)"></i>after a spike (event)</span><span><i style="background:var(--muted)"></i>random days (placebo)</span></div>
+        <p class="so" id="hist-so"></p>
+      </div>
+    </div>
+    <div class="two" style="margin-top:12px">
+      <div class="card"><h3>Costs decide it</h3><div id="slip"></div><div class="legend"><span><i style="background:var(--down)"></i>event, 2% out of the money</span><span><i style="background:var(--warn)"></i>event, 5% out</span><span><i style="background:var(--muted)"></i>random days</span><span><i style="background:var(--accent)"></i>shaded: half the quoted spread we captured</span></div><p class="so" id="slip-so"></p></div>
+      <div class="card"><h3>Quoted bid-ask spread on puts, as % of the price</h3><div id="spr"></div><p class="so" id="spr-so"></p></div>
+    </div>
+    <div class="card" style="margin-top:12px"><h3>By stock, and the forward test</h3><div id="tick"></div><p class="so" id="fwd-so"></p></div>
+  </section>
+
+  <section>
+    <h2>Strategy 2: The gas leg, and why PJM power itself is out of reach</h2>
+    <p class="sub">PJM power futures exist, but at institutional size. The practical retail routes to PJM-linked exposure are natural gas futures at micro size and generator stocks. Here is how big each is, how violently gas moves, and how loosely the pieces connect.</p>
+    <div class="two">
+      <div class="card"><h3>How big is one contract? (notional dollars)</h3><div id="ladder"></div><p class="so" id="ladder-so"></p></div>
+      <div class="card"><h3>One micro gas contract: daily profit or loss</h3><div id="mng"></div><p class="so" id="mng-so"></p></div>
+    </div>
+    <div class="two" style="margin-top:12px">
+      <div class="card"><h3>Which things move together? (weekly returns since Nov 2024)</h3><div id="corr"></div><p class="so" id="corr-so"></p></div>
+      <div class="card"><h3>What gas and utilities did after PJM spike days</h3><div id="react"></div><p class="so" id="react-so"></p></div>
+    </div>
+    <div class="card" style="margin-top:12px"><h3>Power price divided by gas price (the market heat rate), weekly</h3><div id="heat"></div><p class="so" id="heat-so"></p></div>
+  </section>
+
+  <section>
+    <h2>Strategy 3: Buy the event, not the direction</h2>
+    <p class="sub">Some catalysts are on the calendar: earnings and PJM's capacity auction results. A straddle (a call and a put at the same strike) or a strangle (a call and a put either side) pays if the stock moves a lot, whichever way. The question is whether the options already charge for it. Entered in the last hour before the reaction session, exited in its first hour.</p>
+    <div id="evt"></div>
+  </section>
+
+  <section>
+    <h2>Size it before you trust it: ruin simulator</h2>
+    <p class="sub">Resamples the real trades above, over and over. Change the strategy, the slippage and how much of the account goes into each trade.</p>
+    <div class="card">
+      <div class="ctlrow">
+        <label>Strategy <select id="m-strat"></select></label>
+        <label>Slippage per side <input type="range" id="m-slip" min="0" max="20" value="5"> <span class="mono" id="m-slipv">5%</span></label>
+        <label>Risked per trade <input type="range" id="m-frac" min="1" max="25" value="5"> <span class="mono" id="m-fracv">5%</span></label>
+        <label>Account $ <input type="number" id="m-acct" value="500" min="100" step="100"></label>
+        <label>Trades <input type="number" id="m-n" value="30" min="10" max="100" step="5"></label>
+      </div>
+      <div id="mc"></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>median path</span><span><i style="background:var(--line)"></i>10th to 90th percentile</span><span><i style="background:var(--down)"></i>half the account gone</span></div>
+      <div class="mini" id="mc-mini"></div>
+      <p class="so" id="mc-so"></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>What would make us trust any of this</h2>
+    <ul class="plain" style="color:var(--fg2);font-size:14px;max-width:80ch">
+      <li><b>A forward record.</b> The cloud ledger logs the spike signal and the captured option quotes every morning, sealed in a hash-chain. It has <span id="fw-days">1</span> completed day and <span id="fw-sig">0</span> signals so far; about 20 are needed to say anything.</li>
+      <li><b>Real quotes, not VWAPs.</b> The backtests above use hour-average trade prices. Fills against the bid-ask will be worse, which is the whole story of the cost chart.</li>
+      <li><b>Two separate periods, after costs.</b> Our kill rule: if nothing beats simple baselines after costs in two periods, we change direction. Education is the fallback.</li>
+      <li><b>Small, defined risk.</b> Whatever is traded on paper, size it so a total loss is boring.</li>
+    </ul>
+  </section>
+
+  <p class="foot">Sources: Alpaca historical option trades (indicative feed) and our own option-chain captures; PJM Data Miner prices; EIA and Yahoo market data; contract specifications from CME Group and ICE as reported on their product pages (verify with your broker before relying on any figure). Black-Scholes is a pricing baseline: real equity options are American and skewed. Educational research only, not investment advice. Past results, including paper results, do not predict future results.</p>
+</div><div class="pane" id="pane-players" role="tabpanel" hidden>
+  <div class="eyebrow">Players · who trades power and gas · <span id="asof-players"></span></div>
+  <h1>The firms that trade energy for a living</h1>
+  <p class="lede">Hedge funds, commodity merchants, a bank and the trading arms of utilities. Where they sit on how systematic and how physical they are, how big their trading profits are, and what moved in 2025.</p>
+  <div class="note"><b>How to read this.</b> Most of these firms are private. Sizes come from public reporting (sources on each profile). The position on the map is <b>my judgment</b>, not a measured quantity. Firms with no public profit figure appear as hollow circles. Logos are replaced by monogram badges.</div>
+
+  <section>
+    <h2>The landscape</h2>
+    <div class="card">
+      <div id="map"></div>
+      <div class="legend" id="leg"></div>
+      <p class="so" id="map-so"></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Who is who</h2>
+    <div class="grid4" id="cards-players"></div>
+    <div class="card" style="margin-top:12px" id="prof"></div>
+  </section>
+
+  <section>
+    <h2>How big, and how 2025 went</h2>
+    <div class="two">
+      <div class="card"><h3>Latest reported trading profit (US$ billions)</h3><div id="size"></div><p class="so" id="size-so"></p></div>
+      <div class="card"><h3>Profit change versus the year before</h3><div id="chg"></div><p class="so" id="chg-so"></p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What moved</h2>
+    <div class="card" id="moves"></div>
+  </section>
+
+  <section>
+    <h2>Who shows up in PJM?</h2>
+    <p class="sub">What our sources say about each firm's US power and PJM footprint. "Not public" means nothing was found, not that there is nothing.</p>
+    <div class="tablewrap"><table class="t"><thead><tr><th>Firm</th><th>Type</th><th>US power, gas and PJM evidence in our sources</th></tr></thead><tbody id="pjm"></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>Where this project sits</h2>
+    <div class="card"><p class="so" style="margin:0;font-size:14px" id="us"></p></div>
+  </section>
+
+  <p class="foot" id="foot"></p>
+</div>
+</div>
+<script>/* Shared chart helpers (d3 v7 is loaded by the page). Colors come from the page's CSS variables so dark mode works. */
+const VZ = (() => {
+  const cs = () => getComputedStyle(document.documentElement);
+  const css = (v, fb) => (cs().getPropertyValue(v) || fb || '#888').trim();
+  const pal = () => ({
+    fg: css('--fg'), fg2: css('--fg2'), muted: css('--muted'), line: css('--line'), soft: css('--soft'), bg: css('--bg'), surface: css('--surface'),
+    up: css('--up'), down: css('--down'), warn: css('--warn'), accent: css('--accent'),
+    gen: css('--r-gen'), fuel: css('--r-fuel'), wire: css('--r-wire'), equip: css('--r-equip'), load: css('--r-load')
+  });
+  let tipEl;
+  function tip() {
+    if (!tipEl) {
+      tipEl = document.createElement('div');
+      tipEl.style.cssText = 'position:fixed;pointer-events:none;z-index:50;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.35;max-width:260px;box-shadow:0 2px 10px rgba(0,0,0,.15);display:none';
+      document.body.appendChild(tipEl);
+    }
+    return {
+      show(html, ev) {
+        tipEl.innerHTML = html; tipEl.style.display = 'block';
+        const x = Math.min(ev.clientX + 14, innerWidth - 270), y = Math.min(ev.clientY + 14, innerHeight - 80);
+        tipEl.style.left = x + 'px'; tipEl.style.top = y + 'px';
+      },
+      hide() { tipEl.style.display = 'none'; }
+    };
+  }
+  /* responsive svg with a fixed viewBox; returns {svg, g, w, h, iw, ih} */
+  function svg(el, w, h, m = { t: 12, r: 12, b: 28, l: 40 }) {
+    const root = d3.select(el); root.selectAll('*').remove();
+    const s = root.append('svg').attr('viewBox', `0 0 ${w} ${h}`).attr('class', 'chart').style('width', '100%').style('height', 'auto').attr('role', 'img');
+    const g = s.append('g').attr('transform', `translate(${m.l},${m.t})`);
+    return { svg: s, g, w, h, iw: w - m.l - m.r, ih: h - m.t - m.b, m };
+  }
+  function axisStyle(sel) {
+    const p = pal();
+    sel.selectAll('text').attr('fill', p.fg2).style('font-size', '11px');
+    sel.selectAll('path,line').attr('stroke', p.line);
+    return sel;
+  }
+  const fmt = { usd: d3.format('$,.0f'), int: d3.format(','), pct: d3.format('.0%'), bp: v => (v > 0 ? '+' : '') + Math.round(v) + ' bp' };
+  return { pal, tip, svg, axisStyle, fmt, css };
+})();
+</script>
+<script>
+const INIT = {
+"strategies": function () {
+
+const S = {"h1b":{"groups":{"event|2% OTM":{"n":112,"filled":68,"mean":0.1164,"median":0.0562,"win":0.603,"net":{"0":0.1164,"0.02":0.0726,"0.03":0.0514,"0.05":0.0101,"0.08":-0.049,"0.1":-0.0866,"0.15":-0.1748,"0.2":-0.2557},"breakeven":0.06,"p10":-0.333,"p90":0.595},"placebo|2% OTM":{"n":160,"filled":91,"mean":-0.0407,"median":-0.0847,"win":0.385,"net":{"0":-0.0407,"0.02":-0.0784,"0.03":-0.0966,"0.05":-0.1321,"0.08":-0.1829,"0.1":-0.2152,"0.15":-0.291,"0.2":-0.3605},"breakeven":0.0,"p10":-0.346,"p90":0.322},"event|5% OTM":{"n":112,"filled":67,"mean":0.0984,"median":0.0786,"win":0.567,"net":{"0":0.0984,"0.02":0.0553,"0.03":0.0344,"0.05":-0.0062,"0.08":-0.0643,"0.1":-0.1013,"0.15":-0.1881,"0.2":-0.2677},"breakeven":0.05,"p10":-0.364,"p90":0.541},"placebo|5% OTM":{"n":160,"filled":92,"mean":-0.0741,"median":-0.1044,"win":0.37,"net":{"0":-0.0741,"0.02":-0.1104,"0.03":-0.1281,"0.05":-0.1623,"0.08":-0.2113,"0.1":-0.2425,"0.15":-0.3157,"0.2":-0.3828},"breakeven":0.0,"p10":-0.397,"p90":0.298}},"by_ticker":[["CEG","2% OTM",0.148,24],["CEG","5% OTM",0.139,24],["NRG","2% OTM",0.105,10],["NRG","5% OTM",0.115,9],["TLN","2% OTM",-0.026,8],["TLN","5% OTM",-0.125,7],["VST","2% OTM",0.136,26],["VST","5% OTM",0.115,27]],"trades":[["2025-05-05","VST","5% OTM",-0.217,"event"],["2025-05-05","CEG","2% OTM",-0.285,"event"],["2025-05-05","CEG","5% OTM",-0.299,"event"],["2025-06-23","VST","2% OTM",0.067,"event"],["2025-06-23","VST","5% OTM",-0.013,"event"],["2025-06-23","CEG","2% OTM",-0.116,"event"],["2025-06-23","TLN","2% OTM",0.111,"event"],["2025-06-23","NRG","5% OTM",-0.08,"event"],["2025-07-09","VST","2% OTM",-0.368,"event"],["2025-07-09","VST","5% OTM",-0.374,"event"],["2025-07-09","CEG","2% OTM",-0.362,"event"],["2025-07-09","CEG","5% OTM",-0.362,"event"],["2025-07-16","VST","2% OTM",0.511,"event"],["2025-07-16","VST","5% OTM",0.5,"event"],["2025-07-16","CEG","2% OTM",0.25,"event"],["2025-07-16","CEG","5% OTM",0.694,"event"],["2025-07-16","TLN","5% OTM",-0.232,"event"],["2025-07-16","NRG","2% OTM",0.119,"event"],["2025-07-16","NRG","5% OTM",0.119,"event"],["2025-07-29","VST","2% OTM",0.023,"event"],["2025-07-29","VST","5% OTM",0.081,"event"],["2025-07-29","CEG","2% OTM",0.226,"event"],["2025-07-29","CEG","5% OTM",0.474,"event"],["2025-08-15","VST","2% OTM",0.011,"event"],["2025-08-15","VST","5% OTM",-0.172,"event"],["2025-08-15","CEG","2% OTM",0.046,"event"],["2025-08-15","CEG","5% OTM",0.094,"event"],["2025-08-15","TLN","2% OTM",-0.2,"event"],["2025-08-15","TLN","5% OTM",0.091,"event"],["2025-08-15","NRG","2% OTM",0.271,"event"],["2025-08-15","NRG","5% OTM",0.311,"event"],["2025-09-05","VST","2% OTM",-0.343,"event"],["2025-09-05","VST","5% OTM",-0.379,"event"],["2025-09-05","CEG","2% OTM",0.527,"event"],["2025-09-05","CEG","5% OTM",0.317,"event"],["2025-09-05","TLN","2% OTM",-0.507,"event"],["2025-09-05","TLN","5% OTM",-0.358,"event"],["2025-09-05","NRG","2% OTM",0.025,"event"],["2025-09-05","NRG","5% OTM",-0.368,"event"],["2025-09-26","VST","2% OTM",-0.369,"event"],["2025-09-26","VST","5% OTM",-0.381,"event"],["2025-09-26","CEG","2% OTM",-0.301,"event"],["2025-09-26","CEG","5% OTM",-0.343,"event"],["2025-09-26","TLN","2% OTM",0.008,"event"],["2025-09-26","TLN","5% OTM",0.008,"event"],["2025-09-26","NRG","2% OTM",-0.36,"event"],["2025-10-06","VST","2% OTM",0.091,"event"],["2025-10-06","VST","5% OTM",-0.118,"event"],["2025-10-06","CEG","2% OTM",-0.256,"event"],["2025-10-06","CEG","5% OTM",-0.233,"event"],["2025-10-06","NRG","2% OTM",0.019,"event"],["2025-12-09","VST","2% OTM",0.076,"event"],["2025-12-09","VST","5% OTM",0.086,"event"],["2025-12-09","CEG","2% OTM",-0.201,"event"],["2025-12-09","CEG","5% OTM",-0.222,"event"],["2025-12-09","NRG","2% OTM",-0.011,"event"],["2025-12-09","NRG","5% OTM",-0.184,"event"],["2026-02-02","VST","2% OTM",0.18,"event"],["2026-02-02","VST","5% OTM",0.249,"event"],["2026-02-02","CEG","2% OTM",0.797,"event"],["2026-02-02","CEG","5% OTM",0.294,"event"],["2026-02-02","TLN","2% OTM",-0.096,"event"],["2026-02-02","TLN","5% OTM",-0.085,"event"],["2026-02-09","VST","2% OTM",-0.328,"event"],["2026-02-09","VST","5% OTM",-0.225,"event"],["2026-02-09","CEG","2% OTM",-0.329,"event"],["2026-02-09","CEG","5% OTM",-0.408,"event"],["2026-02-09","TLN","5% OTM",-0.022,"event"],["2026-03-02","VST","2% OTM",0.497,"event"],["2026-03-02","VST","5% OTM",0.519,"event"],["2026-03-02","CEG","2% OTM",-0.182,"event"],["2026-03-02","CEG","5% OTM",-0.226,"event"],["2026-03-13","VST","2% OTM",0.61,"event"],["2026-03-13","VST","5% OTM",0.434,"event"],["2026-03-13","CEG","2% OTM",0.311,"event"],["2026-03-13","CEG","5% OTM",0.263,"event"],["2026-04-07","VST","2% OTM",-0.094,"event"],["2026-04-07","CEG","2% OTM",0.212,"event"],["2026-04-07","CEG","5% OTM",0.079,"event"],["2026-04-28","VST","2% OTM",-0.159,"event"],["2026-04-28","VST","5% OTM",-0.129,"event"],["2026-05-07","VST","2% OTM",0.862,"event"],["2026-05-07","VST","5% OTM",0.856,"event"],["2026-05-07","CEG","2% OTM",0.588,"event"],["2026-05-07","CEG","5% OTM",0.547,"event"],["2026-05-07","NRG","2% OTM",0.66,"event"],["2026-05-07","NRG","5% OTM",0.43,"event"],["2026-05-27","VST","2% OTM",0.074,"event"],["2026-05-27","VST","5% OTM",0.065,"event"],["2026-05-27","CEG","2% OTM",-0.067,"event"],["2026-05-27","CEG","5% OTM",-0.056,"event"],["2026-06-03","VST","2% OTM",0.224,"event"],["2026-06-03","VST","5% OTM",0.064,"event"],["2026-06-03","CEG","2% OTM",0.036,"event"],["2026-06-03","CEG","5% OTM",0.356,"event"],["2026-06-11","VST","2% OTM",-0.148,"event"],["2026-06-11","VST","5% OTM",-0.379,"event"],["2026-06-11","TLN","2% OTM",-0.055,"event"],["2026-06-30","VST","2% OTM",0.519,"event"],["2026-06-30","VST","5% OTM",0.583,"event"],["2026-06-30","CEG","2% OTM",0.346,"event"],["2026-06-30","CEG","5% OTM",0.536,"event"],["2026-06-30","TLN","2% OTM",0.718,"event"],["2026-07-27","VST","5% OTM",0.291,"event"],["2026-07-27","CEG","2% OTM",0.09,"event"],["2026-07-27","CEG","5% OTM",0.183,"event"],["2026-07-27","NRG","2% OTM",0.189,"event"],["2026-08-17","VST","2% OTM",-0.01,"event"],["2026-08-17","VST","5% OTM",0.175,"event"],["2026-09-02","VST","2% OTM",-0.457,"event"],["2026-09-02","VST","5% OTM",-0.305,"event"],["2026-09-02","CEG","2% OTM",-0.294,"event"],["2026-09-02","CEG","5% OTM",-0.567,"event"],["2026-09-02","TLN","2% OTM",-0.19,"event"],["2026-09-02","TLN","5% OTM",-0.276,"event"],["2026-09-02","NRG","2% OTM",-0.169,"event"],["2026-09-14","VST","2% OTM",0.128,"event"],["2026-09-14","VST","5% OTM",0.093,"event"],["2026-09-14","CEG","2% OTM",0.104,"event"],["2026-09-14","CEG","5% OTM",0.12,"event"],["2026-09-14","NRG","5% OTM",0.036,"event"],["2026-09-29","VST","2% OTM",0.089,"event"],["2026-09-29","VST","5% OTM",-0.119,"event"],["2026-09-29","CEG","2% OTM",0.091,"event"],["2026-09-29","CEG","5% OTM",0.094,"event"],["2026-10-08","VST","2% OTM",1.566,"event"],["2026-10-08","VST","5% OTM",1.566,"event"],["2026-10-08","CEG","2% OTM",2.32,"event"],["2026-10-08","CEG","5% OTM",1.625,"event"],["2026-10-08","NRG","5% OTM",0.171,"event"],["2026-10-14","VST","2% OTM",0.276,"event"],["2026-10-14","VST","5% OTM",0.351,"event"],["2026-10-14","CEG","5% OTM",0.373,"event"],["2026-10-14","NRG","2% OTM",0.307,"event"],["2026-10-14","NRG","5% OTM",0.596,"event"],["2026-05-26","VST","2% OTM",-0.016,"placebo"],["2026-05-26","VST","5% OTM",-0.065,"placebo"],["2026-05-26","CEG","2% OTM",0.483,"placebo"],["2026-05-26","CEG","5% OTM",0.353,"placebo"],["2026-10-05","VST","2% OTM",-0.303,"placebo"],["2026-10-05","VST","5% OTM",-0.326,"placebo"],["2026-10-05","CEG","2% OTM",-0.164,"placebo"],["2026-10-05","CEG","5% OTM",-0.476,"placebo"],["2026-10-05","NRG","2% OTM",-0.22,"placebo"],["2026-02-05","VST","2% OTM",-0.208,"placebo"],["2026-02-05","VST","5% OTM",-0.204,"placebo"],["2026-02-05","CEG","2% OTM",-0.029,"placebo"],["2026-02-05","CEG","5% OTM",-0.111,"placebo"],["2026-02-05","NRG","5% OTM",0.049,"placebo"],["2025-02-05","VST","2% OTM",-0.072,"placebo"],["2025-02-05","VST","5% OTM",-0.254,"placebo"],["2025-02-05","CEG","2% OTM",-0.455,"placebo"],["2025-02-05","CEG","5% OTM",-0.44,"placebo"],["2025-02-05","NRG","2% OTM",-0.261,"placebo"],["2025-02-05","NRG","5% OTM",-0.453,"placebo"],["2026-08-24","VST","2% OTM",-0.112,"placebo"],["2026-08-24","VST","5% OTM",-0.19,"placebo"],["2026-08-24","CEG","2% OTM",-0.085,"placebo"],["2026-08-24","CEG","5% OTM",-0.064,"placebo"],["2026-08-24","TLN","2% OTM",0.07,"placebo"],["2026-08-24","TLN","5% OTM",0.018,"placebo"],["2026-08-24","NRG","2% OTM",0.006,"placebo"],["2025-02-06","VST","2% OTM",-0.04,"placebo"],["2025-02-06","VST","5% OTM",-0.046,"placebo"],["2025-02-06","CEG","2% OTM",-0.139,"placebo"],["2025-02-06","CEG","5% OTM",-0.215,"placebo"],["2025-06-24","VST","2% OTM",0.03,"placebo"],["2025-06-24","VST","5% OTM",0.03,"placebo"],["2025-06-24","CEG","2% OTM",0.051,"placebo"],["2025-06-24","CEG","5% OTM",-0.015,"placebo"],["2026-09-16","VST","2% OTM",0.129,"placebo"],["2026-09-16","VST","5% OTM",0.269,"placebo"],["2026-09-16","CEG","2% OTM",0.107,"placebo"],["2026-09-16","CEG","5% OTM",0.164,"placebo"],["2026-09-16","NRG","5% OTM",0.023,"placebo"],["2025-10-24","VST","2% OTM",-0.188,"placebo"],["2025-10-24","VST","5% OTM",-0.231,"placebo"],["2025-10-24","CEG","2% OTM",-0.454,"placebo"],["2025-10-24","CEG","5% OTM",-0.677,"placebo"],["2025-10-24","TLN","2% OTM",-0.375,"placebo"],["2025-10-24","TLN","5% OTM",0.034,"placebo"],["2025-10-24","NRG","2% OTM",-0.342,"placebo"],["2025-10-24","NRG","5% OTM",-0.342,"placebo"],["2025-08-26","VST","2% OTM",-0.281,"placebo"],["2025-08-26","VST","5% OTM",-0.357,"placebo"],["2025-08-26","CEG","2% OTM",-0.275,"placebo"],["2025-08-26","CEG","5% OTM",-0.098,"placebo"],["2025-08-26","TLN","5% OTM",-0.192,"placebo"],["2026-03-18","VST","2% OTM",-0.27,"placebo"],["2026-03-18","VST","5% OTM",-0.285,"placebo"],["2026-03-18","CEG","5% OTM",-0.287,"placebo"],["2025-09-17","VST","2% OTM",0.072,"placebo"],["2025-09-17","VST","5% OTM",0.259,"placebo"],["2025-10-21","VST","2% OTM",-0.032,"placebo"],["2025-10-21","VST","5% OTM",-0.128,"placebo"],["2025-10-21","CEG","2% OTM",0.163,"placebo"],["2025-10-21","CEG","5% OTM",0.085,"placebo"],["2025-10-21","NRG","5% OTM",-0.183,"placebo"],["2024-12-16","VST","5% OTM",-0.21,"placebo"],["2025-01-22","VST","2% OTM",-0.212,"placebo"],["2025-01-22","VST","5% OTM",-0.185,"placebo"],["2025-01-22","CEG","2% OTM",-0.354,"placebo"],["2025-01-22","CEG","5% OTM",-0.222,"placebo"],["2025-01-27","VST","2% OTM",1.149,"placebo"],["2025-01-27","VST","5% OTM",1.303,"placebo"],["2025-01-27","CEG","2% OTM",0.287,"placebo"],["2025-01-27","CEG","5% OTM",0.433,"placebo"],["2025-01-27","TLN","2% OTM",0.607,"placebo"],["2025-01-27","TLN","5% OTM",0.607,"placebo"],["2025-01-27","NRG","2% OTM",0.548,"placebo"],["2025-11-13","VST","2% OTM",0.138,"placebo"],["2025-11-13","VST","5% OTM",0.41,"placebo"],["2025-11-13","CEG","2% OTM",0.322,"placebo"],["2025-11-13","CEG","5% OTM",0.442,"placebo"],["2025-11-13","TLN","5% OTM",0.208,"placebo"],["2025-11-13","NRG","2% OTM",0.011,"placebo"],["2025-11-13","NRG","5% OTM",0.011,"placebo"],["2025-10-27","VST","2% OTM",0.154,"placebo"],["2025-10-27","VST","5% OTM",0.297,"placebo"],["2025-10-27","CEG","2% OTM",0.047,"placebo"],["2025-10-27","CEG","5% OTM",0.097,"placebo"],["2025-10-27","NRG","2% OTM",-0.096,"placebo"],["2025-10-27","NRG","5% OTM",0.026,"placebo"],["2025-09-12","VST","2% OTM",-0.346,"placebo"],["2025-09-12","VST","5% OTM",-0.301,"placebo"],["2025-09-12","CEG","2% OTM",-0.312,"placebo"],["2025-09-12","CEG","5% OTM",-0.399,"placebo"],["2025-09-12","TLN","2% OTM",-0.085,"placebo"],["2025-09-12","TLN","5% OTM",-0.062,"placebo"],["2025-09-12","NRG","2% OTM",-0.552,"placebo"],["2025-09-12","NRG","5% OTM",-0.562,"placebo"],["2026-01-22","VST","2% OTM",-0.005,"placebo"],["2026-01-22","VST","5% OTM",-0.085,"placebo"],["2026-01-22","CEG","2% OTM",0.114,"placebo"],["2026-01-22","CEG","5% OTM",0.158,"placebo"],["2026-01-22","NRG","5% OTM",-0.066,"placebo"],["2026-03-27","VST","5% OTM",0.016,"placebo"],["2026-03-27","CEG","2% OTM",0.079,"placebo"],["2026-03-27","CEG","5% OTM",0.058,"placebo"],["2025-10-13","VST","2% OTM",-0.273,"placebo"],["2025-10-13","CEG","2% OTM",-0.172,"placebo"],["2025-10-13","CEG","5% OTM",-0.174,"placebo"],["2026-10-01","VST","2% OTM",0.251,"placebo"],["2026-10-01","VST","5% OTM",-0.121,"placebo"],["2026-10-01","CEG","2% OTM",0.407,"placebo"],["2026-10-01","CEG","5% OTM",0.306,"placebo"],["2025-07-02","VST","2% OTM",0.064,"placebo"],["2025-07-02","VST","5% OTM",0.195,"placebo"],["2025-07-02","CEG","2% OTM",-0.025,"placebo"],["2025-07-02","CEG","5% OTM",0.238,"placebo"],["2025-02-03","VST","2% OTM",-0.434,"placebo"],["2025-02-03","VST","5% OTM",-0.348,"placebo"],["2025-02-03","CEG","2% OTM",-0.529,"placebo"],["2025-02-03","CEG","5% OTM",-0.628,"placebo"],["2025-02-03","NRG","2% OTM",-0.343,"placebo"],["2025-04-15","VST","2% OTM",-0.375,"placebo"],["2025-04-15","VST","5% OTM",-0.442,"placebo"],["2025-04-15","CEG","2% OTM",0.439,"placebo"],["2026-02-04","VST","2% OTM",0.82,"placebo"],["2026-02-04","VST","5% OTM",0.411,"placebo"],["2026-02-04","CEG","2% OTM",0.468,"placebo"],["2026-02-04","CEG","5% OTM",0.581,"placebo"],["2026-02-04","TLN","5% OTM",0.2,"placebo"],["2026-06-10","VST","2% OTM",0.236,"placebo"],["2026-06-10","VST","5% OTM",0.196,"placebo"],["2026-07-31","VST","2% OTM",-0.078,"placebo"],["2026-07-31","VST","5% OTM",0.004,"placebo"],["2026-07-31","CEG","5% OTM",-0.06,"placebo"],["2025-05-01","VST","2% OTM",0.058,"placebo"],["2025-05-01","VST","5% OTM",-0.006,"placebo"],["2025-05-01","CEG","2% OTM",-0.17,"placebo"],["2025-05-01","CEG","5% OTM",-0.232,"placebo"],["2025-05-01","TLN","2% OTM",0.084,"placebo"],["2025-07-21","VST","2% OTM",0.102,"placebo"],["2025-07-21","VST","5% OTM",0.131,"placebo"],["2025-07-21","CEG","2% OTM",0.011,"placebo"],["2025-07-21","CEG","5% OTM",0.043,"placebo"],["2025-07-21","TLN","5% OTM",0.298,"placebo"],["2026-04-27","VST","2% OTM",-0.102,"placebo"],["2026-04-27","VST","5% OTM",-0.205,"placebo"],["2026-04-27","CEG","2% OTM",-0.129,"placebo"],["2026-04-27","CEG","5% OTM",-0.244,"placebo"],["2026-08-31","VST","2% OTM",-0.191,"placebo"],["2026-08-31","VST","5% OTM",-0.294,"placebo"],["2026-08-31","CEG","5% OTM",-0.256,"placebo"],["2026-08-31","TLN","2% OTM",-0.087,"placebo"],["2026-08-31","TLN","5% OTM",-0.009,"placebo"],["2026-08-31","NRG","5% OTM",-0.039,"placebo"],["2026-06-12","VST","2% OTM",-0.139,"placebo"],["2026-06-12","VST","5% OTM",-0.123,"placebo"],["2026-06-12","CEG","2% OTM",-0.195,"placebo"],["2026-06-12","CEG","5% OTM",-0.37,"placebo"],["2025-12-18","VST","2% OTM",0.108,"placebo"],["2025-12-18","VST","5% OTM",-0.278,"placebo"],["2025-12-18","CEG","2% OTM",0.282,"placebo"],["2025-12-18","CEG","5% OTM",-0.34,"placebo"],["2025-12-18","TLN","2% OTM",-0.247,"placebo"],["2025-12-18","NRG","2% OTM",-0.093,"placebo"],["2026-07-10","VST","2% OTM",-0.114,"placebo"],["2026-07-10","VST","5% OTM",-0.205,"placebo"],["2026-07-10","CEG","2% OTM",-0.167,"placebo"],["2026-07-10","CEG","5% OTM",-0.307,"placebo"],["2024-11-19","VST","2% OTM",-0.675,"placebo"],["2024-11-19","VST","5% OTM",-0.708,"placebo"],["2024-11-19","CEG","2% OTM",-0.305,"placebo"],["2024-11-19","CEG","5% OTM",-0.51,"placebo"],["2025-11-21","VST","2% OTM",-0.078,"placebo"],["2025-11-21","VST","5% OTM",-0.372,"placebo"],["2025-11-21","CEG","2% OTM",-0.135,"placebo"],["2025-11-21","CEG","5% OTM",-0.186,"placebo"],["2025-11-21","TLN","2% OTM",-0.305,"placebo"],["2025-11-21","NRG","2% OTM",-0.192,"placebo"],["2026-06-15","VST","2% OTM",-0.243,"placebo"],["2026-06-15","VST","5% OTM",-0.302,"placebo"],["2026-06-15","CEG","2% OTM",-0.124,"placebo"],["2026-06-15","CEG","5% OTM",-0.285,"placebo"],["2025-11-17","VST","2% OTM",0.174,"placebo"],["2025-11-17","CEG","2% OTM",0.429,"placebo"]]},"spreads":{"n_files":2,"rows":[["10-20% OTM","under 10 days",134.2,49],["10-20% OTM","10 to 21 days",85.7,35],["10-20% OTM","21 to 45 days",44.4,90],["5-10% OTM","under 10 days",49.0,82],["5-10% OTM","10 to 21 days",18.1,34],["5-10% OTM","21 to 45 days",23.4,79],["2-5% OTM","under 10 days",26.7,57],["2-5% OTM","10 to 21 days",14.3,26],["2-5% OTM","21 to 45 days",16.5,59],["at the money","under 10 days",15.3,65],["at the money","10 to 21 days",12.1,28],["at the money","21 to 45 days",12.3,70]],"overall":18.4},"futures":{"ng_now":3.03,"ng_date":"2026-10-19","mng":{"daily_sd":138,"p5":-193,"p95":213,"worst":-778,"best":877,"days":850,"over_100":0.359,"over_250":0.044,"hist":[[-500.0,3],[-450.0,1],[-400.0,1],[-350.0,0],[-300.0,6],[-250.0,25],[-200.0,36],[-150.0,77],[-100.0,141],[-50.0,126],[0.0,158],[50.0,120],[100.0,63],[150.0,42],[200.0,25],[250.0,5],[300.0,8],[350.0,4],[400.0,1],[450.0,8]]},"wh_onpeak":84.7,"contracts":[{"n":"Micro Henry Hub gas (CME MNG)","unit":"1,000 MMBtu","notional":3034,"tick":"$1 per 0.001","access":"Retail futures accounts","note":"Cash-settled; 24 months listed"},{"n":"Henry Hub gas (CME NG)","unit":"10,000 MMBtu","notional":30340,"tick":"$10","access":"Retail futures accounts","note":"Ten times the micro"},{"n":"PJM Western Hub peak, 1 MW (ICE PMI)","unit":"16 MWh per peak day, about 22 days","notional":29816,"tick":"n/a","access":"Brokers with ICE access","note":"Thin liquidity; check with your broker"},{"n":"PJM Western Hub peak, 5 MW (CME AL1)","unit":"80 MWh per peak day, about 22 days","notional":149078,"tick":"$0.05 per MWh (about $76 to $92)","access":"Institutional size","note":"Cash-settled monthly average of real-time prices"},{"n":"One VST share lot (100 shares), for scale","unit":"100 shares","notional":14970,"tick":"$0.01","access":"Any brokerage","note":"Options on it cost a few percent of this"}],"spike_react":[{"t":"NG=F","n":44,"bp":-54,"se":45,"all_bp":21.6},{"t":"XLU","n":44,"bp":9,"se":13,"all_bp":4.7}],"spike_n":44,"corr":{"names":["IPP basket","Utilities","Equipment","Gas (NG futures)","Utilities ETF","S&P 500","PJM day-ahead price"],"m":[[1.0,0.42,0.63,-0.04,0.62,0.49,-0.05],[0.42,1.0,0.22,-0.08,0.9,0.12,0.02],[0.63,0.22,1.0,-0.09,0.33,0.65,-0.03],[-0.04,-0.08,-0.09,1.0,-0.13,-0.04,0.24],[0.62,0.9,0.33,-0.13,1.0,0.21,-0.07],[0.49,0.12,0.65,-0.04,0.21,1.0,-0.01],[-0.05,0.02,-0.03,0.24,-0.07,-0.01,1.0]],"weeks":104},"heat":[["2023-06-18",9.8],["2023-06-25",10.2],["2023-07-02",11.7],["2023-07-09",13.6],["2023-07-16",14.4],["2023-07-23",12.7],["2023-07-30",24.2],["2023-08-06",11.5],["2023-08-13",10.9],["2023-08-20",12.0],["2023-08-27",13.0],["2023-09-03",9.8],["2023-09-10",17.6],["2023-09-17",12.5],["2023-09-24",10.8],["2023-10-01",12.3],["2023-10-08",13.9],["2023-10-15",11.1],["2023-10-22",14.2],["2023-10-29",11.6],["2023-11-05",12.6],["2023-11-12",10.1],["2023-11-19",14.2],["2023-11-26",13.7],["2023-12-03",16.5],["2023-12-10",14.9],["2023-12-17",17.4],["2023-12-24",14.3],["2023-12-31",9.8],["2024-01-07",13.4],["2024-01-14",10.2],["2024-01-21",35.4],["2024-01-28",14.4],["2024-02-04",14.0],["2024-02-11",13.3],["2024-02-18",16.4],["2024-02-25",14.5],["2024-03-03",15.0],["2024-03-10",11.7],["2024-03-17",12.9],["2024-03-24",18.5],["2024-03-31",17.4],["2024-04-07",16.0],["2024-04-14",16.7],["2024-04-21",16.9],["2024-04-28",15.9],["2024-05-05",16.0],["2024-05-12",14.0],["2024-05-19",13.8],["2024-05-26",16.8],["2024-06-02",11.5],["2024-06-09",12.0],["2024-06-16",8.5],["2024-06-23",16.7],["2024-06-30",11.2],["2024-07-07",14.5],["2024-07-14",26.1],["2024-07-21",29.1],["2024-07-28",18.0],["2024-08-04",27.8],["2024-08-11",19.4],["2024-08-18",14.7],["2024-08-25",10.1],["2024-09-01",24.0],["2024-09-08",10.3],["2024-09-15",14.1],["2024-09-22",14.9],["2024-09-29",14.2],["2024-10-06",15.5],["2024-10-27",16.2],["2024-11-03",12.4],["2024-11-10",11.7],["2024-11-17",11.7],["2024-11-24",10.3],["2024-12-01",9.4],["2024-12-08",17.3],["2024-12-15",11.6],["2024-12-22",9.2],["2024-12-29",10.8],["2025-01-05",8.1],["2025-01-12",17.1],["2025-01-19",13.0],["2025-01-26",37.6],["2025-02-02",11.5],["2025-02-09",12.3],["2025-02-16",13.4],["2025-02-23",23.3],["2025-03-02",9.3],["2025-03-09",11.3],["2025-03-16",10.8],["2025-03-23",11.9],["2025-03-30",12.3],["2025-04-06",11.0],["2025-04-13",16.9],["2025-04-20",14.2],["2025-04-27",15.1],["2025-05-04",12.0],["2025-05-11",10.4],["2025-05-18",12.8],["2025-05-25",9.9],["2025-06-01",10.0],["2025-06-08",9.2],["2025-06-15",10.7],["2025-06-22",9.6],["2025-06-29",27.3],["2025-07-06",14.0],["2025-07-13",17.9],["2025-07-20",19.7],["2025-07-27",18.7],["2025-08-03",30.6],["2025-08-10",12.6],["2025-08-17",18.7],["2025-08-24",13.3],["2025-08-31",8.8],["2025-09-07",10.3],["2025-09-14",11.3],["2025-09-21",15.1],["2025-09-28",20.2],["2025-10-05",15.3],["2025-10-12",16.2],["2025-10-19",16.4],["2025-10-26",15.7],["2025-11-02",15.7],["2025-11-09",12.0],["2025-11-16",14.7],["2025-11-23",15.2],["2025-11-30",9.6],["2025-12-07",14.7],["2025-12-14",23.3],["2025-12-21",19.4],["2025-12-28",12.1],["2026-01-04",12.7],["2026-01-11",10.4],["2026-01-18",14.2],["2026-01-25",15.5],["2026-02-01",91.1],["2026-02-08",47.5],["2026-02-15",27.8],["2026-02-22",13.1],["2026-03-01",16.6],["2026-03-08",16.1],["2026-03-15",14.9],["2026-03-22",21.6],["2026-03-29",16.1],["2026-04-05",16.3],["2026-04-12",16.2],["2026-04-19",25.5],["2026-04-26",24.1],["2026-05-03",20.3],["2026-05-10",18.2],["2026-05-17",14.3],["2026-05-24",25.6],["2026-05-31",12.6],["2026-06-07",13.9],["2026-06-14",28.5],["2026-06-21",15.1],["2026-06-28",13.3],["2026-07-05",55.8],["2026-07-12",22.9],["2026-07-19",46.8],["2026-07-26",15.8],["2026-08-02",19.2],["2026-08-09",28.0],["2026-08-16",19.7],["2026-08-23",20.5],["2026-08-30",14.3],["2026-09-06",29.0],["2026-09-13",20.1],["2026-09-20",35.1],["2026-09-27",15.7],["2026-10-04",32.1],["2026-10-11",19.5],["2026-10-18",35.0],["2026-10-25",20.3]],"power_gas":[["2023-06-30",28.4,2.47],["2023-07-31",42.1,2.64],["2023-08-31",30.6,2.65],["2023-09-30",34.3,2.7],["2023-10-31",39.3,3.15],["2023-11-30",41.4,3.05],["2023-12-31",36.0,2.54],["2024-01-31",46.9,2.71],["2024-02-29",25.9,1.8],["2024-03-31",26.1,1.75],["2024-04-30",29.3,1.79],["2024-05-31",34.7,2.42],["2024-06-30",33.0,2.81],["2024-07-31",49.6,2.21],["2024-08-31",38.1,2.09],["2024-09-30",33.0,2.41],["2024-10-31",35.5,2.47],["2024-11-30",32.4,2.98],["2024-12-31",39.4,3.41],["2025-01-31",67.8,3.72],["2025-02-28",53.6,3.74],["2025-03-31",47.6,4.14],["2025-04-30",47.5,3.43],["2025-05-31",38.5,3.46],["2025-06-30",52.0,3.64],["2025-07-31",67.7,3.31],["2025-08-31",38.2,2.89],["2025-09-30",44.2,3.01],["2025-10-31",52.3,3.35],["2025-11-30",58.3,4.47],["2025-12-31",74.0,4.39],["2026-01-31",173.3,4.27],["2026-02-28",86.1,3.13],["2026-03-31",51.5,3.04],["2026-04-30",57.2,2.68],["2026-05-31",52.4,2.94],["2026-06-30",58.3,3.2],["2026-07-31",95.3,2.94],["2026-08-31",56.9,2.77],["2026-09-30",75.7,2.95],["2026-10-31",89.5,3.14]]},"events":{"ready":true,"groups":{"earnings|straddle":{"n":22,"mean":-0.0605,"median":-0.1112,"win":0.318,"net":{"0":-0.0605,"0.03":-0.1153,"0.05":-0.15,"0.1":-0.2313},"cost_pct":8.1,"abs_move":5.2,"p10":-0.245,"p90":0.241},"auction|straddle":{"n":8,"mean":0.3662,"median":0.2413,"win":0.75,"net":{"0":0.3662,"0.03":0.2866,"0.05":0.2361,"0.1":0.1178},"cost_pct":5.8,"abs_move":4.8,"p10":-0.059,"p90":0.841},"placebo|straddle":{"n":32,"mean":0.008,"median":-0.0148,"win":0.438,"net":{"0":0.008,"0.03":-0.0507,"0.05":-0.088,"0.1":-0.1753},"cost_pct":5.5,"abs_move":3.2,"p10":-0.187,"p90":0.161},"earnings|strangle":{"n":26,"mean":0.0373,"median":-0.2326,"win":0.308,"net":{"0":0.0373,"0.03":-0.0231,"0.05":-0.0615,"0.1":-0.1513},"cost_pct":4.4,"abs_move":5.9,"p10":-0.422,"p90":0.295},"auction|strangle":{"n":5,"mean":1.1163,"median":0.6026,"win":1.0,"net":{"0":1.1163,"0.03":0.9931,"0.05":0.9148,"0.1":0.7316},"cost_pct":2.4,"abs_move":6.0,"p10":0.188,"p90":2.577},"placebo|strangle":{"n":45,"mean":0.0373,"median":-0.0206,"win":0.422,"net":{"0":0.0373,"0.03":-0.0232,"0.05":-0.0615,"0.1":-0.1513},"cost_pct":2.3,"abs_move":3.0,"p10":-0.195,"p90":0.262}},"trades":[["2026-08-05","CEG","earnings","strangle",-0.236,-1.52,3.8],["2026-05-08","CEG","earnings","straddle",-0.195,-1.3,7.6],["2026-05-08","CEG","earnings","strangle",-0.331,-1.3,3.7],["2026-02-24","CEG","earnings","straddle",0.029,4.22,4.6],["2026-02-24","CEG","earnings","strangle",0.044,4.22,1.2],["2025-11-06","CEG","earnings","straddle",-0.104,2.02,8.2],["2025-11-06","CEG","earnings","strangle",-0.313,2.02,4.4],["2025-08-06","CEG","earnings","straddle",-0.239,-0.61,8.3],["2025-08-06","CEG","earnings","strangle",-0.464,-0.61,4.3],["2025-05-05","CEG","earnings","straddle",-0.013,10.29,7.5],["2025-05-05","CEG","earnings","strangle",0.178,10.29,3.8],["2025-02-14","CEG","earnings","straddle",0.241,2.62,4.6],["2025-02-14","CEG","earnings","strangle",0.167,2.62,1.3],["2024-11-01","CEG","earnings","straddle",0.143,-12.46,9.5],["2024-11-01","CEG","earnings","strangle",0.174,-12.46,5.4],["2024-08-05","CEG","earnings","strangle",-0.229,6.51,7.8],["2026-08-03","NRG","earnings","straddle",0.18,-15.48,7.9],["2026-08-03","NRG","earnings","strangle",0.412,-15.48,3.9],["2026-05-06","NRG","earnings","strangle",-0.18,-5.83,2.2],["2026-02-23","NRG","earnings","straddle",-0.588,4.25,8.6],["2026-02-23","NRG","earnings","strangle",-0.517,4.25,4.2],["2025-08-05","NRG","earnings","straddle",0.388,-13.61,7.1],["2025-08-05","NRG","earnings","strangle",0.785,-13.61,3.6],["2025-05-09","NRG","earnings","strangle",4.636,26.21,2.3],["2024-11-07","NRG","earnings","straddle",-0.049,-0.27,8.2],["2024-11-07","NRG","earnings","strangle",-0.06,-0.27,4.2],["2024-08-06","NRG","earnings","straddle",-0.03,1.24,8.6],["2024-05-06","NRG","earnings","straddle",0.241,-5.76,7.8],["2026-05-05","TLN","earnings","straddle",-0.229,6.52,6.5],["2026-02-26","TLN","earnings","strangle",-0.368,-4.89,4.4],["2025-05-06","TLN","earnings","strangle",-0.078,-1.45,4.9],["2026-08-06","VST","earnings","straddle",-0.143,-0.56,7.6],["2026-08-06","VST","earnings","strangle",-0.288,-0.56,3.4],["2026-05-07","VST","earnings","straddle",-0.118,-4.05,6.9],["2026-05-07","VST","earnings","strangle",-0.233,-4.05,3.1],["2026-02-25","VST","earnings","straddle",-0.202,0.83,9.2],["2026-02-25","VST","earnings","strangle",-0.232,0.83,5.2],["2025-11-05","VST","earnings","straddle",-0.181,-2.52,9.7],["2025-11-05","VST","earnings","strangle",-0.379,-2.52,6.1],["2025-08-06","VST","earnings","straddle",-0.245,2.36,10.1],["2025-08-06","VST","earnings","strangle",-0.353,2.36,5.9],["2025-05-06","VST","earnings","straddle",-0.193,-3.66,8.5],["2025-05-06","VST","earnings","strangle",-0.49,-3.66,4.5],["2025-02-26","VST","earnings","straddle",-0.335,-12.27,12.0],["2025-02-26","VST","earnings","strangle",-0.378,-12.27,7.7],["2024-11-06","VST","earnings","straddle",0.311,7.65,9.5],["2024-11-06","VST","earnings","strangle",0.043,7.65,6.1],["2024-08-07","VST","earnings","strangle",-0.34,6.94,6.8],["2024-07-30","VST","auction","straddle",1.656,14.81,6.7],["2024-07-30","VST","auction","strangle",3.702,14.81,3.1],["2025-07-22","VST","auction","straddle",0.364,5.83,5.8],["2025-07-22","CEG","auction","straddle",0.362,1.86,5.8],["2025-07-22","CEG","auction","strangle",0.89,1.86,1.9],["2025-07-22","TLN","auction","strangle",0.603,8.18,2.5],["2025-07-22","NRG","auction","straddle",0.492,4.28,4.7],["2025-12-17","VST","auction","straddle",-0.023,3.88,7.0],["2025-12-17","VST","auction","strangle",0.223,3.88,2.8],["2025-12-17","CEG","auction","straddle",0.12,5.89,6.8],["2026-07-14","VST","auction","straddle",0.101,1.14,5.0],["2026-07-14","VST","auction","strangle",0.164,1.14,1.9],["2026-07-14","CEG","auction","straddle",-0.142,0.66,4.8],["2025-12-12","VST","placebo","straddle",-0.064,-1.09,6.1],["2025-12-12","VST","placebo","strangle",-0.069,-1.09,2.3],["2026-02-11","VST","placebo","straddle",-0.01,1.84,6.8],["2026-02-11","VST","placebo","strangle",0.216,1.84,2.9],["2025-11-26","VST","placebo","straddle",-0.036,1.17,6.1],["2025-11-26","VST","placebo","strangle",-0.094,1.17,2.3],["2026-10-07","VST","placebo","straddle",-0.024,-6.35,6.5],["2026-10-07","VST","placebo","strangle",-0.094,-6.35,2.4],["2026-07-16","VST","placebo","strangle",-0.079,1.89,2.7],["2026-09-03","VST","placebo","straddle",-0.072,3.52,4.7],["2024-12-03","VST","placebo","straddle",0.525,4.64,4.6],["2024-12-03","VST","placebo","strangle",1.172,4.64,1.3],["2025-09-29","VST","placebo","straddle",-0.064,-1.02,4.9],["2025-09-29","VST","placebo","strangle",-0.024,-1.02,1.5],["2025-10-07","VST","placebo","straddle",0.014,3.47,4.7],["2025-10-07","VST","placebo","strangle",0.073,3.47,1.2],["2025-12-16","VST","placebo","straddle",-0.193,-7.77,5.2],["2025-12-16","VST","placebo","strangle",0.242,-7.77,2.1],["2024-06-12","VST","placebo","strangle",0.034,-2.39,3.3],["2024-10-10","VST","placebo","strangle",0.072,0.95,2.1],["2025-01-14","VST","placebo","straddle",-0.02,-0.79,5.5],["2025-01-14","VST","placebo","strangle",0.225,-0.79,1.8],["2025-02-20","VST","placebo","strangle",-0.018,-7.81,6.3],["2026-02-13","VST","placebo","straddle",-0.005,1.28,5.7],["2026-02-13","VST","placebo","strangle",-0.11,1.28,2.2],["2025-09-10","VST","placebo","straddle",-0.046,-2.47,7.0],["2025-09-10","VST","placebo","strangle",-0.015,-2.47,3.1],["2026-08-10","VST","placebo","strangle",0.0,1.43,1.3],["2025-04-02","VST","placebo","straddle",0.14,-14.92,8.6],["2025-04-02","VST","placebo","strangle",0.256,-14.92,5.6],["2026-08-24","VST","placebo","strangle",0.357,2.48,1.2],["2024-09-05","VST","placebo","strangle",-0.265,-2.81,2.1],["2025-05-02","VST","placebo","strangle",-0.08,0.52,4.8],["2025-06-27","VST","placebo","straddle",-0.059,-0.63,7.3],["2025-06-27","VST","placebo","strangle",-0.037,-0.63,3.3],["2025-08-08","CEG","placebo","straddle",-0.283,-1.27,4.8],["2025-08-08","CEG","placebo","strangle",-0.149,-1.27,1.5],["2025-05-12","CEG","placebo","strangle",-0.2,2.19,1.4],["2025-10-09","CEG","placebo","straddle",0.011,-3.85,5.9],["2025-10-09","CEG","placebo","strangle",-0.062,-3.85,2.5],["2026-03-05","CEG","placebo","strangle",0.05,-3.92,2.5],["2025-06-04","CEG","placebo","straddle",-0.022,-3.22,6.0],["2025-06-04","CEG","placebo","strangle",-0.045,-3.22,2.4],["2024-06-10","CEG","placebo","straddle",0.059,1.71,6.0],["2024-06-10","CEG","placebo","strangle",0.059,1.71,2.7],["2024-09-27","CEG","placebo","straddle",-0.122,1.18,4.5],["2025-03-04","CEG","placebo","straddle",-0.208,-1.01,7.1],["2025-03-04","CEG","placebo","strangle",-0.363,-1.01,3.4],["2024-09-11","CEG","placebo","strangle",-0.025,1.43,1.8],["2026-01-08","CEG","placebo","straddle",0.31,6.19,5.7],["2026-01-08","CEG","placebo","strangle",0.593,6.19,2.1],["2025-04-03","CEG","placebo","strangle",0.772,-10.13,4.5],["2026-09-22","CEG","placebo","strangle",0.008,0.16,0.4],["2025-06-13","CEG","placebo","straddle",0.056,3.75,5.0],["2025-06-13","CEG","placebo","strangle",0.266,3.75,1.5],["2026-08-17","CEG","placebo","straddle",-0.13,-3.94,3.7],["2026-08-17","CEG","placebo","strangle",-0.28,-3.94,0.8],["2024-10-22","CEG","placebo","strangle",-0.243,0.02,0.8],["2025-10-16","CEG","placebo","strangle",-0.021,-2.53,3.3],["2026-06-09","CEG","placebo","strangle",0.097,-3.72,1.0],["2025-09-12","CEG","placebo","straddle",0.076,2.15,4.7],["2025-09-12","CEG","placebo","strangle",-0.012,2.15,1.3],["2024-06-14","CEG","placebo","straddle",-0.213,-1.34,4.9],["2024-06-14","CEG","placebo","strangle",-0.115,-1.34,1.6],["2026-01-29","CEG","placebo","strangle",-0.079,-2.36,2.0],["2025-12-02","CEG","placebo","straddle",-0.1,-0.66,3.9],["2025-12-02","CEG","placebo","strangle",-0.189,-0.66,0.8],["2025-09-22","TLN","placebo","strangle",0.098,-1.53,1.2],["2025-10-14","TLN","placebo","straddle",0.096,-0.46,4.0],["2025-05-20","NRG","placebo","strangle",-0.162,-2.64,0.8],["2025-12-11","NRG","placebo","straddle",0.007,-5.39,6.2],["2025-12-11","NRG","placebo","strangle",-0.133,-5.39,2.9],["2026-01-26","NRG","placebo","straddle",0.068,4.08,3.7],["2025-08-04","NRG","placebo","straddle",0.035,-1.12,7.7],["2025-08-04","NRG","placebo","strangle",0.046,-1.12,3.6],["2025-10-01","NRG","placebo","straddle",0.163,3.33,5.4],["2025-12-16","NRG","placebo","straddle",0.365,-6.66,4.2]]}}, FW = { days: 1, signals: 0 };
+const el = id => document.getElementById(id), tip = VZ.tip(), pct = (v, d = 0) => (v * 100).toFixed(d) + '%', sgn = v => (v >= 0 ? '+' : '') + (v * 100).toFixed(1) + '%';
+function pills(id, opts, cur, f) { el(id).innerHTML = opts.map(o => `<button class="pill" data-v="${o[0]}" aria-pressed="${cur === o[0]}">${o[1]}</button>`).join(' '); el(id).onclick = e => { const b = e.target.closest('[data-v]'); if (b) f(b.dataset.v); }; }
+const g5 = S.h1b.groups['event|5% OTM'], g2 = S.h1b.groups['event|2% OTM'], p5 = S.h1b.groups['placebo|5% OTM'];
+const halfSpr = S.spreads.rows ? (S.spreads.rows.find(r => r[0] === '2-5% OTM' && r[1] === 'under 10 days') || [0, 0, 26.7])[2] / 200 : .13;
+
+el('kpis').innerHTML = [[sgn(g5.mean), 'average gross return on a 5%-out-of-the-money put the morning after a spike'], [pct(g5.breakeven, 0), 'slippage per side that wipes it out'], [pct(halfSpr, 0), 'half the quoted spread we actually saw'], ['$' + S.futures.mng.daily_sd, 'a typical daily swing on one micro gas contract'], [FW.signals + ' of ~20', 'forward signals logged so far']]
+  .map(([v, l]) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+
+function cards() {
+  const E = S.events, ge = E.ready ? E.groups['earnings|straddle'] : null;
+  const rows = [
+    ['Put the spike', 'lead', 'In-sample lead', `Buy a cheap put on VST, CEG, NRG or TLN the morning after a PJM up-spike. Gross +${(g5.mean * 100).toFixed(0)}% on premium in the sample, but the edge is about the size of the trading costs.`],
+    ['The gas leg', 'edu', 'Educational', 'Micro natural gas futures are the closest retail-sized PJM-linked exposure. Gas barely correlates with the generator stocks week to week, so it is a different bet, not a proxy.'],
+    ['Buy the event', E.ready ? (ge && ge.mean < 0 ? 'null' : 'lead') : 'edu', E.ready ? (ge && ge.mean < 0 ? 'Loses on average' : 'Worth a closer look') : 'Running', E.ready && ge ? `Hold a straddle through earnings or an auction reaction. Earnings straddles averaged ${sgn(ge.mean)} gross across ${ge.n} events: the options already charge for the move. Capacity-auction reactions look better, but they are the same four auctions behind H9.` : 'Hold a straddle through earnings or an auction reaction and see whether the options charge too much or too little.']
+  ];
+  el('cards').innerHTML = rows.map(r => `<div class="card scard"><h3>${r[0]} <span class="chip ${r[1]}">${r[2]}</span></h3><p>${r[3]}</p></div>`).join('');
+}
+
+/* Black-Scholes put */
+const N = x => { const t = 1 / (1 + .2316419 * Math.abs(x)), d = .3989423 * Math.exp(-x * x / 2), p = d * t * (.3193815 + t * (-.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return x > 0 ? 1 - p : p; };
+function bsPut(S0, K, T, iv, r = .04) { if (T <= 0) return Math.max(K - S0, 0); const d1 = (Math.log(S0 / K) + (r + iv * iv / 2) * T) / (iv * Math.sqrt(T)), d2 = d1 - iv * Math.sqrt(T); return K * Math.exp(-r * T) * N(-d2) - S0 * N(-d1); }
+function payoff() {
+  const P = VZ.pal(), s0 = +el('p-spot').value || 150, k = +el('p-k').value / 100, days = +el('p-d').value, iv = +el('p-iv').value / 100, K = s0 * k, T = days / 365;
+  el('p-kv').textContent = (k * 100).toFixed(0) + '%'; el('p-dv').textContent = days; el('p-ivv').textContent = (iv * 100).toFixed(0) + '%';
+  const prem = bsPut(s0, K, T, iv), per = prem * 100, o = VZ.svg(el('payoff'), 520, 300, { t: 12, r: 14, b: 32, l: 52 }), g = o.g;
+  const xs = d3.range(0.8, 1.2001, .005).map(m => m * s0), ex = s => Math.max(K - s, 0) * 100 - per, nx = s => (bsPut(s, K, Math.max(T - 1 / 365, .0005), iv) - prem) * 100;
+  const lo = Math.min(-per, d3.min(xs, nx)) * 1.1, hi = Math.max(d3.max(xs, ex), d3.max(xs, nx)) * 1.05;
+  const x = d3.scaleLinear().domain([xs[0], xs[xs.length - 1]]).range([0, o.iw]), y = d3.scaleLinear().domain([lo, hi]).nice().range([o.ih, 0]);
+  g.append('line').attr('x1', 0).attr('x2', o.iw).attr('y1', y(0)).attr('y2', y(0)).attr('stroke', P.muted);
+  g.append('line').attr('x1', x(s0)).attr('x2', x(s0)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.line);
+  g.append('path').datum(xs).attr('fill', 'none').attr('stroke', P.down).attr('stroke-width', 2.2).attr('d', d3.line().x(s => x(s)).y(s => y(ex(s))));
+  g.append('path').datum(xs).attr('fill', 'none').attr('stroke', P.accent).attr('stroke-width', 2.2).attr('d', d3.line().x(s => x(s)).y(s => y(nx(s))));
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(6).tickFormat(d => '$' + d.toFixed(0)))); VZ.axisStyle(g.append('g').call(d3.axisLeft(y).ticks(6).tickFormat(d => (d >= 0 ? '+$' : '-$') + Math.abs(d).toFixed(0))));
+  g.append('text').attr('x', x(s0) + 4).attr('y', 12).attr('fill', P.muted).style('font-size', '11px').text('today');
+  const be = K - prem, mv = [-.05, -.1].map(m => nx(s0 * (1 + m)));
+  el('p-mini').innerHTML = `<div><b>$${per.toFixed(0)}</b>cost of one contract (the most you can lose)</div><div><b>$${be.toFixed(2)}</b>expiry break-even price (${((be / s0 - 1) * 100).toFixed(1)}%)</div><div><b>${mv[0] >= 0 ? '+' : '-'}$${Math.abs(mv[0]).toFixed(0)}</b>tomorrow if the stock drops 5%</div><div><b>${mv[1] >= 0 ? '+' : '-'}$${Math.abs(mv[1]).toFixed(0)}</b>tomorrow if it drops 10%</div>`;
+  el('payoff-so').innerHTML = `Black-Scholes at ${(iv * 100).toFixed(0)}% implied volatility. The blue line is the one that matters: this strategy sells the next morning, so a 5% drop earns about <b>${(mv[0] / per * 100).toFixed(0)}%</b> on the premium, and a flat stock costs a little time value. Real prices are wider than the model by the spread.`;
+}
+['p-spot', 'p-k', 'p-d', 'p-iv'].forEach(i => el(i).addEventListener('input', payoff));
+
+/* histogram of real trades */
+let hOtm = '5% OTM';
+function hist() {
+  pills('h-otm', [['5% OTM', '5% out of the money'], ['2% OTM', '2% out of the money']], hOtm, v => { hOtm = v; hist(); });
+  const P = VZ.pal(), T = S.h1b.trades.filter(t => t[2] === hOtm), ev = T.filter(t => t[4] === 'event').map(t => t[3]), pl = T.filter(t => t[4] === 'placebo').map(t => t[3]);
+  const bins = d3.range(-1, 2.01, .2), o = VZ.svg(el('hist'), 520, 280, { t: 8, r: 10, b: 30, l: 40 }), g = o.g;
+  const h = a => d3.bin().domain([-1, 2]).thresholds(bins.slice(1, -1))(a.map(v => Math.max(-1, Math.min(1.99, v))));
+  const he = h(ev), hp = h(pl), x = d3.scaleLinear().domain([-1, 2]).range([0, o.iw]), mx = Math.max(d3.max(he, b => b.length / ev.length), d3.max(hp, b => b.length / pl.length)), y = d3.scaleLinear().domain([0, mx]).nice().range([o.ih, 0]);
+  const draw = (hh, n, c, off) => hh.forEach(b => g.append('rect').attr('x', x(b.x0) + off).attr('width', Math.max(1, (x(b.x1) - x(b.x0)) / 2 - 1.5)).attr('y', y(b.length / n)).attr('height', o.ih - y(b.length / n)).attr('fill', c)
+    .on('mousemove', e => tip.show(`${(b.x0 * 100).toFixed(0)}% to ${(b.x1 * 100).toFixed(0)}%: ${b.length} of ${n} trades`, e)).on('mouseleave', tip.hide));
+  draw(hp, pl.length, P.muted, (x(.2) - x(0)) / 2); draw(he, ev.length, P.down, 0);
+  g.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.fg2);
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(7).tickFormat(d => (d * 100).toFixed(0) + '%'))); VZ.axisStyle(g.append('g').call(d3.axisLeft(y).ticks(4).tickFormat(d => (d * 100).toFixed(0) + '%')));
+  g.append('text').attr('x', o.iw / 2).attr('y', o.ih + 28).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '11px').text('Gross return on the premium, entry to exit the same day');
+  const a = S.h1b.groups['event|' + hOtm], b = S.h1b.groups['placebo|' + hOtm];
+  el('hist-so').innerHTML = `After spikes: average <b>${sgn(a.mean)}</b>, median ${sgn(a.median)}, winners ${pct(a.win)} of ${a.filled} trades. Random days: average <b>${sgn(b.mean)}</b> (the cost of holding puts that usually expire worthless). A few large winners carry the average, so the sample is fragile. Only trades that traded in both windows are shown.`;
+}
+
+/* slippage curves */
+function slip() {
+  const P = VZ.pal(), o = VZ.svg(el('slip'), 520, 290, { t: 10, r: 14, b: 32, l: 48 }), g = o.g, sl = Object.keys(g5.net).map(Number);
+  const series = [['event|2% OTM', P.down], ['event|5% OTM', P.warn], ['placebo|5% OTM', P.muted]];
+  const x = d3.scaleLinear().domain([0, .2]).range([0, o.iw]), y = d3.scaleLinear().domain([-.4, .2]).range([o.ih, 0]);
+  const hs = halfSpr;
+  g.append('rect').attr('x', x(Math.min(hs * .55, .2))).attr('width', Math.max(0, x(Math.min(hs * 1.9, .2)) - x(Math.min(hs * .55, .2)))).attr('y', 0).attr('height', o.ih).attr('fill', P.accent).attr('opacity', .1);
+  g.append('line').attr('x1', 0).attr('x2', o.iw).attr('y1', y(0)).attr('y2', y(0)).attr('stroke', P.muted);
+  series.forEach(([k, c]) => { const d = S.h1b.groups[k]; g.append('path').datum(sl).attr('fill', 'none').attr('stroke', c).attr('stroke-width', 2.2).attr('d', d3.line().x(s => x(s)).y(s => y(d.net[String(s)])));
+    sl.forEach(s => g.append('circle').attr('cx', x(s)).attr('cy', y(d.net[String(s)])).attr('r', 3.5).attr('fill', c).attr('stroke', P.surface).attr('stroke-width', 1.5).on('mousemove', e => tip.show(`<b>${k.replace('|', ', ')}</b><br>${(s * 100).toFixed(0)}% slippage per side: ${sgn(d.net[String(s)])}`, e)).on('mouseleave', tip.hide)); });
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(5).tickFormat(d => (d * 100).toFixed(0) + '%'))); VZ.axisStyle(g.append('g').call(d3.axisLeft(y).ticks(6).tickFormat(d => (d * 100).toFixed(0) + '%')));
+  g.append('text').attr('x', o.iw / 2).attr('y', o.ih + 28).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '11px').text('Assumed slippage per side (buy and sell)');
+  el('slip-so').innerHTML = `Break-even is about <b>${pct(g5.breakeven, 0)}</b> slippage per side for both strikes. Half of the quoted spread we captured on 2 to 5% out-of-the-money puts under ten days out is about <b>${pct(hs, 0)}</b> (shaded). Unless you can trade between the bid and the ask, the lead does not pay.`;
+}
+function spr() {
+  const P = VZ.pal(), R = S.spreads.rows || [], ms = ['at the money', '2-5% OTM', '5-10% OTM', '10-20% OTM'], ds = ['under 10 days', '10 to 21 days', '21 to 45 days'], o = VZ.svg(el('spr'), 520, 290, { t: 10, r: 14, b: 42, l: 40 }), g = o.g;
+  const x = d3.scaleBand().domain(ms).range([0, o.iw]).padding(.2), x2 = d3.scaleBand().domain(ds).range([0, x.bandwidth()]).padding(.08), y = d3.scaleLinear().domain([0, 100]).range([o.ih, 0]);
+  const cols = [P.accent, P.warn, P.muted];
+  R.forEach(r => { const v = Math.min(r[2], 100); g.append('rect').attr('x', x(r[0]) + x2(r[1])).attr('width', x2.bandwidth()).attr('y', y(v)).attr('height', o.ih - y(v)).attr('fill', cols[ds.indexOf(r[1])]).attr('rx', 2)
+    .on('mousemove', e => tip.show(`<b>${r[0]}, ${r[1]}</b><br>median spread ${r[2]}% of the mid price (${r[3]} quotes)`, e)).on('mouseleave', tip.hide);
+    if (r[2] >= 12) g.append('text').attr('x', x(r[0]) + x2(r[1]) + x2.bandwidth() / 2).attr('y', y(v) - 3).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '9px').text(Math.round(r[2])); });
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).tickSize(0))); VZ.axisStyle(g.append('g').call(d3.axisLeft(y).ticks(5).tickFormat(d => d + '%')));
+  g.append('line').attr('x1', 0).attr('x2', o.iw).attr('y1', y(10)).attr('y2', y(10)).attr('stroke', P.line);
+  el('spr').insertAdjacentHTML('beforeend', '<div class="legend">' + ds.map((d, i) => `<span><i style="background:${cols[i]}"></i>${d}</span>`).join('') + '</div>');
+  el('spr-so').innerHTML = `Median bid-ask spread on VST, CEG, TLN and NRG puts, from ${S.spreads.n_files || 0} mid-session chain captures (a small sample that grows daily). Cheap, far-out puts, the ones that give the most leverage, have the widest spreads: often more than <b>40%</b> of the price. The 5% a side our backtest tolerates is the exception.`;
+}
+function tick() {
+  const P = VZ.pal(), T = S.h1b.by_ticker, tk = ['VST', 'CEG', 'NRG', 'TLN'], o = VZ.svg(el('tick'), 900, 190, { t: 8, r: 14, b: 26, l: 40 }), g = o.g;
+  const x = d3.scaleBand().domain(tk).range([0, o.iw]).padding(.3), x2 = d3.scaleBand().domain(['2% OTM', '5% OTM']).range([0, x.bandwidth()]).padding(.1), y = d3.scaleLinear().domain([-.25, .3]).range([o.ih, 0]);
+  g.append('line').attr('x1', 0).attr('x2', o.iw).attr('y1', y(0)).attr('y2', y(0)).attr('stroke', P.muted);
+  T.forEach(r => g.append('rect').attr('x', x(r[0]) + x2(r[1])).attr('width', x2.bandwidth()).attr('y', y(Math.max(r[2], 0))).attr('height', Math.abs(y(r[2]) - y(0))).attr('fill', r[1] === '2% OTM' ? P.down : P.warn).attr('rx', 2)
+    .on('mousemove', e => tip.show(`<b>${r[0]}, ${r[1]}</b><br>${sgn(r[2])} gross on ${r[3]} trades`, e)).on('mouseleave', tip.hide));
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${y(0)})`).call(d3.axisBottom(x).tickSize(0)).call(a => a.selectAll('text').attr('dy', '1.8em'))); VZ.axisStyle(g.append('g').call(d3.axisLeft(y).ticks(5).tickFormat(d => (d * 100).toFixed(0) + '%')));
+  const mt = d3.rollups(T.filter(r => r[1] === '5% OTM'), v => v[0][2], r => r[0]).sort((a, b) => a[1] - b[1]), ns = T.map(r => r[3]);
+  el('fwd-so').innerHTML = `${mt[0][0]} is the weakest at 5% out (${sgn(mt[0][1])}), and each bar rests on only ${d3.min(ns)} to ${d3.max(ns)} trades. Forward test status: <b>${FW.days} completed day, ${FW.signals} signals</b>. Until about 20 signals are logged against real quotes, treat this as a lead.`;
+  el('fw-days').textContent = FW.days; el('fw-sig').textContent = FW.signals;
+}
+
+/* futures */
+function ladder() {
+  const P = VZ.pal(), C = S.futures.contracts.slice().sort((a, b) => a.notional - b.notional), o = VZ.svg(el('ladder'), 520, 270, { t: 8, r: 70, b: 26, l: 210 }), g = o.g;
+  const y = d3.scaleBand().domain(C.map(c => c.n)).range([0, o.ih]).padding(.3), x = d3.scaleLog().domain([300, 300000]).range([0, o.iw]);
+  g.append('line').attr('x1', x(500)).attr('x2', x(500)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.down).attr('stroke-width', 2);
+  g.append('text').attr('x', x(500) + 4).attr('y', 10).attr('fill', P.down).style('font-size', '11px').text('$500 account');
+  C.forEach(c => { g.append('rect').attr('y', y(c.n)).attr('height', y.bandwidth()).attr('width', x(c.notional)).attr('fill', c.n.includes('Micro') ? P.accent : P.muted).attr('rx', 3).attr('opacity', .85)
+    .on('mousemove', e => tip.show(`<b>${c.n}</b><br>${c.unit}<br>Tick: ${c.tick}<br>${c.access}. ${c.note}`, e)).on('mouseleave', tip.hide);
+    g.append('text').attr('x', x(c.notional) + 5).attr('y', y(c.n) + y.bandwidth() / 2 + 4).attr('fill', P.fg2).style('font-size', '11px').text('$' + d3.format(',')(c.notional)); });
+  VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickSize(0).tickFormat(t => t.length > 34 ? t.slice(0, 33) + '…' : t))); VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).tickValues([1e3, 1e4, 1e5]).tickFormat(d => '$' + d / 1000 + 'k')));
+  const m = S.futures.contracts[0];
+  el('ladder-so').innerHTML = `Log scale. One micro gas contract controls about <b>$${d3.format(',')(m.notional)}</b> of gas at $${S.futures.ng_now}; the monthly PJM Western Hub peak future controls roughly <b>$${d3.format(',')(S.futures.contracts[3].notional)}</b> at the recent $${S.futures.wh_onpeak}/MWh on-peak price. Exchange margin is a fraction of notional, but losses are on the whole notional. Specifications are from CME and ICE product pages; confirm margin with a broker.`;
+}
+function mng() {
+  const P = VZ.pal(), M = S.futures.mng, o = VZ.svg(el('mng'), 520, 270, { t: 8, r: 10, b: 30, l: 40 }), g = o.g, H = M.hist;
+  const x = d3.scaleLinear().domain([-500, 500]).range([0, o.iw]), y = d3.scaleLinear().domain([0, d3.max(H, d => d[1])]).nice().range([o.ih, 0]);
+  H.forEach(d => g.append('rect').attr('x', x(d[0]) + 1).attr('width', x(50) - x(0) - 2).attr('y', y(d[1])).attr('height', o.ih - y(d[1])).attr('fill', Math.abs(d[0] + 25) > 250 ? P.down : P.accent).attr('opacity', .85)
+    .on('mousemove', e => tip.show(`$${d[0]} to $${d[0] + 50}: ${d[1]} days`, e)).on('mouseleave', tip.hide));
+  g.append('line').attr('x1', x(-500)).attr('x2', x(-500)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.line);
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(8).tickFormat(d => (d >= 0 ? '+$' : '-$') + Math.abs(d)))); VZ.axisStyle(g.append('g').call(d3.axisLeft(y).ticks(4)));
+  g.append('text').attr('x', o.iw / 2).attr('y', o.ih + 28).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '11px').text('Daily profit or loss, one micro contract (tails clipped at ±$500)');
+  el('mng-so').innerHTML = `Over ${M.days} trading days a typical day moved <b>$${M.daily_sd}</b>, and the worst day cost <b>$${Math.abs(M.worst)}</b>. A day beyond ±$250 happened ${pct(M.over_250, 0)} of the time. A typical day is ${(M.daily_sd / 5).toFixed(0)}% of a $500 account, and the worst day cost more than the whole account. Front-month roll jumps are removed.`;
+}
+function corr() {
+  const P = VZ.pal(), C = S.futures.corr, n = C.names.length, o = VZ.svg(el('corr'), 520, 330, { t: 90, r: 8, b: 6, l: 112 }), g = o.g;
+  const x = d3.scaleBand().domain(d3.range(n)).range([0, o.iw]).padding(.04), y = d3.scaleBand().domain(d3.range(n)).range([0, o.ih]).padding(.04);
+  const col = d3.scaleDiverging(d3.interpolateRgbBasis([P.down, P.soft, P.accent])).domain([-1, 0, 1]);
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { g.append('rect').attr('x', x(j)).attr('y', y(i)).attr('width', x.bandwidth()).attr('height', y.bandwidth()).attr('rx', 3).attr('fill', col(C.m[i][j]))
+    .on('mousemove', e => tip.show(`<b>${C.names[i]}</b> vs <b>${C.names[j]}</b><br>correlation ${C.m[i][j]}`, e)).on('mouseleave', tip.hide);
+    if (i !== j) g.append('text').attr('x', x(j) + x.bandwidth() / 2).attr('y', y(i) + y.bandwidth() / 2 + 4).attr('text-anchor', 'middle').attr('fill', Math.abs(C.m[i][j]) > .6 ? '#fff' : P.fg2).style('font-size', '10px').text(C.m[i][j].toFixed(2)); }
+  VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickFormat(i => C.names[i]).tickSize(0)));
+  const ax = g.append('g').call(d3.axisTop(x).tickFormat(i => C.names[i]).tickSize(0)); VZ.axisStyle(ax); ax.selectAll('text').attr('transform', 'rotate(-40)').style('text-anchor', 'start');
+  const ig = C.m[0][3], ip = C.m[0][6];
+  el('corr-so').innerHTML = `The generator basket and natural gas have a weekly correlation of <b>${ig.toFixed(2)}</b>; the basket and the PJM day-ahead price, <b>${ip.toFixed(2)}</b> (${C.weeks} weeks). Gas is not a proxy for generator stocks. They are separate bets that happen to share a theme.`;
+}
+function react() {
+  const P = VZ.pal(), R = S.futures.spike_react, o = VZ.svg(el('react'), 520, 200, { t: 8, r: 20, b: 26, l: 140 }), g = o.g, nice = { 'NG=F': 'Natural gas futures', 'XLU': 'Utilities ETF' };
+  const y = d3.scaleBand().domain(R.map(r => r.t)).range([0, o.ih]).padding(.4), m = d3.max(R, r => Math.abs(r.bp) + 1.96 * r.se) * 1.1, x = d3.scaleLinear().domain([-m, m]).range([0, o.iw]);
+  g.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.muted);
+  R.forEach(r => { const cy = y(r.t) + y.bandwidth() / 2; g.append('line').attr('x1', x(r.bp - 1.96 * r.se)).attr('x2', x(r.bp + 1.96 * r.se)).attr('y1', cy).attr('y2', cy).attr('stroke', P.accent).attr('opacity', .5).attr('stroke-width', 3);
+    g.append('circle').attr('cx', x(r.bp)).attr('cy', cy).attr('r', 6).attr('fill', P.accent).attr('stroke', P.surface).attr('stroke-width', 2).on('mousemove', e => tip.show(`<b>${nice[r.t]}</b><br>${r.bp} bp next session after ${r.n} spike days (±${Math.round(1.96 * r.se)} at 95%)<br>average day: ${r.all_bp} bp`, e)).on('mouseleave', tip.hide); });
+  VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickSize(0).tickFormat(t => nice[t]))); VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(5).tickFormat(d => d + ' bp')));
+  el('react-so').innerHTML = `Next-session move after ${S.futures.spike_n} PJM up-spike days, with 95% ranges. Both ranges straddle zero: neither gas nor the utilities ETF carries the generator-stock signal. The signal, if real, is specific to the merchant generators.`;
+}
+function heat() {
+  const P = VZ.pal(), H = S.futures.heat.map(d => [new Date(d[0]), d[1]]), o = VZ.svg(el('heat'), 900, 250, { t: 8, r: 14, b: 28, l: 44 }), g = o.g;
+  const x = d3.scaleTime().domain(d3.extent(H, d => d[0])).range([0, o.iw]), y = d3.scaleLinear().domain([0, d3.max(H, d => d[1])]).nice().range([o.ih, 0]);
+  g.append('path').datum(H).attr('fill', P.accent).attr('opacity', .1).attr('d', d3.area().x(d => x(d[0])).y0(o.ih).y1(d => y(d[1])));
+  g.append('path').datum(H).attr('fill', 'none').attr('stroke', P.accent).attr('stroke-width', 2).attr('d', d3.line().x(d => x(d[0])).y(d => y(d[1])));
+  const mx = H.reduce((a, d) => d[1] > a[1] ? d : a, H[0]), last = H[H.length - 1];
+  g.append('circle').attr('cx', x(mx[0])).attr('cy', y(mx[1])).attr('r', 4.5).attr('fill', P.down).attr('stroke', P.surface).attr('stroke-width', 2);
+  g.append('circle').attr('cx', x(last[0])).attr('cy', y(last[1])).attr('r', 4.5).attr('fill', P.accent).attr('stroke', P.surface).attr('stroke-width', 2);
+  g.append('rect').attr('x', 0).attr('width', o.iw).attr('y', 0).attr('height', o.ih).attr('fill', 'transparent').on('mousemove', e => { const [mx_] = d3.pointer(e); const d = H[d3.bisector(a => a[0]).center(H, x.invert(mx_))]; tip.show(`<b>Week of ${d[0].toISOString().slice(0, 10)}</b><br>Power ÷ gas: ${d[1]} (MMBtu per MWh)`, e); }).on('mouseleave', tip.hide);
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(7))); VZ.axisStyle(g.append('g').call(d3.axisLeft(y).ticks(5)));
+  const avg = d3.mean(H, d => d[1]);
+  el('heat-so').innerHTML = `Western Hub day-ahead power price divided by the Henry Hub front-month gas price: roughly how many MMBtu of gas one MWh of power sells for. It peaked at <b>${mx[1]}</b> (week of ${mx[0].toISOString().slice(0, 10)}) and sits at <b>${last[1]}</b> now, against a 2023-to-now average of ${avg.toFixed(1)}. A high number means power is expensive relative to its fuel, which is good for gas-fired generators' margins and a sign the grid is tight. It is a gauge, not a trade signal.`;
+}
+
+/* events */
+function events() {
+  const E = S.events, box = el('evt');
+  if (!E.ready) { box.innerHTML = '<div class="card"><p class="so">The event backtest is still running. Check back soon.</p></div>'; return; }
+  const P = VZ.pal(), G = E.groups;
+  const keys = [['earnings|straddle', 'Earnings, straddle'], ['earnings|strangle', 'Earnings, 5% strangle'], ['auction|straddle', 'Capacity auction, straddle'], ['auction|strangle', 'Capacity auction, strangle'], ['placebo|straddle', 'Random days, straddle'], ['placebo|strangle', 'Random days, strangle']].filter(k => G[k[0]]);
+  box.innerHTML = '<div class="two"><div class="card"><h3>Average return on premium, by slippage</h3><div id="e-bars"></div><div class="legend"><span><i style="background:var(--accent)"></i>no slippage</span><span><i style="background:var(--warn)"></i>3% per side</span><span><i style="background:var(--down)"></i>5% per side</span></div><p class="so" id="e-so"></p></div>' +
+    '<div class="card"><h3>Did the options charge enough? Price versus actual move</h3><div id="e-sc"></div><p class="so" id="e-sc-so"></p></div></div>' +
+    '<div class="tablewrap" style="margin-top:12px"><table class="t"><thead><tr><th>Group</th><th class="num">Trades</th><th class="num">Avg cost (% of stock)</th><th class="num">Avg actual move</th><th class="num">Gross avg</th><th class="num">Median</th><th class="num">Winners</th><th class="num">Net, 5% slippage</th></tr></thead><tbody id="e-tab"></tbody></table></div>';
+  const o = VZ.svg(el('e-bars'), 520, 300, { t: 8, r: 14, b: 26, l: 150 }), g = o.g;
+  const y = d3.scaleBand().domain(keys.map(k => k[1])).range([0, o.ih]).padding(.25), y2 = d3.scaleBand().domain(['0', '0.03', '0.05']).range([0, y.bandwidth()]).padding(.08), x = d3.scaleLinear().domain([-.5, .3]).range([0, o.iw]);
+  const cols = { '0': P.accent, '0.03': P.warn, '0.05': P.down };
+  g.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.muted);
+  keys.forEach(([k, n]) => ['0', '0.03', '0.05'].forEach(s => { const v = G[k].net[s]; g.append('rect').attr('x', x(Math.min(0, v))).attr('y', y(n) + y2(s)).attr('width', Math.abs(x(v) - x(0))).attr('height', y2.bandwidth()).attr('fill', cols[s]).attr('rx', 2)
+    .on('mousemove', e => tip.show(`<b>${n}</b> (${G[k].n} trades)<br>${s === '0' ? 'no' : (+s * 100) + '%'} slippage: ${sgn(v)}`, e)).on('mouseleave', tip.hide); }));
+  VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickSize(0))); VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(6).tickFormat(d => (d * 100).toFixed(0) + '%')));
+  const ge = G['earnings|straddle'], gp = G['placebo|straddle'], ga = G['auction|straddle'];
+  el('e-so').innerHTML = `Earnings straddles averaged <b>${sgn(ge.mean)}</b> gross over ${ge.n} events (winners ${pct(ge.win)}); random-day straddles <b>${sgn(gp.mean)}</b>. ` + (ge.mean < 0 ? 'The options priced the move in, and then some: buying the event lost money on average, before costs.' : 'Events beat random days, which is the only reason to look further.') + (ga ? ` Auction straddles: <b>${sgn(ga.mean)}</b> on ${ga.n} trades from four auctions, the same events that produced the H9 lead, so this is that lead restated in option prices, not independent confirmation.` : '');
+  const o2 = VZ.svg(el('e-sc'), 520, 300, { t: 8, r: 14, b: 32, l: 44 }), g2 = o2.g, T = E.trades.filter(t => t[3] === 'straddle' && t[2] !== 'placebo');
+  const mx = Math.max(d3.max(T, t => t[6]), d3.max(T, t => Math.abs(t[5]))) * 1.05, x2 = d3.scaleLinear().domain([0, mx]).range([0, o2.iw]), y2_ = d3.scaleLinear().domain([0, mx]).range([o2.ih, 0]);
+  g2.append('line').attr('x1', x2(0)).attr('y1', y2_(0)).attr('x2', x2(mx)).attr('y2', y2_(mx)).attr('stroke', P.muted);
+  g2.append('text').attr('x', x2(mx) - 4).attr('y', y2_(mx) + 14).attr('text-anchor', 'end').attr('fill', P.muted).style('font-size', '10px').text('move = price paid');
+  T.forEach(t => g2.append('circle').attr('cx', x2(t[6])).attr('cy', y2_(Math.abs(t[5]))).attr('r', 5).attr('fill', t[2] === 'auction' ? P.warn : P.accent).attr('opacity', .75).attr('stroke', P.surface).attr('stroke-width', 1.5)
+    .on('mousemove', e => tip.show(`<b>${t[1]}, ${t[0]}</b> (${t[2]})<br>Straddle cost ${t[6]}% of the stock<br>Actual move ${Math.abs(t[5])}%<br>Return on premium ${sgn(t[4])}`, e)).on('mouseleave', tip.hide));
+  VZ.axisStyle(g2.append('g').attr('transform', `translate(0,${o2.ih})`).call(d3.axisBottom(x2).ticks(5).tickFormat(d => d + '%'))); VZ.axisStyle(g2.append('g').call(d3.axisLeft(y2_).ticks(5).tickFormat(d => d + '%')));
+  g2.append('text').attr('x', o2.iw / 2).attr('y', o2.ih + 28).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '11px').text('Straddle price as % of the stock (what the options charge)');
+  g2.append('text').attr('transform', 'rotate(-90)').attr('x', -o2.ih / 2).attr('y', -32).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '11px').text('Actual absolute move to the exit (%)');
+  const above = T.filter(t => Math.abs(t[5]) > t[6]).length;
+  el('e-sc-so').innerHTML = `Dots above the line are events where the stock moved more than the straddle cost (blue earnings, amber auctions). That happened in <b>${above} of ${T.length}</b>. The straddle price is a bet on the whole move, but we exit after one morning, so some of the value is still unrealised time premium.`;
+  el('e-tab').innerHTML = keys.map(([k, n]) => { const d = G[k]; return `<tr><td>${n}</td><td class="num">${d.n}</td><td class="num">${d.cost_pct}%</td><td class="num">${d.abs_move}%</td><td class="num">${sgn(d.mean)}</td><td class="num">${sgn(d.median)}</td><td class="num">${pct(d.win)}</td><td class="num">${sgn(d.net['0.05'])}</td></tr>`; }).join('');
+}
+
+/* ruin simulator */
+function mcInit() {
+  const E = S.events, opts = [['h5', 'Puts after a spike, 5% out'], ['h2', 'Puts after a spike, 2% out']];
+  if (E.ready) { if (E.groups['earnings|straddle']) opts.push(['es', 'Earnings straddle']); if (E.groups['earnings|strangle']) opts.push(['eg', 'Earnings strangle']); }
+  el('m-strat').innerHTML = opts.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('');
+}
+function tradesFor(k) {
+  if (k === 'h5') return S.h1b.trades.filter(t => t[2] === '5% OTM' && t[4] === 'event').map(t => t[3]);
+  if (k === 'h2') return S.h1b.trades.filter(t => t[2] === '2% OTM' && t[4] === 'event').map(t => t[3]);
+  if (k === 'es') return S.events.trades.filter(t => t[2] === 'earnings' && t[3] === 'straddle').map(t => t[4]);
+  return S.events.trades.filter(t => t[2] === 'earnings' && t[3] === 'strangle').map(t => t[4]);
+}
+let rngSeed = 7; const rnd = () => { rngSeed = (rngSeed * 1664525 + 1013904223) % 4294967296; return rngSeed / 4294967296; };
+function mc() {
+  const P = VZ.pal(), k = el('m-strat').value || 'h5', s = +el('m-slip').value / 100, f = +el('m-frac').value / 100, acct = +el('m-acct').value || 500, n = Math.max(10, Math.min(100, +el('m-n').value || 30));
+  el('m-slipv').textContent = (s * 100).toFixed(0) + '%'; el('m-fracv').textContent = (f * 100).toFixed(0) + '%';
+  const r = tradesFor(k).map(g => (1 + g) * (1 - s) / (1 + s) - 1); if (!r.length) return;
+  rngSeed = 11; const runs = 600, paths = [];
+  for (let i = 0; i < runs; i++) { let a = acct; const p = [a]; for (let j = 0; j < n; j++) { const x = r[Math.floor(rnd() * r.length)]; a += a * f * x; p.push(a); } paths.push(p); }
+  const q = (j, pr) => d3.quantile(paths.map(p => p[j]).sort(d3.ascending), pr);
+  const med = d3.range(n + 1).map(j => q(j, .5)), lo = d3.range(n + 1).map(j => q(j, .1)), hi = d3.range(n + 1).map(j => q(j, .9));
+  const o = VZ.svg(el('mc'), 900, 280, { t: 8, r: 14, b: 28, l: 56 }), g = o.g, x = d3.scaleLinear().domain([0, n]).range([0, o.iw]), y = d3.scaleLinear().domain([0, Math.min(d3.max(hi) * 1.05, acct * 4)]).nice().range([o.ih, 0]);
+  g.append('path').datum(d3.range(n + 1)).attr('fill', P.line).attr('opacity', .6).attr('d', d3.area().x(j => x(j)).y0(j => y(Math.max(lo[j], 0))).y1(j => y(Math.min(hi[j], y.domain()[1]))));
+  g.append('line').attr('x1', 0).attr('x2', o.iw).attr('y1', y(acct / 2)).attr('y2', y(acct / 2)).attr('stroke', P.down).attr('stroke-dasharray', '4 4'); g.append('line').attr('x1', 0).attr('x2', o.iw).attr('y1', y(acct)).attr('y2', y(acct)).attr('stroke', P.muted);
+  g.append('path').datum(d3.range(n + 1)).attr('fill', 'none').attr('stroke', P.accent).attr('stroke-width', 2.4).attr('d', d3.line().x(j => x(j)).y(j => y(med[j])));
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(8))); VZ.axisStyle(g.append('g').call(d3.axisLeft(y).ticks(6).tickFormat(d => '$' + d)));
+  g.append('text').attr('x', o.iw / 2).attr('y', o.ih + 26).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '11px').text('Number of trades');
+  const ends = paths.map(p => p[n]), ruin = ends.filter(v => v < acct / 2).length / runs, up = ends.filter(v => v > acct).length / runs, mean = d3.mean(r), win = r.filter(v => v > 0).length / r.length;
+  el('mc-mini').innerHTML = `<div><b>$${Math.round(q(n, .5))}</b>median after ${n} trades</div><div><b>$${Math.round(q(n, .1))}</b>10th percentile</div><div><b>$${Math.round(q(n, .9))}</b>90th percentile</div><div><b>${(up * 100).toFixed(0)}%</b>of runs ended above the start</div><div><b>${(ruin * 100).toFixed(0)}%</b>of runs lost half the account</div><div><b>${(win * 100).toFixed(0)}%</b>of trades winners, average ${sgn(mean)}</div>`;
+  el('mc-so').innerHTML = `Each trade risks ${(f * 100).toFixed(0)}% of the current account ($${(acct * f).toFixed(0)} to start) and earns or loses according to a randomly drawn real trade (${r.length} to draw from). ` + (mean <= 0 ? '<b>The average trade loses at this slippage, so more trades only mean a longer slide.</b> ' : 'The average is positive, but the spread of outcomes is wide and the sample small. ') + 'Raise the slippage to see how quickly the edge disappears.';
+}
+['m-strat', 'm-slip', 'm-frac', 'm-acct', 'm-n'].forEach(i => el(i).addEventListener('input', mc));
+
+function all() { cards(); payoff(); hist(); slip(); spr(); tick(); ladder(); mng(); corr(); react(); heat(); events(); mcInit(); mc(); }
+all(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
+
+},
+"players": function () {
+
+const PL = {"asof":"Oct 23, 2026","fx":"A$0.65, EUR 1.10, GBP 1.30, CHF 1.10","firms":[{"id":"citadel","name":"Citadel","ab":"CI","cat":"Hedge fund","x":8,"y":3.5,"why":"Heavily quantitative firm; its energy arm moves physical gas and power but owns little.","hq":"Miami","ccy":"USD","basis":"commodities profit, 2024 (no 2025 figure found)","facts":["Commodities unit made about $4B of profit in 2024, mostly natural gas trading in Europe and North America.","Filings show traded gas volumes equal to roughly 11% of US consumption in 2025 (one report).","Bought Paloma Natural Gas in 2025 (renamed Apex Natural Gas) and is building power trading in Japan, Germany and Australia.","Star European gas trader Chris Foster is stepping down to an adviser role."],"pjm":"Large US power and gas marketer (Citadel Energy Marketing); no PJM-specific figures public.","src":[["Fortune: Citadel commodities profit","https://dc.fortune.com/2024/12/02/citadel-ken-griffin-commodities-4-billion-trading/"],["Hedgeweek: Citadel builds commodities empire","https://www.hedgeweek.com/citadel-builds-commodities-empire-beyond-hedge-fund-roots/"]],"usd":4.0,"prior_usd":null,"chg":null},{"id":"deshaw","name":"D.E. Shaw","ab":"DE","cat":"Hedge fund","x":9,"y":3.5,"why":"Founded as a computational finance firm; energy group dates to 2002; also owns renewable generation.","hq":"New York","ccy":"USD","basis":"no public energy figure; firm assets about $60 to $65B","facts":["Firm assets reported at about $60B to $65B.","An energy group has run since 2002 and was reported to have spun out a stand-alone energy fund (date unclear).","Reported among the largest independent owners of solar power in the US (2022)."],"pjm":"Among firms reported to have entered electricity derivatives; size of its power book not public.","src":[["Alternatives Watch: 2024 returns, $65B","https://www.alternativeswatch.com/2025/01/02/de-shaw-posts-strong-2024-returns-oculus-composite-hedge-funds/"],["Institutional Investor: stand-alone energy fund","https://inv.institutionalinvestor.com/article/2bsz62onl4dn8rl9pu4n4/portfolio/d-e-shaw-to-launch-new-stand-alone-energy-fund"]],"usd":null,"prior_usd":null,"chg":null},{"id":"millennium","name":"Millennium","ab":"MM","cat":"Hedge fund","x":5,"y":1,"why":"Many independent trading teams, some systematic and some discretionary; financial only.","hq":"New York","ccy":"USD","basis":"no public figure","facts":["Reported to be building its commodities franchise, hiring natural gas traders away from Castleton (Hedgeweek)."],"pjm":"Hiring gas traders; no power figures public.","src":[["Hedgeweek: Millennium lands natural gas trader","https://www.hedgeweek.com/millennium-lands-natural-gas-trader-ahead-of-point72/"]],"usd":null,"prior_usd":null,"chg":null},{"id":"point72","name":"Point72","ab":"P7","cat":"Hedge fund","x":5,"y":1,"why":"Discretionary and systematic teams in one firm; financial only.","hq":"Stamford, CT","ccy":"USD","basis":"no public figure","facts":["Reports conflict on whether a senior natural gas trader from Castleton joined Point72 or Millennium in 2026."],"pjm":"No power figures public.","src":[["Hedgeweek: Millennium lands natural gas trader ahead of Point72","https://www.hedgeweek.com/millennium-lands-natural-gas-trader-ahead-of-point72/"]],"usd":null,"prior_usd":null,"chg":null},{"id":"balyasny","name":"Balyasny","ab":"BA","cat":"Hedge fund","x":5,"y":1.5,"why":"Multi-manager with power, gas and carbon teams in Europe; financial only.","hq":"Chicago","ccy":"USD","basis":"no public figure","facts":["Two senior London power and gas traders left in March 2026 during a gas-price spike.","Was hiring in Denmark, Singapore and possibly London in 2023."],"pjm":"No US power figures public.","src":[["Bloomberg: two Europe energy traders leave Balyasny","https://www.bloomberg.com/news/articles/2026-03-09/balyasny-has-two-europe-energy-traders-leave-in-volatile-week"]],"usd":null,"prior_usd":null,"chg":null},{"id":"vitol","name":"Vitol","ab":"VT","cat":"Commodity merchant","x":3,"y":9,"why":"Huge physical oil and products business with big power and gas desks; trading is judgment-led.","hq":"Geneva and Rotterdam","ccy":"USD","basis":"net profit, 2025 (whole firm, mostly oil)","facts":["Revenue about $343B in 2025 (up 3.6%); net profit about $4.2B, down from $8.7B in 2024.","Paid $5.9B to shareholders through its buyback in 2025."],"pjm":"No PJM-specific figures public.","src":[["Reuters via Pulse 2.0: Vitol distributes $5.9B","https://pulse2.com/vitol-distributes-5-9-billion-to-shareholders-as-2025-profit-declines/"],["Tankterminals: Vitol profit drops to $4.5B (sources)","https://tankterminals.com/news/vitol-profit-drops-to-4-5-billion-in-2025-sources-say/"]],"usd":4.2,"prior_usd":8.7,"chg":-52},{"id":"trafigura","name":"Trafigura","ab":"TF","cat":"Commodity merchant","x":3,"y":9,"why":"Physical metals and oil merchant with ships, storage and terminals.","hq":"Geneva and Singapore","ccy":"USD","basis":"net profit, FY to Sept 2025 (whole firm)","facts":["Net profit $2.67B, down 3%; underlying EBITDA about $8.2B; group equity about $16.2B.","Paid $2.9B in dividends for the year."],"pjm":"Mainly oil and metals; limited public detail on US power.","src":[["Trafigura 2025 annual results","https://www.trafigura.com/news-and-insights/press-releases/2025/trafigura-publishes-2025-annual-results/"]],"usd":2.666,"prior_usd":2.75,"chg":-3},{"id":"mercuria","name":"Mercuria","ab":"MC","cat":"Commodity merchant","x":3.5,"y":8,"why":"Physical trader that has pushed into gas, power, metals and LNG.","hq":"Geneva","ccy":"USD","basis":"net income, 2025 (whole firm)","facts":["Net income $1.43B in 2025 versus $1.52B in 2024 (CFO figure); equity $6.3B.","About 65% of the business is non-oil (gas, power, metals) on roughly $130B turnover."],"pjm":"Power and gas are a growing share; no PJM figures public.","src":[["Reuters via GBAF: Mercuria profit slips, expands metals and LNG","https://www.globalbankingandfinance.com/mercuria-profit-slips-expands-metals-lng/"]],"usd":1.43,"prior_usd":1.52,"chg":-6},{"id":"gunvor","name":"Gunvor","ab":"GV","cat":"Commodity merchant","x":3,"y":8,"why":"Oil, gas and LNG merchant; judgment-led.","hq":"Geneva","ccy":"USD","basis":"reported net income, 2025 (adjusted $0.57B)","facts":["Revenue $144B; reported net income $104M (adjusted $567M) after impairments, down 85% from 2024.","Employee buyout replaced co-founder Torbjorn Tornqvist as owner; valued around $5B."],"pjm":"Mainly oil and LNG.","src":[["Gunvor 2025 results","https://gunvorgroup.com/financial/gunvor-group-results-2025/"]],"usd":0.104,"prior_usd":0.729,"chg":-85},{"id":"glencore","name":"Glencore","ab":"GL","cat":"Commodity merchant","x":2.5,"y":10,"why":"Marketing arm sits on top of the world's largest mining and coal assets.","hq":"Baar, Switzerland","ccy":"USD","basis":"Marketing adjusted EBIT, 2025","facts":["Marketing adjusted EBIT $2.9B in 2025, down 8%; strong metals trading offset softer energy."],"pjm":"Energy trading is a small part of the group; no PJM focus.","src":[["Analyst summary of Glencore FY2025 results","https://www.oldmutual.co.za/om-docs/blte85baf8b7f93ef49/Aperture_Glencore_FY_2025_Results.pdf"]],"usd":2.9,"prior_usd":3.15,"chg":-8},{"id":"castleton","name":"Castleton Commodities","ab":"CC","cat":"Commodity merchant","x":5,"y":7,"why":"Combines US gas and power trading with owned plants and batteries.","hq":"Stamford, CT","ccy":"USD","basis":"no public figure","facts":["A subsidiary bought the 169 MW Hunlock Creek gas plant in Pennsylvania (PJM) from UGI Energy Services in Nov 2024.","Closed $2.1B of credit facilities in Dec 2024.","Lost natural gas traders to Millennium in 2026 (Hedgeweek)."],"pjm":"Owns a PJM gas plant; one of the few merchants with direct PJM assets in our sources.","src":[["CB Insights: Castleton profile","https://www.cbinsights.com/company/castleton-commodities-international"],["Hedgeweek: Millennium lands natural gas trader","https://www.hedgeweek.com/millennium-lands-natural-gas-trader-ahead-of-point72/"]],"usd":null,"prior_usd":null,"chg":null},{"id":"hartree","name":"Hartree Partners","ab":"HP","cat":"Commodity merchant","x":4,"y":6,"why":"Merchant with trading plus on-site power plants; backed by Oaktree.","hq":"New York","ccy":"USD","basis":"no public figure","facts":["Owned by management and Oaktree funds; Oaktree has put in over $1B since 2015.","Oaktree was reported in Oct 2025 to be selling a minority stake.","Wholesale power and gas trading is described mainly in the UK and Europe."],"pjm":"No PJM or US power evidence found in our search.","src":[["Hartree: who we are","https://www.hartreepartners.com/who-we-are/"],["Bloomberg Government: Oaktree in talks to sell stake","https://news.bgov.com/banking-law/oaktree-in-talks-to-sell-stake-in-commodities-trader-hartree-1"]],"usd":null,"prior_usd":null,"chg":null},{"id":"macquarie","name":"Macquarie","ab":"MQ","cat":"Bank","x":5,"y":6,"why":"Bank that holds physical gas storage and transport contracts and trades with clients.","hq":"Sydney","ccy":"AUD","basis":"Commodities and Global Markets contribution, FY to Mar 2026 (division; includes a one-off gain)","facts":["Commodities and Global Markets contributed A$4.22B in FY26, up 49%.","Commodities gains came from client hedging in gas, power and oil and from stronger inventory management and trading in North American gas and power."],"pjm":"Named by the firm as a driver: North American gas and power trading.","src":[["Macquarie FY26 result announcement","https://www.macquarie.com/about/news/2026/macquarie-group-fy26-result-announcement.html"]],"usd":2.744,"prior_usd":1.839,"chg":49},{"id":"rwe","name":"RWE Supply & Trading","ab":"RW","cat":"Utility trading arm","x":5,"y":8,"why":"Trades around a large fleet of power plants in Europe.","hq":"Essen","ccy":"EUR","basis":"adjusted EBITDA, first nine months of 2025","facts":["Adjusted EBITDA EUR 150M for nine months of 2025 versus EUR 465M a year earlier, weaker mainly in proprietary trading.","Full-year 2025 guidance was EUR 100M to EUR 500M."],"pjm":"Mostly European.","src":[["RWE: first three quarters of 2025","https://www.rwe.com/en/investor-relations/financial-calendar-and-publications/news-and-ad-hoc-announcements/news/news-2025-11-12/"]],"usd":0.165,"prior_usd":0.512,"chg":-68},{"id":"centrica","name":"Centrica Energy","ab":"CE","cat":"Utility trading arm","x":4,"y":8,"why":"Gas and power trading plus gas fields, storage and generation.","hq":"Windsor, UK","ccy":"GBP","basis":"Centrica Energy adjusted operating profit, 2025","facts":["Adjusted operating profit GBP 150M in 2025 versus GBP 307M in 2024 (previous segmentation), below its GBP 250M to GBP 350M medium-term range.","Trading arm blamed challenging gas and power market conditions."],"pjm":"Mostly UK and Europe.","src":[["Centrica 2025 preliminary results","https://www.centrica.com/media-centre/news/2026/preliminary-results-for-the-year-ended-31-december-2025/"]],"usd":0.195,"prior_usd":0.399,"chg":-51},{"id":"axpo","name":"Axpo","ab":"AX","cat":"Utility trading arm","x":5,"y":8,"why":"Swiss hydro owner with a large international trading business.","hq":"Baden, Switzerland","ccy":"CHF","basis":"group adjusted EBIT, FY to Sept 2025 (trading is the largest share)","facts":["Group adjusted EBIT CHF 1.26B versus CHF 1.85B; trading could not repeat prior extraordinary results.","Says it ranked second among gas dealers and third among energy and power dealers in the 2026 Energy Risk rankings."],"pjm":"Mostly European.","src":[["Axpo annual results 2025","https://axpo.com/group/en/investor-relations/annual-results-2025.html"],["Axpo: Energy Risk ranking","https://www.axpo.com/ch/en/about-us/portrait/energy-risk-ranking.html"]],"usd":1.387,"prior_usd":2.033,"chg":-32},{"id":"janestreet","name":"Jane Street","ab":"JS","cat":"Hedge fund","x":9.2,"y":1.3,"why":"Quantitative proprietary trader, mostly ETFs, equities and bonds; has energy desks but no physical assets.","hq":"New York","ccy":"USD","basis":"no energy figure; firm-wide net trading revenue was reported at $39.6B in 2025 (all assets, revenue not profit)","facts":["Reuters reported a record $39.6B of net trading revenue in 2025 across all assets; energy is not broken out and the report does not mention it.","Job postings in 2025 show power, natural gas and LNG analyst-trader roles in New York and London, so it is building energy desks.","Its listings describe quantitative strategies combined with fundamental power and gas analysis."],"pjm":"Hiring a New York power analyst-trader (2025 posting); no PJM trading figures public.","src":[["MarketScreener (Reuters): Jane Street's $40B trading haul","https://www.marketscreener.com/news/jane-street-s-40-billion-trading-haul-tops-rivals-sources-say-ce7f59dfdf8ff52d"],["Jane Street: Power Analyst/Trader posting","https://builtin.com/job/power-analyst/6639035"],["Jane Street: Natural Gas Analyst/Trader posting","https://www.janestreet.com/join-jane-street/position/8436137002"]],"usd":null,"prior_usd":null,"chg":null},{"id":"shell","name":"Shell (trading)","ab":"SH","cat":"Energy major","x":5.2,"y":9.7,"why":"Oil and gas major with one of the largest trading arms; trading is a support business for huge physical positions.","hq":"London","ccy":"USD","basis":"no trading-only figure found; group adjusted earnings $18.53B in 2025, down 22%","facts":["Group adjusted earnings were $18.53B in 2025 versus $23.72B in 2024; one outlet attributes part of the fall to weaker trading and optimisation, with no dollar figure.","Integrated Gas adjusted earnings were $1.66B in Q4 2025.","Its Renewables and Energy Solutions segment covers power and pipeline gas marketing and trading; Shell said Americas trading rose in early 2025 on volatility."],"pjm":"Power and gas marketing in the Americas; no PJM-specific figures found.","src":[["Shell Q4 2025 results (Nasdaq)","https://www.nasdaq.com/press-release/shell-plc-publishes-fourth-quarter-2025-press-release-2026-02-05"],["Shell 6-K, Q1 2025 exhibit","https://www.sec.gov/Archives/edgar/data/1306965/000130696525000013/q12025exhibit992.htm"]],"usd":null,"prior_usd":null,"chg":null},{"id":"freepoint","name":"Freepoint","ab":"FP","cat":"Commodity merchant","x":3,"y":6,"why":"Private merchant trading North American gas and power plus oil, metals and agriculture.","hq":"Stamford, CT","ccy":"USD","basis":"no public figure","facts":["Stamford-based and privately held; actively trades gas and power in North America.","Agreed in December 2023 to pay more than $98M to settle a Brazil bribery case over Petrobras contracts."],"pjm":"North American gas and power trader; no PJM figures public.","src":[["Wikipedia: Freepoint Commodities","https://en.wikipedia.org/wiki/Freepoint_Commodities"]],"usd":null,"prior_usd":null,"chg":null}],"moves":[["Nov 2024","Castleton buys the 169 MW Hunlock Creek gas plant in PJM","castleton"],["2025","Citadel buys Paloma Natural Gas (renamed Apex)","citadel"],["2025","Gunvor employee buyout replaces its co-founder as owner","gunvor"],["Oct 2025","Oaktree in talks to sell a minority stake in Hartree","hartree"],["Mar 2026","Two senior London power and gas traders leave Balyasny","balyasny"],["2026","Millennium hires natural gas traders from Castleton","millennium"],["2026","Citadel's star European gas trader Chris Foster steps down to adviser","citadel"],["2026","Macquarie credits North American gas and power trading for commodities gains","macquarie"]],"extra_sources":[["BCG: how power and gas trading firms compete by 2035","https://web-assets.bcg.com/pdf-src/prod-live/how-power-gas-trading-firms-compete-by-2035.pdf"]]}, F = PL.firms, el = id => document.getElementById(id), tip = VZ.tip();
+el('asof-players').textContent = PL.asof;
+const CATS = ['Hedge fund', 'Commodity merchant', 'Bank', 'Utility trading arm', 'Energy major'], cvar = ['--k1', '--k2', '--k3', '--k4', '--k5'], SYM = [d3.symbolCircle, d3.symbolSquare, d3.symbolDiamond, d3.symbolTriangle, d3.symbolStar];
+const cc = c => getComputedStyle(document.documentElement).getPropertyValue(cvar[CATS.indexOf(c)]).trim();
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const JIT = { vitol: [-.55, -.25], trafigura: [.75, .35], mercuria: [.35, -.3], gunvor: [-.75, -.2], glencore: [0, 0], millennium: [-.35, 0], point72: [.35, 0], balyasny: [0, .5], rwe: [.3, 0], axpo: [-.3, 0], citadel: [-.2, 0], deshaw: [.3, 0], castleton: [0, 0], macquarie: [0, 0], janestreet: [0, 0], shell: [0, 0], freepoint: [-.5, .1] };
+let sel = 'castleton'; const off = new Set();
+
+function map() {
+  const P = VZ.pal(), o = VZ.svg(el('map'), 900, 520, { t: 16, r: 46, b: 46, l: 104 }), g = o.g;
+  const x = d3.scaleLinear().domain([0, 10]).range([0, o.iw]), y = d3.scaleLinear().domain([0, 10.8]).range([o.ih, 0]);
+  g.append('line').attr('x1', x(5)).attr('x2', x(5)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.line); g.append('line').attr('x1', 0).attr('x2', o.iw).attr('y1', y(5)).attr('y2', y(5)).attr('stroke', P.line);
+  [['Physical, judgment-led', 6, 10.2, 'start'], ['Physical and systematic', o.iw - 6, 10.2, 'end'], ['Financial, judgment-led', 6, o.ih - 8, 'start'], ['Financial and quantitative', o.iw - 6, o.ih - 8, 'end']].forEach(([t, a, b, an]) => g.append('text').attr('x', a).attr('y', typeof b === 'number' && b < 11 ? y(b) : b).attr('text-anchor', an).attr('fill', P.muted).style('font-size', '12px').style('letter-spacing', '.03em').text(t.toUpperCase()));
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).tickValues([0, 2.5, 5, 7.5, 10]).tickFormat(d => ['Judgment-led', '', 'Mixed', '', 'Systematic'][d / 2.5]).tickSize(3)));
+  VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickValues([0, 2.5, 5, 7.5, 10]).tickFormat(d => ['Financial only', '', 'Mixed', '', 'Asset-backed'][d / 2.5]).tickSize(3)));
+  g.append('text').attr('x', o.iw / 2).attr('y', o.ih + 38).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '12px').text('How the trading is done (my judgment)');
+  g.append('text').attr('transform', 'rotate(-90)').attr('x', -o.ih / 2).attr('y', -42).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '12px').text('How much physical business backs it (my judgment)');
+  const rs = d3.scaleSqrt().domain([0, 5]).range([5, 22]);
+  const vis = F.filter(f => !off.has(f.cat));
+  vis.slice().sort((a, b) => (b.usd || 0) - (a.usd || 0)).forEach(f => {
+    const j = JIT[f.id] || [0, 0], px = x(f.x + j[0]), py = y(f.y + j[1]), r = f.usd != null ? rs(f.usd) : 9, ci = CATS.indexOf(f.cat), col = cc(f.cat);
+    const gg = g.append('g').attr('transform', `translate(${px},${py})`).style('cursor', 'pointer').on('click', () => { sel = f.id; render(); }).on('mousemove', e => tip.show(`<b>${esc(f.name)}</b> · ${f.cat}<br>${f.usd != null ? '$' + f.usd.toFixed(2) + 'B: ' + esc(f.basis) : esc(f.basis)}<br><span style="color:var(--muted)">${esc(f.why)}</span>`, e)).on('mouseleave', tip.hide);
+    const sz = Math.PI * r * r * (ci === 0 ? 1 : ci === 1 ? 1.15 : ci === 2 ? .8 : ci === 4 ? 2.2 : .9) * (f.usd != null ? 1 : 1);
+    gg.append('path').attr('d', d3.symbol().type(SYM[ci]).size(sz)()).attr('fill', f.usd != null || ci === 4 ? col : 'none').attr('fill-opacity', f.usd != null ? .72 : .25).attr('stroke', f.usd != null ? P.surface : col).attr('stroke-width', f.usd != null ? 2 : 2).attr('stroke-dasharray', f.usd != null ? null : '3 2');
+    if (f.id === sel) gg.append('path').attr('d', d3.symbol().type(SYM[ci]).size(sz * 1.7 + 200)()).attr('fill', 'none').attr('stroke', P.fg).attr('stroke-width', 1.6);
+    gg.append('text').attr('y', r + 12).attr('text-anchor', 'middle').attr('fill', P.fg2).style('font-size', '10.5px').text(f.name.replace(' Commodities', '').replace(' Partners', '').replace(' Supply & Trading', ' S&T'));
+  });
+  g.append('g').attr('transform', `translate(${x(6.6)},${y(1.7)})`).call(s => { s.append('circle').attr('r', 4).attr('fill', P.fg); s.append('text').attr('x', 8).attr('y', 4).attr('fill', P.fg).style('font-size', '11px').text('This project (retail, paper)'); });
+  const big = F.filter(f => f.usd).sort((a, b) => b.usd - a.usd)[0], phys = F.filter(f => f.y >= 6 && f.x >= 5).map(f => f.name);
+  el('map-so').innerHTML = `The two most systematic firms in the set, Citadel and D.E. Shaw, are hedge funds with little physical business; the merchants, with the biggest balance sheets, are the most judgment-led and physical. Almost nobody is both highly systematic and heavily asset-backed. Closest to that corner: ${phys.join(', ') || 'none'}. Area is trading profit (largest: ${big.name}, $${big.usd.toFixed(1)}B); shape and color are the type. Dashed outlines have no public profit figure. Overlapping firms are nudged apart slightly.`;
+  el('leg').innerHTML = CATS.map((c, i) => `<button data-c="${c}" aria-pressed="${!off.has(c)}"><svg viewBox="-8 -8 16 16"><path d="${d3.symbol().type(SYM[i]).size(120)()}" fill="${cc(c)}"/></svg>${c} (${F.filter(f => f.cat === c).length})</button>`).join('') + '<span>Click a type to hide or show it.</span>';
+  el('leg').onclick = e => { const b = e.target.closest('[data-c]'); if (b) { off.has(b.dataset.c) ? off.delete(b.dataset.c) : off.add(b.dataset.c); map(); } };
+}
+
+function cards() {
+  el('cards-players').innerHTML = F.map(f => `<button class="fc" data-id="${f.id}" aria-pressed="${f.id === sel}"><span class="mono-b" style="background:${cc(f.cat)}">${esc(f.ab)}</span><span><b>${esc(f.name)}</b><span>${esc(f.cat)} · ${esc(f.hq)}</span><span>${f.usd != null ? '$' + f.usd.toFixed(1) + 'B profit' : 'no public figure'}</span></span></button>`).join('');
+  el('cards-players').onclick = e => { const b = e.target.closest('[data-id]'); if (b) { sel = b.dataset.id; render(); el('prof').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } };
+}
+function prof() {
+  const f = F.find(x => x.id === sel);
+  el('prof').innerHTML = `<div class="prof"><span class="mono-b" style="background:${cc(f.cat)}">${esc(f.ab)}</span><div><h3>${esc(f.name)}</h3><div class="meta">${esc(f.cat)} · ${esc(f.hq)}${f.chg != null ? ' · profit ' + (f.chg > 0 ? '+' : '') + f.chg + '% vs prior year' : ''}</div>
+    <div style="font-size:14px;margin-bottom:4px"><b>Why it sits where it does:</b> ${esc(f.why)}</div>
+    <ul>${f.facts.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+    <div style="font-size:14px"><b>In PJM and US power:</b> <span style="color:var(--fg2)">${esc(f.pjm)}</span></div>
+    <div class="srcs" style="margin-top:8px">Size basis: ${esc(f.basis)}. Sources: ${f.src.map(s => `<a href="${esc(s[1])}" rel="noopener">${esc(s[0])}</a>`).join(' · ')}</div></div></div>`;
+}
+function size() {
+  const P = VZ.pal(), D = F.filter(f => f.usd != null).sort((a, b) => b.usd - a.usd), none = F.filter(f => f.usd == null).map(f => f.name);
+  const o = VZ.svg(el('size'), 520, 330, { t: 6, r: 56, b: 24, l: 110 }), g = o.g, y = d3.scaleBand().domain(D.map(d => d.name)).range([0, o.ih]).padding(.3), x = d3.scaleLinear().domain([0, d3.max(D, d => d.usd)]).nice().range([0, o.iw]);
+  D.forEach(d => { g.append('rect').attr('y', y(d.name)).attr('height', y.bandwidth()).attr('width', x(d.usd)).attr('fill', cc(d.cat)).attr('rx', 3).attr('opacity', .85).on('mousemove', e => tip.show(`<b>${esc(d.name)}</b><br>$${d.usd.toFixed(2)}B<br>${esc(d.basis)}`, e)).on('mouseleave', tip.hide);
+    g.append('text').attr('x', x(d.usd) + 5).attr('y', y(d.name) + y.bandwidth() / 2 + 4).attr('fill', P.fg2).style('font-size', '11px').text('$' + d.usd.toFixed(1)); });
+  VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickSize(0).tickFormat(t => t.replace(' Commodities', '').replace(' Partners', '').replace(' Supply & Trading', ' S&T')))); VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(5)));
+  el('size-so').innerHTML = `The bases differ: Vitol, Trafigura, Mercuria and Gunvor are whole-firm profit (mostly oil); Glencore and Macquarie are divisions; Citadel is 2024; RWE, Centrica and Axpo are trading-adjacent measures. Treat it as an order of magnitude, not a league table. No public profit figure: ${none.join(', ')}. Converted at ${PL.fx}.`;
+}
+function chg() {
+  const P = VZ.pal(), D = F.filter(f => f.chg != null).sort((a, b) => a.chg - b.chg), o = VZ.svg(el('chg'), 520, 330, { t: 6, r: 50, b: 24, l: 110 }), g = o.g;
+  const y = d3.scaleBand().domain(D.map(d => d.name)).range([0, o.ih]).padding(.3), mn = d3.min(D, d => d.chg), mx = d3.max(D, d => d.chg), x = d3.scaleLinear().domain([Math.min(mn, -10) * 1.05, Math.max(mx, 10) * 1.2]).nice().range([0, o.iw]);
+  g.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.muted);
+  D.forEach(d => { g.append('rect').attr('y', y(d.name)).attr('height', y.bandwidth()).attr('x', x(Math.min(0, d.chg))).attr('width', Math.abs(x(d.chg) - x(0))).attr('fill', cc(d.cat)).attr('rx', 3).attr('opacity', .85).on('mousemove', e => tip.show(`<b>${esc(d.name)}</b><br>${d.chg > 0 ? '+' : ''}${d.chg}%<br>${esc(d.basis)}`, e)).on('mouseleave', tip.hide);
+    g.append('text').attr('x', d.chg < 0 ? x(d.chg) - 5 : x(d.chg) + 5).attr('text-anchor', d.chg < 0 ? 'end' : 'start').attr('y', y(d.name) + y.bandwidth() / 2 + 4).attr('fill', P.fg2).style('font-size', '11px').text((d.chg > 0 ? '+' : '') + d.chg + '%'); });
+  VZ.axisStyle(g.append('g').call(d3.axisLeft(y).tickSize(0).tickFormat(t => t.replace(' Commodities', '').replace(' Partners', '').replace(' Supply & Trading', ' S&T')).tickPadding(70))); VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(5).tickFormat(d => d + '%')));
+  g.selectAll('.tick text').attr('x', -4).style('text-anchor', 'end');
+  const neg = D.filter(d => d.chg < 0).length;
+  el('chg-so').innerHTML = `<b>${neg} of ${D.length}</b> firms reported lower profit than the year before. Mercuria, Axpo and Centrica blame calmer markets and lower volatility; RWE blames weaker proprietary trading. The exception is Macquarie (+49%), whose commodities arm credits North American gas and power trading (the division figure also includes a one-off gain elsewhere). Periods differ by firm.`;
+}
+function moves() {
+  el('moves').innerHTML = PL.moves.map(m => { const f = F.find(x => x.id === m[2]); return `<div class="tl2"><div class="w">${esc(m[0])}</div><div>${esc(m[1])} <span class="chip">${esc(f.name)}</span></div></div>`; }).join('');
+  el('pjm').innerHTML = F.map(f => `<tr><td><b>${esc(f.name)}</b></td><td>${esc(f.cat)}</td><td>${esc(f.pjm)}</td></tr>`).join('');
+  el('us').innerHTML = `We sit in the bottom-right of the map's financial half, with a hobby budget and no physical business. None of these firms is a competitor in the ordinary sense: their edge is scale, speed, balance sheets and asset ownership. Where a small account can still play is in slower, public-data ideas such as the event-driven and calendar-based studies on our other pages. BCG's outlook on how power and gas trading firms compete by 2035 is a good companion read: <a href="${esc(PL.extra_sources[0][1])}" rel="noopener">${esc(PL.extra_sources[0][0])}</a>.`;
+  el('foot').innerHTML = 'Sources are listed on each profile. Figures were gathered from press reports and company releases on ' + PL.asof + ' and may be revised or differ by outlet (for example Vitol 2025 profit was reported as both $4.5B and $4.2B; we use the filing-based $4.2B). Monograms replace logos to avoid using company marks without permission. Positions are opinion. Not investment advice.';
+}
+function render() { map(); cards(); prof(); }
+render(); size(); chg(); moves();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { render(); size(); chg(); });
+
+}
+};
+const DONE = {};
+function show(k, push) {
+  if (!INIT[k]) k = Object.keys(INIT)[0];
+  document.querySelectorAll('.tabbtn').forEach(b => b.setAttribute('aria-selected', b.dataset.k === k));
+  document.querySelectorAll('.pane').forEach(p => p.hidden = p.id !== 'pane-' + k);
+  if (!DONE[k]) { DONE[k] = 1; INIT[k](); } else window.dispatchEvent(new Event('resize'));
+  if (push) history.replaceState(null, '', '#' + k);
+}
+document.querySelectorAll('.tabbtn').forEach(b => b.onclick = () => show(b.dataset.k, true));
+addEventListener('hashchange', () => show(location.hash.slice(1)));
+show(location.hash.slice(1));
+</script>
