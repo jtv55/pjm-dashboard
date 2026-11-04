@@ -186,14 +186,35 @@ table.t td, table.t th { padding: 7px 10px; font-size: 13px; }
     </tbody></table></div>
   </section>
 
-  <section>
-    <h2>What we could test, on paper</h2>
-    <div class="card">
-      <div class="test"><b>1 · How tightly does the perp follow the futures?</b><span>Needs front-month CME prices to compare against; we have only spot. The spot comparison above says the daily moves differ a lot, which is expected, but it is not the right test.</span></div>
-      <div class="test"><b>2 · Is funding a crowding signal?</b><span>The rate swings from deeply negative to extremely positive. Does an extreme reading precede a gas move over the next few days? Needs more history than the 9 months that exist.</span></div>
-      <div class="test"><b>3 · Gas against power</b><span>Spark spreads are at records with gas flat, so power drives them. A gas leg paired with a power-linked stock would isolate that. The four generators we follow (CEG, VST, TLN, NRG) are <b style="display:inline" id="t-listed"></b> on trade[XYZ]; GE Vernova (GEV) is.</span></div>
-      <p class="so">None of these is registered or running. They are the order we would do them in, and each would be written down and sealed in the forward log before any data arrives, like H13 to H15. Paper only, never advice.</p>
+  <section id="edge">
+    <h2>Is there an edge here? What we found, and what we now measure</h2>
+    <p class="sub">Short answer: not proven. We took six exploratory looks at about seven months of the perp's hourly history (April to November 2026; the API returns only the latest 5,000 hourly bars, though the perp has traded since January), declared in advance in <code>studies/natgas_explore.py</code>. Six looks on one small sample is the kind of search that finds things by luck, so none of this counts as evidence. One idea has a real reason behind it, and that one is now a registered forward test.</p>
+    <div class="card"><div class="tablewrap"><table class="t"><thead><tr><th>Look</th><th>What we asked</th><th>What it showed</th><th>Read</th></tr></thead><tbody>
+      <tr><td><b>1</b></td><td>Does the perp's weekend move explain the futures' Sunday reopening gap, and does the rest get caught up?</td><td>Slope 1.02 (R² 0.36, 30 weekends). The "catch-up" in the first hours is just the perp snapping to the futures price (slope 0.96). After the first hour a small remainder is left: slope +0.28, standard error 0.13.</td><td>Mostly mechanical; the remainder is weak</td></tr>
+      <tr><td><b>2</b></td><td>When the perp drifts away from the futures price, does it come back?</td><td>R² of 0.0006 for the next hour and 0.0035 for the next four, over 3,214 hours.</td><td>Nothing</td></tr>
+      <tr><td><b>3</b></td><td>After days of high funding, does the price move the next day?</td><td>Top-decile days: price +0.60% next day, but longs paid +1.13% in funding that day, so the net is −0.59% for a long.</td><td>No signal for longs; points to the other side</td></tr>
+      <tr><td><b>4</b></td><td>Hedged carry: short the perp, hold futures long, collect funding.</td><td>Over 144 weekdays: funding +26.4% of one leg, basis +12.8%, total +39.2%. Two days with basis moves above 5% (Sep 22 and Oct 23) carry most of the basis gain; without them the total is +21.0% with a 0.75% daily standard deviation. Funding was positive in 82% of hours but only about 5% a year over the most recent week.</td><td>A real mechanism, small sample: registered as H17</td></tr>
+    </tbody></table></div>
+    <p class="so">Looks 1 to 3 were declared first; the weekend refinement and the funding-net-of-cost check came after seeing results, and look 4 was added after look 3 pointed that way. That is six comparisons in all. Costs assumed: 3 bp a side. Data: Hyperliquid's public API and delayed Yahoo futures, April 9 to November 3, 2026.</p></div>
+
+    <div class="two" style="margin-top:12px">
+      <div class="card"><h3>H17: the hedged carry, as a paper forward test</h3>
+        <p class="so" style="margin-top:0">Short the perp and hold front-month futures long, $10,000 each, from the 18:00 UTC mark on Nov 4, 2026. Each weekday: funding received plus futures return minus perp return. Costs of 12 bp at entry and exit and 12 bp every month-end for rolling the hedge. It is judged after six months (May 4, 2027): net P&amp;L above zero, positive in at least 4 of 6 months, and the average month above its own standard error. It is stopped as a miss if it is down 5% of one leg at any month-end, or if 30-day funding stays negative for 30 days.</p>
+        <div class="kpis" id="cr-k" style="margin-top:10px"></div><div id="ch-cr"></div><p class="so" id="cr-so"></p></div>
+      <div class="card"><h3>Why this may not be an edge</h3>
+        <ul class="plain" style="color:var(--fg2);font-size:13.5px;max-width:70ch">
+          <li><b>One regime, six months.</b> Six monthly results cannot separate a carry from luck, and funding has been thin lately.</li>
+          <li><b>Basis jumps.</b> The perp follows a specific contract and the hedge has to match it; two days moved 5% to 12% against the hedge.</li>
+          <li><b>Funding can flip.</b> It was negative in 18% of hours, and a short pays then.</li>
+          <li><b>Tiny capacity.</b> Open interest is about $13 million, so size would move the price and the funding.</li>
+          <li><b>Real-world frictions we do not model.</b> Futures margin and its financing, liquidation of the short at up to 10x leverage if gas spikes, venue and oracle risk, and whether US residents can use the venue at all (check its terms).</li>
+          <li><b>Crowding.</b> If it is easy, others will do it, and funding falls to nothing.</li>
+        </ul></div>
     </div>
+
+    <div class="card" style="margin-top:12px"><h3>What we now record every hour</h3>
+      <p class="so" style="margin-top:0">A read-only snapshot of the perp: best bid and ask, depth within 10 and 50 bp, the cost of market orders of $1,000 to $100,000, funding, open interest, the oracle and mark prices, and the delayed futures price at the same moment. The history endpoints cannot give us these afterwards, and they are what a trading cost model needs. The first snapshot (Nov 4, 01:35 UTC): spread 1.0 bp, about 1.6 bp to buy or sell $10,000, open interest $13.5M, funding about 37% a year. Collection starts when the hourly timer is switched on; until then there is one snapshot.</p></div>
+    <p class="so">A gas leg paired with a power-linked stock would isolate what drives spark spreads, but the four generators we follow (CEG, VST, TLN, NRG) are <b style="display:inline" id="t-listed"></b> on trade[XYZ]; GE Vernova (GEV) is. Paper only: nothing is ever sent to the venue, and this is not advice to trade perpetuals.</p>
   </section>
 
   <p class="foot" id="foot"></p>
@@ -361,7 +382,17 @@ function wk() {
 
 function foot() { el('foot').innerHTML = `Sources: Hyperliquid public info API (read-only, ${pp.fetched}); EIA Henry Hub daily spot through ${N.hh_last[0]}; PJM Data Miner day-ahead prices at Western Hub, via our spark-spread calculation (7 MMBtu per MWh); press reports on the ICE and trade[XYZ] announcement linked above. The perp figures are a snapshot taken when this page was built, not a live feed. Funding, depth and volume change by the hour. This is research, not investment advice; we place no trades, and no contract here has been tested.`; }
 
-function drawAll() { kpis(); hh(el('hh-ctl').querySelector('[aria-pressed=true]').dataset.v); spark(); basis(el('bs-ctl').querySelector('[aria-pressed=true]').dataset.v); slip(); shelf(); fund(); wk(); }
+let PC = {"asof":null,"n_days":0,"leg_usd":10000.0,"chain_ok":true,"chain_msg":"chain intact","entries":1,"rule":{"hypothesis":"H17","money":"paper only","leg_usd":10000.0,"entry_mark":"2026-11-04 18:00 UTC","mark_hour_utc":18,"cost_per_side_per_leg":0.0003,"roll_cost":"12 bp each calendar month-end","pnl":"funding received + futures return - perp return, per weekday mark, as a fraction of one leg","judge_at":"2027-05-04 (six months of holdout) or earlier only to stop on a kill","success":"total net P&L over the holdout > 0, positive in at least 4 of the 6 calendar months, and the average month above its own standard error","kill":"stop and record a miss if net P&L is below -5% of one leg at any month-end, or if 30-day average funding is negative for 30 straight days","prior_evidence":"Exploratory only (studies/natgas_explore.py, 144 weekdays Apr to Oct 2026): funding +26.4% of one leg, basis +12.8% (two days above 5% carry most of it), total +39.2%; without those two days +21.0% with a 0.75% daily standard deviation. One regime, six months, six looks taken on the same data.","mechanism":"Holders of the perp are mostly long-gas buyers, so funding is positive in 82% of hours; the hedge needs a futures account, which limits who can earn it, and the market is small (open interest about $12M).","main_risks":"basis jumps when the reference contract rolls (5% to 12% days seen), funding turning negative (18% of hours), liquidation of the short at 10x if gas spikes, venue and oracle risk, and a crowded trade once discovered."},"series":[],"cum":0.0,"funding":0.0,"basis":0.0,"costs":0.0,"generated":"2026-11-04 01:35 UTC"};
+function carry() {
+  const n = PC.n_days, f = v => (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(2) + '%';
+  el('cr-k').innerHTML = [[n, 'days marked', n ? 'since Nov 4' : 'starts at the Nov 4 18:00 UTC mark'], [f(PC.cum), 'net of costs', 'of one leg, $' + PC.leg_usd.toLocaleString('en-US')], [f(PC.funding), 'funding received', ''], [f(PC.basis), 'basis P&L', 'futures minus perp']].map(k => `<div class="kpi"><div class="v">${k[0]}</div><div class="l">${k[1]}</div><div class="s">${k[2]}</div></div>`).join('');
+  el('ch-cr').innerHTML = '';
+  if (n >= 2) { let c = 0; const d = PC.series.map(r => { c += r[4]; return [new Date(r[0] + 'T12:00:00'), c * 100]; });
+    line('ch-cr', [{ d, c: p => p.gen, w: 2.2 }], { time: true, h: 220, yf: v => v.toFixed(1) + '%', xf: d3.timeFormat('%b %d') }); }
+  el('cr-so').innerHTML = n < 2 ? 'No holdout data yet. The first mark is the Nov 4 18:00 UTC close; each weekday after it adds one sealed entry (chain ' + (PC.chain_ok ? 'intact' : 'BROKEN') + ').' : `Cumulative net P&amp;L as a percentage of one leg. ${PC.entries} sealed entries, chain ${PC.chain_ok ? 'intact' : 'BROKEN'}. Updated ${PC.generated}.`;
+}
+fetch('perp_carry.json?v=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.generated && j.generated > PC.generated) { PC = j; carry(); } }).catch(() => {});
+function drawAll() { carry(); kpis(); hh(el('hh-ctl').querySelector('[aria-pressed=true]').dataset.v); spark(); basis(el('bs-ctl').querySelector('[aria-pressed=true]').dataset.v); slip(); shelf(); fund(); wk(); }
 pills('hh-ctl', hh); pills('bs-ctl', basis); calc(); foot(); drawAll();
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
 </script>
