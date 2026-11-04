@@ -1,0 +1,320 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Critique: What the Review Found</title>
+<style>
+:root {
+  --bg: #fcfcfb; --surface: #ffffff; --fg: #141413; --fg2: #52514e; --muted: #7a7973;
+  --line: #e4e3de; --soft: #f4f3ef; --accent: #2a78d6; --up: #0b7a43; --down: #c03a2b; --warn: #a86b00;
+  --r-fuel: #b8541f; --r-gen: #2a78d6; --r-wire: #0e8a62; --r-equip: #6250d6; --r-load: #b0447a;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+    --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+    --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+  --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+  --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 28px; line-height: 1.2; margin: 6px 0 8px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+.lede { color: var(--fg2); max-width: 68ch; margin: 0 0 22px; }
+.sub { color: var(--fg2); font-size: 13px; margin: 0 0 12px; max-width: 74ch; }
+section { margin-bottom: 34px; }
+p { margin: 0 0 10px; }
+a { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi { border-top: 2px solid var(--line); padding-top: 8px; min-width: 0; }
+.kpi .v { font-family: var(--font-mono); font-size: 24px; font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--fg2); font-size: 13px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); } .warn { color: var(--warn); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted);
+  padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.num, td.num { text-align: right; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+tbody tr:last-child td { border-bottom: 0; }
+.pill { font: inherit; font-size: 13px; color: var(--fg2); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; cursor: pointer; }
+.pill[aria-pressed="true"] { color: var(--fg); border-color: var(--fg2); background: var(--soft); }
+button:focus-visible, input:focus-visible, th:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 10px; align-items: center; }
+.note { background: var(--soft); border-radius: 6px; padding: 10px 12px; font-size: 14px; max-width: 80ch; margin: 0 0 12px; }
+.foot { color: var(--muted); font-size: 12px; max-width: 82ch; border-top: 1px solid var(--line); padding-top: 14px; }
+.chart text { fill: var(--fg2); font-family: var(--font-body); font-size: 12px; }
+@media (max-width: 760px) { h1 { font-size: 24px; } }
+@media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi .v { font-size: 20px; } }
+
+:root { --k1: #2a78d6; --k2: #eb6834; --k3: #1baf7a; --k4: #eda100; --k7: #6250d6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500; --k7: #9085e9; } }
+:root[data-theme="dark"] { --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500; --k7: #9085e9; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 900px) { .two, .three { grid-template-columns: 1fr; } }
+.so { font-size: 13.5px; color: var(--fg2); margin: 8px 0 0; max-width: 84ch; } .so b { color: var(--fg); }
+.lesson { border-top: 1px solid var(--line); padding: 22px 0 6px; }
+.lesson:first-of-type { border-top: 0; padding-top: 6px; }
+.lesson .n { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.lesson h3 { margin: 2px 0 6px; font-size: 19px; }
+.lesson p { max-width: 84ch; font-size: 14.5px; color: var(--fg2); margin: 6px 0; } .lesson p b { color: var(--fg); }
+.here { border-left: 3px solid var(--k4); padding: 4px 0 4px 12px; margin: 10px 0; font-size: 14px; color: var(--fg2); max-width: 84ch; } .here b { color: var(--fg); }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 13px; color: var(--fg2); margin-bottom: 10px; }
+.ctl input[type=range] { width: 220px; accent-color: var(--k1); }
+.ctl output { font-family: var(--font-mono); color: var(--fg); min-width: 44px; display: inline-block; }
+.dots { display: grid; grid-template-columns: repeat(auto-fill, 14px); gap: 4px; margin: 6px 0 8px; }
+.dots i { width: 14px; height: 14px; border-radius: 3px; background: var(--soft); }
+.dots i.hit { background: var(--k2); }
+button.run { font: inherit; font-size: 13px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); cursor: pointer; }
+table.t td, table.t th { padding: 8px 10px; font-size: 13px; vertical-align: top; }
+.vb { display: inline-block; font-size: 11px; font-family: var(--font-mono); border-radius: 4px; padding: 1px 7px; color: #fff; white-space: nowrap; }
+.who h4 { margin: 0 0 4px; font-size: 14px; } .who p { margin: 4px 0; font-size: 13px; color: var(--fg2); }
+.todo { list-style: none; padding: 0; margin: 0; } .todo li { padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; color: var(--fg2); max-width: 90ch; } .todo li:first-child { border-top: 0; } .todo li b { color: var(--fg); }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+
+<style>html{scroll-padding-top:52px}.sitenav::-webkit-scrollbar{display:none}</style><nav class="sitenav" style="position:sticky;top:0;z-index:1000;background:var(--bg,Canvas);font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:nowrap;white-space:nowrap;overflow-x:auto;scrollbar-width:none;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="brief.html" style="color:inherit;font-weight:600">Daily brief</a><a href="index.html" style="color:inherit">Build log</a><a href="scoreboard.html" style="color:inherit;font-weight:600">Scoreboard</a><a href="thesis.html" style="color:inherit;font-weight:600">Thesis</a><a href="critique.html" style="color:inherit;font-weight:600">Critique</a><a href="natgas.html" style="color:inherit;font-weight:600">Natgas</a><a href="spreads.html" style="color:inherit">Spreads</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="ai.html" style="color:inherit">AI power</a><a href="calendar.html" style="color:inherit">Energy calendar</a><a href="grid.html" style="color:inherit">Grid</a><a href="trade.html" style="color:inherit">Trade</a><a href="maths.html" style="color:inherit">Maths</a><a href="discourse.html" style="color:inherit">Discourse</a></nav>
+<div class="wrap">
+  <div class="eyebrow">Critique · five reviewers, three new checks, one honest verdict · Nov 3, 2026</div>
+  <h1>What happens when you ask people to take your work apart</h1>
+  <p class="lede">After building a research program, a paper bank and a dozen pages, we asked five reviewers to attack all of it, and ran three more tests aimed at our own leads. This page is the result, written as a short course: seven ideas that separate a real trading edge from a good story, each one tied to something that actually went wrong here, and three small tools you can play with.</p>
+  <div class="note"><b>Read this first.</b> The five "experts" were AI agents, each told to take a different expert's point of view and to be adversarial. They read our files; they are not real people with real track records, and some of their numbers are from memory or from delayed data. Where we checked a claim ourselves it says so. Nothing here is investment advice, and nothing has been traded: every position is on paper.</div>
+
+  <section>
+    <div class="kpis">
+      <div class="kpi"><div class="v">0</div><div class="l">confirmed edges</div><div class="s">every reviewer agreed</div></div>
+      <div class="kpi"><div class="v">2</div><div class="l">leads that weakened</div><div class="s">H1 and H14, by our own tests</div></div>
+      <div class="kpi"><div class="v">150+</div><div class="l">comparisons on one dataset</div><div class="s">statistician's estimate</div></div>
+      <div class="kpi"><div class="v">1 to 2</div><div class="l">truly independent bets</div><div class="s">four stocks, one factor</div></div>
+    </div>
+  </section>
+
+  <section id="card">
+    <h2>1. Our claims, and what happened when we checked</h2>
+    <p class="sub">A claim only counts after someone tries to break it. Here is each one next to its check.</p>
+    <div class="card"><div class="tablewrap"><table class="t"><thead><tr><th>What we said</th><th>What the check found</th><th>Verdict</th></tr></thead><tbody>
+      <tr><td><b>H1.</b> The four generator stocks fall the day after a PJM evening price spike: about −112 bp intraday over 28 episodes.</td><td>Replaying the same rule on 2019 to 2023: −11 bp over 21 episodes (range −64 to +42). Spikes in New York and Texas markets: no matching drop, but too few episodes to be sure.</td><td><span class="vb" style="background:var(--k4)">weakened</span></td></tr>
+      <tr><td><b>H14.</b> A cheap strangle after a high day-ahead evening price paid +15% gross in-sample.</td><td>The stocks do not move more on those days (2.36% against 2.28%). The 59 trigger days fall in only 15 clusters. After realistic trading costs the trade needs a 4% to 5% move to pay.</td><td><span class="vb" style="background:var(--k2)">mechanism refuted</span></td></tr>
+      <tr><td><b>H12.</b> Earnings straddles lose about 6%.</td><td>The range around that number runs from −18% to +4%, so it includes zero: "no detectable edge" is the honest wording, not "loses".</td><td><span class="vb" style="background:var(--k4)">reworded</span></td></tr>
+      <tr><td><b>H9.</b> Generators rise after auctions that clear at the cap: 4 of 4.</td><td>The first of the four cleared at $269.92, before the price cap existed. We also expect the next one to clear at the cap, so there may be no surprise left to trade. (We checked this one ourselves.)</td><td><span class="vb" style="background:var(--k4)">mis-specified</span></td></tr>
+      <tr><td><b>H16.</b> The four stocks lag SPY for five sessions after an earnings reaction.</td><td>Found on 41 events, then registered the evening Talen jumped 7.3%. The forward part is real (the five-day result was unknown), but the idea was picked after looking. At 20 events the test has roughly a 10% to 40% chance of detecting a true effect.</td><td><span class="vb" style="background:var(--k4)">underpowered</span></td></tr>
+      <tr><td><b>Hash chain.</b> "History cannot be edited after the fact."</td><td>It is tamper-evident against casual edits only: anyone with write access can rebuild a chain, and the timestamps come from our own clock. A public copy of the data is the real outside check.</td><td><span class="vb" style="background:var(--k4)">overstated</span></td></tr>
+    </tbody></table></div></div>
+  </section>
+
+  <section id="lessons">
+    <h2>2. Seven ideas, each learned the hard way</h2>
+
+    <div class="lesson">
+      <div class="n">IDEA 1</div><h3>If you look often enough, you will find something</h3>
+      <p>A result is "significant at 1%" if it would happen by luck one time in a hundred. Run a hundred tests on noise and you should expect about one such result, and a good chance of at least one. The one you report is the winner of a contest, not a random draw, so it tends to look better than it is.</p>
+      <div class="here"><b>Here:</b> the statistician counted more than 150 comparisons on the same two years of data: different windows, thresholds, stocks, return definitions and factor fits. H1's headline p-value of 0.006 was never corrected for that.</div>
+      <div class="card">
+        <div class="ctl"><label>Number of tests <input type="range" id="a-n" min="1" max="200" value="150"> <output id="a-no"></output></label><label>Call it significant if p is below <select id="a-p"><option value="0.05">0.05</option><option value="0.01" selected>0.01</option></select></label><button class="run" id="a-run">Run again</button></div>
+        <div class="dots" id="a-dots"></div>
+        <p class="so" id="a-so"></p>
+        <p class="so">Every square is a test of something with no real effect. Orange ones "worked" anyway.</p>
+      </div>
+    </div>
+
+    <div class="lesson">
+      <div class="n">IDEA 2</div><h3>Rows are not independent observations</h3>
+      <p>Counting rows flatters you when the rows move together. Four stocks that all respond to the same news are close to one stock. Trigger days that fall in the same heat wave are one episode, not five. A test treats each row as new information, so it is too confident.</p>
+      <div class="here"><b>Here:</b> the 59 trigger days sit in 15 clusters; the 41 earnings reactions come four at a time in about 11 quarters, each with a shared sector shock; and all four stocks are one AI-power trade. The reviewers put our truly independent bets at one or two.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="n">IDEA 3</div><h3>Ask whether the test could ever say yes</h3>
+      <p>Power is the chance a test detects an effect that is really there. Low power is not just a nuisance: a "pass" from an underpowered test is mostly noise, and a "fail" proves nothing. Before you wait a year for a result, check that the sample you will have could answer the question.</p>
+      <div class="here"><b>Here:</b> H16's pass rule (mean above zero and at least 12 of 20 positive) is met about 25% of the time by pure coin-flips, which we checked. H15 needs four deals by April and the baseline rate gives about a 3% chance. H9 and H13 are a single auction. Some of our tests cannot reach a verdict at all.</div>
+      <div class="card">
+        <div class="ctl"><label>True effect on each event <input type="range" id="b-d" min="0.5" max="3" step="0.1" value="2"> <output id="b-do"></output></label></div>
+        <div id="b-chart"></div>
+        <p class="so" id="b-so"></p>
+        <p class="so">Assumes each event's result varies by about 6.4% (derived from the 41-event study: a 1.0% standard error implies 1.0 × √41), a one-sided test at 5%, and independent events. Because events in a quarter move together, real power is lower still.</p>
+      </div>
+    </div>
+
+    <div class="lesson">
+      <div class="n">IDEA 4</div><h3>A test you design after seeing the answer is not a test</h3>
+      <p>Pre-registration means writing the rule, the sample and the pass mark down before the outcome exists, somewhere you cannot quietly change. It protects you from yourself, because with enough freedom you will always find a version that works. The timestamp is only as trustworthy as whoever keeps the clock.</p>
+      <div class="here"><b>Here:</b> H16 was registered the evening Talen rose 7.3%. We disclosed it, and the five-day outcome really was unknown, but the idea, the horizon and the hedge were chosen after looking at the data, and our entries are stamped by our own clock and commits. A reviewer called that chasing the latest event.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="n">IDEA 5</div><h3>Costs decide whether an edge exists</h3>
+      <p>A strategy's gross return is a fantasy; what you keep is gross minus what it costs to trade. Options are the extreme case: thinly traded contracts have wide gaps between the price you can buy at and the price you can sell at, and that gap is paid on the way in and again on the way out. Averaged trade prices are also not prices you could have got.</p>
+      <div class="here"><b>Here:</b> H14's in-sample gain was +15% gross. The execution reviewer measured round-trip spreads on the strangle in our captured chains (delayed data, so approximate). Our model assumed about 18% round trip; the measured figures were much worse for three of four names.</div>
+      <div class="card">
+        <div class="ctl"><label>Cost per side (as % of option price) <input type="range" id="c-c" min="0" max="40" step="1" value="10"> <output id="c-co"></output></label></div>
+        <div id="c-chart"></div>
+        <p class="so" id="c-so"></p>
+        <p class="so">Required gross return = (1 + cost) ÷ (1 − cost) − 1, paying the cost on the way in and out. Measured round-trip spreads are from 22 delayed Yahoo snapshots as computed by the reviewer and were not re-run by us; half the round trip is taken as the cost each way. TLN's median put volume was 2 contracts.</p>
+      </div>
+    </div>
+
+    <div class="lesson">
+      <div class="n">IDEA 6</div><h3>Say why it should work</h3>
+      <p>A pattern with no reason behind it is usually a coincidence. For a trading rule the reason has to run through how the company makes money. A one-day price spike is only news to a firm if the firm is exposed to that day's price.</p>
+      <div class="here"><b>Here:</b> these generators sell most of their output forward and earn capacity payments set years ahead, so one evening's spike changes little in a year's earnings. The reviewer's list of what moves these stocks instead is long: AI-spending sentiment, deal announcements, Talen's own buyback and capacity sale, rates and nuclear policy. We model almost none of it. That is also why a PJM spike signal can look strong in one sample and vanish in another.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="n">IDEA 7</div><h3>Build less, test more, and keep the books honest</h3>
+      <p>It feels productive to build pages, charts and infrastructure, and some of it is needed. But an outside reader judges the program on its evidence, so the balance matters. The same goes for the paper bank: a market maker earns a thin margin on a huge number of trades, while a handful of directional pairs on $100,000 mostly measures noise.</p>
+      <div class="here"><b>Here:</b> the investor-style reviewer estimated, roughly and from commit messages, that about 70% of the human effort went to pages and plumbing and about 15% to tests that could have falsified something. The bank's first position is a single pair, and its sealed record uses our own clock. These are fair hits, and both are fixable.</div>
+    </div>
+  </section>
+
+  <section id="who">
+    <h2>3. The reviewers, and what each one found</h2>
+    <p class="sub">Five independent reads of the same project, each from a different seat. They did not see one another's reports.</p>
+    <div class="three">
+      <div class="card who"><h4>The statistician</h4><p>Multiple testing, standard errors and power. <b>Found:</b> the leads are selected maxima; H16's pass rule passes 25% of the time on noise; several forward tests can never reach a verdict. Suggested merging H9 with H13 and retiring H14 as a trade.</p></div>
+      <div class="card who"><h4>The execution quant</h4><p>Fills, costs and instrumentation, from a market-making point of view. <b>Found:</b> the option cost model is two to four times too kind for three of four names, borrow on a just-popped stock is ignored, and exit prices need a guard against half-finished trading days.</p></div>
+      <div class="card who"><h4>The PJM practitioner</h4><p>Whether the economics hold. <b>Found:</b> hedged generators should barely react to one evening's price; H9's "at the cap" wording is wrong for its first event; the biggest drivers of these stocks are missing.</p></div>
+      <div class="card who"><h4>The integrity auditor</h4><p>Logs, jobs and published numbers. <b>Found:</b> the hash chains verify, but they are not externally anchored; a failed bank step can block the day's ledger commit; some page text is stale.</p></div>
+      <div class="card who"><h4>The skeptical investor</h4><p>Strategy and opportunity cost. <b>Found:</b> no evidence of edge to date, a trail of stories rather than one plan, and a habit of killing our own leads that is worth keeping. Wants one primary test with a fixed sample and a kill rule.</p></div>
+      <div class="card who"><h4>Three new tests</h4><p>H1 replayed on 2019 to 2023; a realized-move check for H14; and a placebo on New York and Texas spikes. All three were written down before running, and none supports a trading edge.</p></div>
+    </div>
+  </section>
+
+  <section id="next">
+    <h2>4. What we would change</h2>
+    <p class="sub">Status on Nov 3, 2026: these are proposals. Nothing on this list has been changed yet.</p>
+    <div class="card"><ul class="todo">
+      <li><b>Quick fixes.</b> Correct a typo in an event note; make the bank step unable to block the day's ledger commit; ignore any price from a trading day still in progress; soften the claims above ("tamper-evident", "sealed before"); show the replay result beside H1; stop booking H14 in the bank.</li>
+      <li><b>Amendments, written before any result.</b> H16: pass rule based on the quarter rather than the single event, a beta-matched hedge and a borrow cost. H9: define the entry from PJM's release time, which we have not confirmed, and merge it with H13.</li>
+      <li><b>Better evidence.</b> Publish the log's head hash outside the repository; replace the flat cost assumption with measured spreads per stock; count every comparison we have made and show how many "leads" survive a correction; label each hypothesis as post hoc, pre-registered or replicated.</li>
+      <li><b>Stop and focus.</b> No new pages, no hypotheses registered in reaction to the latest news, and one primary test with a fixed sample size and a kill rule.</li>
+    </ul></div>
+  </section>
+
+  <section>
+    <h2>Method notes</h2>
+    <div class="card"><ul class="plain" style="color:var(--fg2);font-size:14px;max-width:86ch">
+      <li><b>How the exercise ran.</b> Five AI agents, each given a different expert role and told to be adversarial, read the repository read-only and reported independently. We then ran three studies, with the rule written before each run, and checked a few of the reviewers' claims ourselves.</li>
+      <li><b>What we verified.</b> The binomial figure (about 25% for 12 or more of 20) and the deal-count probability (about 3%); that the first auction cleared at $269.92; the hours the spike signal covers (4:00pm to 8:59pm, five hour-beginning hours); that the bank step runs before the ledger commit; and the typo.</li>
+      <li><b>What we did not.</b> The commit-count split, the spread table, the PJM practitioner's recollections of how the market works, the time of day PJM posts auction results, and the auditor's list of job failure modes.</li>
+      <li><b>The placebo.</b> New York and Texas spike days matched to PJM's spike frequency, with 24 to 35 episodes each: effects of −38 bp to +29 bp with standard errors of 34 to 40. Too few episodes to rule out a PJM-sized effect, so it is a weak null, not a confirmation.</li>
+    </ul></div>
+  </section>
+  <p class="foot">Educational research. No real-money trades have been made. Paper positions are not a recommendation to buy or sell anything.</p>
+</div>
+<script>/* Shared chart helpers (d3 v7 is loaded by the page). Colors come from the page's CSS variables so dark mode works. */
+const VZ = (() => {
+  const cs = () => getComputedStyle(document.documentElement);
+  const css = (v, fb) => (cs().getPropertyValue(v) || fb || '#888').trim();
+  const pal = () => ({
+    fg: css('--fg'), fg2: css('--fg2'), muted: css('--muted'), line: css('--line'), soft: css('--soft'), bg: css('--bg'), surface: css('--surface'),
+    up: css('--up'), down: css('--down'), warn: css('--warn'), accent: css('--accent'),
+    gen: css('--r-gen'), fuel: css('--r-fuel'), wire: css('--r-wire'), equip: css('--r-equip'), load: css('--r-load')
+  });
+  let tipEl;
+  function tip() {
+    if (!tipEl) {
+      tipEl = document.createElement('div');
+      tipEl.style.cssText = 'position:fixed;pointer-events:none;z-index:50;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.35;max-width:260px;box-shadow:0 2px 10px rgba(0,0,0,.15);display:none';
+      document.body.appendChild(tipEl);
+    }
+    return {
+      show(html, ev) {
+        tipEl.innerHTML = html; tipEl.style.display = 'block';
+        const x = Math.min(ev.clientX + 14, innerWidth - 270), y = Math.min(ev.clientY + 14, innerHeight - 80);
+        tipEl.style.left = x + 'px'; tipEl.style.top = y + 'px';
+      },
+      hide() { tipEl.style.display = 'none'; }
+    };
+  }
+  /* responsive svg with a fixed viewBox; returns {svg, g, w, h, iw, ih} */
+  function svg(el, w, h, m = { t: 12, r: 12, b: 28, l: 40 }) {
+    const root = d3.select(el); root.selectAll('*').remove();
+    const s = root.append('svg').attr('viewBox', `0 0 ${w} ${h}`).attr('class', 'chart').style('width', '100%').style('height', 'auto').attr('role', 'img');
+    const g = s.append('g').attr('transform', `translate(${m.l},${m.t})`);
+    return { svg: s, g, w, h, iw: w - m.l - m.r, ih: h - m.t - m.b, m };
+  }
+  function axisStyle(sel) {
+    const p = pal();
+    sel.selectAll('text').attr('fill', p.fg2).style('font-size', '11px');
+    sel.selectAll('path,line').attr('stroke', p.line);
+    return sel;
+  }
+  const fmt = { usd: d3.format('$,.0f'), int: d3.format(','), pct: d3.format('.0%'), bp: v => (v > 0 ? '+' : '') + Math.round(v) + ' bp' };
+  return { pal, tip, svg, axisStyle, fmt, css };
+})();
+</script>
+<script>
+const el = id => document.getElementById(id), css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const erf = x => { const s = Math.sign(x), t = 1 / (1 + 0.3275911 * Math.abs(x)); return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x)); };
+const Phi = z => 0.5 * (1 + erf(z / Math.SQRT2));
+
+let aSeed = 7;
+function rnd() { aSeed = (aSeed * 1664525 + 1013904223) % 4294967296; return aSeed / 4294967296; }
+function ideaA() {
+  const n = +el('a-n').value, p = +el('a-p').value;
+  el('a-no').textContent = n;
+  let hits = 0, h = '';
+  for (let i = 0; i < n; i++) { const hit = rnd() < p; if (hit) hits++; h += `<i class="${hit ? 'hit' : ''}"></i>`; }
+  el('a-dots').innerHTML = h;
+  el('a-so').innerHTML = `<b>${hits}</b> of ${n} tests came out "significant" in this run. On average you expect <b>${(n * p).toFixed(1)}</b>, and the chance of at least one is <b>${((1 - Math.pow(1 - p, n)) * 100).toFixed(0)}%</b>.`;
+}
+['a-n', 'a-p'].forEach(i => el(i).addEventListener('input', ideaA));
+el('a-run').addEventListener('click', ideaA);
+
+function ideaB() {
+  const d = +el('b-d').value / 100, sd = 0.064;
+  el('b-do').textContent = '−' + (d * 100).toFixed(1) + '%';
+  const pw = n => Phi(d * Math.sqrt(n) / sd - 1.645);
+  let n80 = null; for (let n = 1; n <= 1000; n++) { if (pw(n) >= 0.8) { n80 = n; break; } }
+  const W = Math.min(760, el('b-chart').clientWidth || 760), P = VZ.pal(), o = VZ.svg(el('b-chart'), W, 240, { t: 12, r: 16, b: 34, l: 46 }), g = o.g, x = d3.scaleLinear().domain([0, 100]).range([0, o.iw]), y = d3.scaleLinear().domain([0, 1]).range([o.ih, 0]);
+  const data = d3.range(1, 101).map(n => [n, pw(n)]);
+  g.append('line').attr('x1', 0).attr('x2', o.iw).attr('y1', y(0.8)).attr('y2', y(0.8)).attr('stroke', P.muted).attr('stroke-dasharray', '3 4');
+  g.append('text').attr('x', o.iw).attr('y', y(0.8) - 5).attr('text-anchor', 'end').attr('fill', P.muted).style('font-size', '11px').text('80% chance of detecting it');
+  g.append('path').datum(data).attr('fill', 'none').attr('stroke', css('--k1')).attr('stroke-width', 2.5).attr('d', d3.line().x(r => x(r[0])).y(r => y(r[1])));
+  g.append('line').attr('x1', x(20)).attr('x2', x(20)).attr('y1', 0).attr('y2', o.ih).attr('stroke', css('--k2')).attr('stroke-dasharray', '2 3');
+  g.append('circle').attr('cx', x(20)).attr('cy', y(pw(20))).attr('r', 5).attr('fill', css('--k2'));
+  g.append('text').attr('x', x(20) + 8).attr('y', y(pw(20)) + 16).attr('fill', css('--k2')).style('font-size', '12px').text('20 events: ' + (pw(20) * 100).toFixed(0) + '%');
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(10)));
+  VZ.axisStyle(g.append('g').call(d3.axisLeft(y).ticks(5).tickFormat(d3.format('.0%'))));
+  g.append('text').attr('x', o.iw / 2).attr('y', o.ih + 30).attr('text-anchor', 'middle').attr('fill', P.muted).style('font-size', '11px').text('number of events');
+  el('b-so').innerHTML = `If the true effect is <b>${(d * 100).toFixed(1)}%</b> per event, 20 events give about a <b>${(pw(20) * 100).toFixed(0)}%</b> chance of seeing it` + (n80 ? `; you would need about <b>${n80}</b> events for 80%. At roughly 16 earnings events a year, that is ${(n80 / 16).toFixed(1)} years.` : '.');
+}
+el('b-d').addEventListener('input', ideaB);
+
+function ideaC() {
+  const c = +el('c-c').value / 100, req = k => (1 + k) / (1 - k) - 1;
+  el('c-co').textContent = (c * 100).toFixed(0) + '%';
+  const rows = [['Our model (10% a side)', req(0.10), 'k1'], ['VST (16% round trip)', req(0.08), 'k3'], ['NRG (45% round trip)', req(0.225), 'k4'], ['CEG (55% round trip)', req(0.275), 'k4'], ['TLN (71% round trip)', req(0.355), 'k2'], ['Your slider', req(c), 'k7']];
+  const W = Math.min(760, el('c-chart').clientWidth || 760), P = VZ.pal(), o = VZ.svg(el('c-chart'), W, rows.length * 38 + 40, { t: 10, r: 52, b: 30, l: W < 520 ? 138 : 170 }), g = o.g, x = d3.scaleLinear().domain([0, Math.max(1.2, req(c) * 1.1)]).range([0, o.iw]), y = d3.scaleBand().domain(rows.map(r => r[0])).range([0, o.ih]).padding(.35);
+  g.append('line').attr('x1', x(0.15)).attr('x2', x(0.15)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.fg2).attr('stroke-dasharray', '3 3');
+  g.append('text').attr('x', x(0.15) + 4).attr('y', 10).attr('fill', P.fg2).style('font-size', '11px').text('H14 in-sample gross: +15%');
+  rows.forEach(r => { g.append('text').attr('x', -8).attr('y', y(r[0]) + y.bandwidth() / 2 + 4).attr('text-anchor', 'end').attr('fill', P.fg2).style('font-size', '12px').text(r[0]);
+    g.append('rect').attr('x', 0).attr('y', y(r[0])).attr('width', x(r[1])).attr('height', y.bandwidth()).attr('rx', 3).attr('fill', css('--' + r[2]));
+    g.append('text').attr('x', x(r[1]) + 6).attr('y', y(r[0]) + y.bandwidth() / 2 + 4).attr('fill', P.fg).style('font-size', '12px').text('+' + (r[1] * 100).toFixed(0) + '%'); });
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(W < 520 ? 3 : 6).tickFormat(d3.format('.0%'))));
+  el('c-so').innerHTML = `At <b>${(c * 100).toFixed(0)}%</b> a side, a trade must return <b>+${(req(c) * 100).toFixed(0)}%</b> before costs just to break even. The in-sample gain was +15%, which pays only if costs are below about 7% a side, and no measured case is that cheap.`;
+}
+el('c-c').addEventListener('input', ideaC);
+
+function drawAll() { ideaA(); ideaB(); ideaC(); }
+drawAll();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+</script>
