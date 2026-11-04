@@ -1,0 +1,315 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Residential: One House's Electric Bills</title>
+<style>
+:root {
+  --bg: #fcfcfb; --surface: #ffffff; --fg: #141413; --fg2: #52514e; --muted: #7a7973;
+  --line: #e4e3de; --soft: #f4f3ef; --accent: #2a78d6; --up: #0b7a43; --down: #c03a2b; --warn: #a86b00;
+  --r-fuel: #b8541f; --r-gen: #2a78d6; --r-wire: #0e8a62; --r-equip: #6250d6; --r-load: #b0447a;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+    --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+    --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+  --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+  --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 28px; line-height: 1.2; margin: 6px 0 8px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+.lede { color: var(--fg2); max-width: 68ch; margin: 0 0 22px; }
+.sub { color: var(--fg2); font-size: 13px; margin: 0 0 12px; max-width: 74ch; }
+section { margin-bottom: 34px; }
+p { margin: 0 0 10px; }
+a { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi { border-top: 2px solid var(--line); padding-top: 8px; min-width: 0; }
+.kpi .v { font-family: var(--font-mono); font-size: 24px; font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--fg2); font-size: 13px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); } .warn { color: var(--warn); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted);
+  padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.num, td.num { text-align: right; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+tbody tr:last-child td { border-bottom: 0; }
+.pill { font: inherit; font-size: 13px; color: var(--fg2); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; cursor: pointer; }
+.pill[aria-pressed="true"] { color: var(--fg); border-color: var(--fg2); background: var(--soft); }
+button:focus-visible, input:focus-visible, th:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 10px; align-items: center; }
+.note { background: var(--soft); border-radius: 6px; padding: 10px 12px; font-size: 14px; max-width: 80ch; margin: 0 0 12px; }
+.foot { color: var(--muted); font-size: 12px; max-width: 82ch; border-top: 1px solid var(--line); padding-top: 14px; }
+.chart text { fill: var(--fg2); font-family: var(--font-body); font-size: 12px; }
+@media (max-width: 760px) { h1 { font-size: 24px; } }
+@media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi .v { font-size: 20px; } }
+
+:root { --k1: #2a78d6; --k2: #eb6834; --k3: #1baf7a; --k4: #eda100; --k5: #e87ba4; --k7: #6250d6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500; --k5: #d55181; --k7: #9085e9; } }
+:root[data-theme="dark"] { --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500; --k5: #d55181; --k7: #9085e9; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 900px) { .two, .three { grid-template-columns: 1fr; } }
+.so { font-size: 13.5px; color: var(--fg2); margin: 8px 0 0; max-width: 84ch; } .so b { color: var(--fg); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--fg2); margin-top: 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 13px; color: var(--fg2); margin-bottom: 8px; }
+.ctl input[type=range] { width: 220px; accent-color: var(--k1); } .ctl output { font-family: var(--font-mono); color: var(--fg); }
+.take { border-left: 3px solid var(--k4); padding: 2px 0 2px 12px; margin: 10px 0; font-size: 14px; color: var(--fg2); max-width: 86ch; } .take b { color: var(--fg); }
+.priv { border: 1px dashed var(--line); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--fg2); background: var(--soft); }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+
+<style>html{scroll-padding-top:52px}.sitenav::-webkit-scrollbar{display:none}</style><nav class="sitenav" style="position:sticky;top:0;z-index:1000;background:var(--bg,Canvas);font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:nowrap;white-space:nowrap;overflow-x:auto;scrollbar-width:none;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="brief.html" style="color:inherit;font-weight:600">Daily brief</a><a href="index.html" style="color:inherit">Build log</a><a href="scoreboard.html" style="color:inherit;font-weight:600">Scoreboard</a><a href="thesis.html" style="color:inherit;font-weight:600">Thesis</a><a href="critique.html" style="color:inherit;font-weight:600">Critique</a><a href="natgas.html" style="color:inherit;font-weight:600">Natgas</a><a href="residential.html" style="color:inherit">Residential</a><a href="spreads.html" style="color:inherit">Spreads</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="ai.html" style="color:inherit">AI power</a><a href="calendar.html" style="color:inherit">Energy calendar</a><a href="grid.html" style="color:inherit">Grid</a><a href="trade.html" style="color:inherit">Trade</a><a href="maths.html" style="color:inherit">Maths</a><a href="discourse.html" style="color:inherit">Discourse</a></nav>
+<div class="wrap">
+  <div class="eyebrow">Residential · twelve monthly electric bills, one house · <span id="range"></span></div>
+  <h1>What one house's electric bills say about the grid</h1>
+  <p class="lede">Twelve statements, October 2025 to October 2026, from a regulated utility that buys power for customers who don't shop for a supplier. Everything below is computed from the bills: where each dollar goes, what the weather does to the meter, what a kilowatt-hour really costs at the margin, and how the wholesale market we study shows up, late and smoothed, on a household bill.</p>
+  <div class="priv"><b>One household, shared with permission.</b> This is the owner's own data, published on purpose. The statements' names, addresses, account, customer and meter numbers were never read into the dataset and appear nowhere on this page. Twelve bills from one house are an anecdote, not a sample: read every pattern as "this is what it looked like here".</div>
+
+  <section><div class="kpis" id="kpis"></div></section>
+
+  <section>
+    <h2>1. The year in kilowatt-hours and dollars</h2>
+    <p class="sub">Each bar is one billing period (about a month). Orange periods are the four ending June 15 to September 16.</p>
+    <div class="card"><div id="c-use"></div><div class="legend"><span><i style="background:var(--k1)"></i>kWh, cooler months</span><span><i style="background:var(--k2)"></i>kWh, summer</span><span><i style="background:var(--fg2)"></i>bill, dollars (right axis)</span></div><p class="so" id="use-so"></p></div>
+  </section>
+
+  <section>
+    <h2>2. Where each dollar goes</h2>
+    <div class="two">
+      <div class="card"><h3>Each bill, by what you are paying for</h3><div id="c-anat"></div><div class="legend"><span><i style="background:var(--k1)"></i>generation and transmission ("price to compare")</span><span><i style="background:var(--k3)"></i>local wires and meters</span><span><i style="background:var(--k4)"></i>fixed monthly charge</span><span><i style="background:var(--k5)"></i>supply admin and other</span></div></div>
+      <div class="card"><h3>The year's total</h3><div id="c-share"></div><p class="so" id="share-so"></p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. The weather is the bill</h2>
+    <p class="sub">Each dot is a billing period: average temperature against average daily kWh. Every statement also reports the same period a year earlier, so there are 24 dots.</p>
+    <div class="card"><div id="c-wx"></div><div class="legend"><span><i style="background:var(--k1)"></i>this year</span><span><i style="background:var(--k7)"></i>a year earlier</span><span><i style="background:var(--fg)"></i>fitted shape</span></div><p class="so" id="wx-so"></p></div>
+    <div class="two" style="margin-top:12px">
+      <div class="card"><h3>This year against last, period by period</h3><div id="c-yoy"></div><p class="so" id="yoy-so"></p></div>
+      <div class="card"><h3>What does one more kilowatt-hour cost?</h3><div id="c-marg"></div><p class="so" id="marg-so"></p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>4. Where the wholesale market shows up</h2>
+    <div class="card"><div id="c-ptc"></div><div class="legend"><span><i style="background:var(--k1)"></i>"price to compare" (generation and transmission, cents per kWh)</span><span><i style="background:var(--k2)"></i>all-in cost of each kWh on the bill</span></div><p class="so" id="ptc-so"></p></div>
+  </section>
+
+  <section>
+    <h2>5. Try it: what a change would do to this house</h2>
+    <div class="two">
+      <div class="card"><h3>If wholesale power got more expensive</h3>
+        <div class="ctl"><label>Change in generation price <input type="range" id="w-d" min="-20" max="40" step="1" value="10"> <output id="w-do"></output></label></div><p class="so" id="w-so" style="margin-top:0"></p></div>
+      <div class="card"><h3>If you cut a steady load, or the summer got hotter</h3>
+        <div class="ctl"><label>Always-on load removed <input type="range" id="l-w" min="0" max="300" step="10" value="100"> <output id="l-wo"></output></label></div><div class="ctl"><label>Summer degrees hotter <input type="range" id="l-t" min="-4" max="6" step="1" value="2"> <output id="l-to"></output></label></div><p class="so" id="l-so" style="margin-top:0"></p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What we can learn, anecdotally</h2>
+    <div class="card" id="learn"></div>
+  </section>
+
+  <section><h2>Method notes</h2>
+    <div class="card"><ul class="plain" style="color:var(--fg2);font-size:14px;max-width:86ch" id="notes"></ul></div></section>
+  <p class="foot">Educational research on one household's data. Not advice about suppliers, tariffs or investments.</p>
+</div>
+<script>/* Shared chart helpers (d3 v7 is loaded by the page). Colors come from the page's CSS variables so dark mode works. */
+const VZ = (() => {
+  const cs = () => getComputedStyle(document.documentElement);
+  const css = (v, fb) => (cs().getPropertyValue(v) || fb || '#888').trim();
+  const pal = () => ({
+    fg: css('--fg'), fg2: css('--fg2'), muted: css('--muted'), line: css('--line'), soft: css('--soft'), bg: css('--bg'), surface: css('--surface'),
+    up: css('--up'), down: css('--down'), warn: css('--warn'), accent: css('--accent'),
+    gen: css('--r-gen'), fuel: css('--r-fuel'), wire: css('--r-wire'), equip: css('--r-equip'), load: css('--r-load')
+  });
+  let tipEl;
+  function tip() {
+    if (!tipEl) {
+      tipEl = document.createElement('div');
+      tipEl.style.cssText = 'position:fixed;pointer-events:none;z-index:50;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.35;max-width:260px;box-shadow:0 2px 10px rgba(0,0,0,.15);display:none';
+      document.body.appendChild(tipEl);
+    }
+    return {
+      show(html, ev) {
+        tipEl.innerHTML = html; tipEl.style.display = 'block';
+        const x = Math.min(ev.clientX + 14, innerWidth - 270), y = Math.min(ev.clientY + 14, innerHeight - 80);
+        tipEl.style.left = x + 'px'; tipEl.style.top = y + 'px';
+      },
+      hide() { tipEl.style.display = 'none'; }
+    };
+  }
+  /* responsive svg with a fixed viewBox; returns {svg, g, w, h, iw, ih} */
+  function svg(el, w, h, m = { t: 12, r: 12, b: 28, l: 40 }) {
+    const root = d3.select(el); root.selectAll('*').remove();
+    const s = root.append('svg').attr('viewBox', `0 0 ${w} ${h}`).attr('class', 'chart').style('width', '100%').style('height', 'auto').attr('role', 'img');
+    const g = s.append('g').attr('transform', `translate(${m.l},${m.t})`);
+    return { svg: s, g, w, h, iw: w - m.l - m.r, ih: h - m.t - m.b, m };
+  }
+  function axisStyle(sel) {
+    const p = pal();
+    sel.selectAll('text').attr('fill', p.fg2).style('font-size', '11px');
+    sel.selectAll('path,line').attr('stroke', p.line);
+    return sel;
+  }
+  const fmt = { usd: d3.format('$,.0f'), int: d3.format(','), pct: d3.format('.0%'), bp: v => (v > 0 ? '+' : '') + Math.round(v) + ' bp' };
+  return { pal, tip, svg, axisStyle, fmt, css };
+})();
+</script>
+<script>
+const R = {"n":12,"from":"2025-10-16","to":"2026-10-15","kwh":8770,"amount":1897.82,"avg_cents":21.64,"bills":[{"start":"2025-10-16","end":"2025-11-16","days":32,"kwh":481,"amount":102.19,"kwh_day":15.03,"cents_kwh":21.25,"temp":47,"ly_kwh_day":14,"ly_temp":55,"ly_days":29,"ptc":11.86,"comp":{"supply":57.03,"admin":1.27,"fixed":10.99,"wires":32.28,"other":0.62},"taxes":7.22,"items":[{"l":"Price to Compare Default Service","a":57.03,"d":"481 KWH x 0.118570"},{"l":"Customer Charge","a":10.99,"d":""},{"l":"Distribution Charge","a":32.28,"d":"481 KWH x 0.067110"},{"l":"Default Service Support Charge","a":1.27,"d":"481 KWH x 0.002640"},{"l":"TCJA Voluntary Surcharge","a":0.59,"d":""},{"l":"LED Conversion Charge","a":0.02,"d":"481 KWH x 0.000040"},{"l":"State Tax Surcharge","a":0.01,"d":""}]},{"start":"2025-11-17","end":"2025-12-16","days":30,"kwh":538,"amount":115.13,"kwh_day":17.93,"cents_kwh":21.4,"temp":32,"ly_kwh_day":15,"ly_temp":39,"ly_days":31,"ptc":12.26,"comp":{"supply":65.94,"admin":1.42,"fixed":10.99,"wires":36.11,"other":0.67},"taxes":8.14,"items":[{"l":"Price to Compare Default Service","a":29.76,"d":"251 KWH x 0.118570"},{"l":"Price to Compare Default Service","a":36.18,"d":"287 KWH x 0.126060"},{"l":"Customer Charge","a":10.99,"d":""},{"l":"Distribution Charge","a":36.11,"d":"538 KWH x 0.067119"},{"l":"Default Service Support Charge","a":1.42,"d":"538 KWH x 0.002640"},{"l":"TCJA Voluntary Surcharge","a":0.64,"d":""},{"l":"LED Conversion Charge","a":0.02,"d":"538 KWH x 0.000040"},{"l":"State Tax Surcharge","a":0.01,"d":""}]},{"start":"2025-12-17","end":"2026-01-18","days":33,"kwh":656,"amount":140.34,"kwh_day":19.88,"cents_kwh":21.39,"temp":34,"ly_kwh_day":18,"ly_temp":31,"ly_days":31,"ptc":12.61,"comp":{"supply":82.7,"admin":1.74,"fixed":11.02,"wires":44.86,"other":0.02},"taxes":9.63,"items":[{"l":"Price to Compare Default Service","a":37.57,"d":"298 KWH x 0.126060"},{"l":"Price to Compare Default Service","a":45.13,"d":"358 KWH x 0.126060"},{"l":"Customer Charge","a":11.02,"d":""},{"l":"Distribution Charge","a":20.82,"d":"298 KWH x 0.069866"},{"l":"Distribution Charge","a":24.04,"d":"358 KWH x 0.067151"},{"l":"Default Service Support Charge","a":0.79,"d":"298 KWH x 0.002640"},{"l":"Default Service Support Charge","a":0.95,"d":"358 KWH x 0.002640"},{"l":"LED Conversion Charge","a":0.01,"d":"298 KWH x 0.000040"},{"l":"LED Conversion Charge","a":0.01,"d":"358 KWH x 0.000040"},{"l":"State Tax Surcharge","a":-0.01,"d":""},{"l":"State Tax Surcharge","a":0.01,"d":""}]},{"start":"2026-01-19","end":"2026-02-16","days":29,"kwh":620,"amount":133.89,"kwh_day":21.38,"cents_kwh":21.6,"temp":19,"ly_kwh_day":19,"ly_temp":30,"ly_days":32,"ptc":12.6,"comp":{"supply":78.16,"admin":1.64,"fixed":11.03,"wires":43.05,"other":0.01},"taxes":9.18,"items":[{"l":"Price to Compare Default Service","a":78.16,"d":"620 KWH x 0.126060"},{"l":"Customer Charge","a":11.03,"d":""},{"l":"Distribution Charge","a":43.05,"d":"620 KWH x 0.069435"},{"l":"Default Service Support Charge","a":1.64,"d":"620 KWH x 0.002640"},{"l":"LED Conversion Charge","a":0.02,"d":"620 KWH x 0.000040"},{"l":"State Tax Surcharge","a":-0.01,"d":""}]},{"start":"2026-02-17","end":"2026-03-17","days":29,"kwh":531,"amount":116.25,"kwh_day":18.31,"cents_kwh":21.89,"temp":44,"ly_kwh_day":16,"ly_temp":40,"ly_days":29,"ptc":12.6,"comp":{"supply":66.94,"admin":1.4,"fixed":11.03,"wires":36.87,"other":0.01},"taxes":7.97,"items":[{"l":"Price to Compare Default Service","a":66.94,"d":"531 KWH x 0.126060"},{"l":"Customer Charge","a":11.03,"d":""},{"l":"Distribution Charge","a":36.87,"d":"531 KWH x 0.069435"},{"l":"Default Service Support Charge","a":1.4,"d":"531 KWH x 0.002640"},{"l":"LED Conversion Charge","a":0.02,"d":"531 KWH x 0.000040"},{"l":"State Tax Surcharge","a":-0.01,"d":""}]},{"start":"2026-03-18","end":"2026-04-15","days":29,"kwh":440,"amount":98.3,"kwh_day":15.17,"cents_kwh":22.34,"temp":54,"ly_kwh_day":14,"ly_temp":49,"ly_days":29,"ptc":12.6,"comp":{"supply":55.47,"admin":1.16,"fixed":11.03,"wires":30.62,"other":0.02},"taxes":6.74,"items":[{"l":"Price to Compare Default Service","a":55.47,"d":"440 KWH x 0.126060"},{"l":"Customer Charge","a":11.03,"d":""},{"l":"Distribution System Improvement Charge","a":0.07,"d":""},{"l":"Distribution Charge","a":30.55,"d":"440 KWH x 0.069432"},{"l":"Default Service Support Charge","a":1.16,"d":"440 KWH x 0.002640"},{"l":"LED Conversion Charge","a":0.01,"d":"212 KWH x 0.000040"},{"l":"LED Conversion Charge","a":0.02,"d":"228 KWH x 0.000090"},{"l":"State Tax Surcharge","a":-0.01,"d":""}]},{"start":"2026-04-16","end":"2026-05-14","days":29,"kwh":478,"amount":105.84,"kwh_day":16.48,"cents_kwh":22.14,"temp":55,"ly_kwh_day":15,"ly_temp":62,"ly_days":29,"ptc":12.6,"comp":{"supply":60.26,"admin":1.26,"fixed":11.03,"wires":33.26,"other":0.03},"taxes":7.26,"items":[{"l":"Price to Compare Default Service","a":60.26,"d":"478 KWH x 0.126060"},{"l":"Customer Charge","a":11.03,"d":""},{"l":"Distribution System Improvement Charge","a":0.07,"d":""},{"l":"Distribution Charge","a":33.19,"d":"478 KWH x 0.069435"},{"l":"Default Service Support Charge","a":1.26,"d":"478 KWH x 0.002640"},{"l":"LED Conversion Charge","a":0.04,"d":"478 KWH x 0.000090"},{"l":"State Tax Surcharge","a":-0.01,"d":""}]},{"start":"2026-05-15","end":"2026-06-15","days":32,"kwh":857,"amount":183.76,"kwh_day":26.78,"cents_kwh":21.44,"temp":68,"ly_kwh_day":22,"ly_temp":64,"ly_days":32,"ptc":13.01,"comp":{"supply":111.54,"admin":1.67,"fixed":11.03,"wires":59.46,"other":0.06},"taxes":12.61,"items":[{"l":"Price to Compare Default Service","a":54.18,"d":"402 KWH x 0.134770"},{"l":"Price to Compare Default Service","a":57.36,"d":"455 KWH x 0.126060"},{"l":"Customer Charge","a":11.03,"d":""},{"l":"Distribution System Improvement Charge","a":0.11,"d":""},{"l":"Distribution Charge","a":59.35,"d":"857 KWH x 0.069253"},{"l":"Default Service Support Charge","a":0.47,"d":"402 KWH x 0.001160"},{"l":"Default Service Support Charge","a":1.2,"d":"455 KWH x 0.002640"},{"l":"LED Conversion Charge","a":0.08,"d":"857 KWH x 0.000090"},{"l":"State Tax Surcharge","a":-0.02,"d":""}]},{"start":"2026-06-16","end":"2026-07-16","days":31,"kwh":1335,"amount":285.49,"kwh_day":43.06,"cents_kwh":21.39,"temp":75,"ly_kwh_day":39,"ly_temp":77,"ly_days":30,"ptc":13.48,"comp":{"supply":179.92,"admin":1.55,"fixed":11.03,"wires":92.9,"other":0.09},"taxes":19.58,"items":[{"l":"Price to Compare Default Service","a":179.92,"d":"1,335 KWH x 0.134770"},{"l":"Customer Charge","a":11.03,"d":""},{"l":"Distribution System Improvement Charge","a":0.71,"d":""},{"l":"Distribution Charge","a":92.19,"d":"1,335 KWH x 0.069056"},{"l":"Default Service Support Charge","a":1.55,"d":"1,335 KWH x 0.001160"},{"l":"LED Conversion Charge","a":0.12,"d":"1,335 KWH x 0.000090"},{"l":"State Tax Surcharge","a":-0.03,"d":""}]},{"start":"2026-07-17","end":"2026-08-16","days":31,"kwh":1202,"amount":258.14,"kwh_day":38.77,"cents_kwh":21.48,"temp":73,"ly_kwh_day":43,"ly_temp":76,"ly_days":30,"ptc":13.48,"comp":{"supply":161.99,"admin":1.39,"fixed":11.03,"wires":83.65,"other":0.08},"taxes":17.71,"items":[{"l":"Price to Compare Default Service","a":161.99,"d":"1,202 KWH x 0.134770"},{"l":"Customer Charge","a":11.03,"d":""},{"l":"Distribution System Improvement Charge","a":0.65,"d":""},{"l":"Distribution Charge","a":83.0,"d":"1,202 KWH x 0.069052"},{"l":"Default Service Support Charge","a":1.39,"d":"1,202 KWH x 0.001160"},{"l":"LED Conversion Charge","a":0.11,"d":"1,202 KWH x 0.000090"},{"l":"State Tax Surcharge","a":-0.03,"d":""}]},{"start":"2026-08-17","end":"2026-09-16","days":31,"kwh":1054,"amount":227.73,"kwh_day":34.0,"cents_kwh":21.61,"temp":72,"ly_kwh_day":26,"ly_temp":67,"ly_days":32,"ptc":13.48,"comp":{"supply":142.05,"admin":1.22,"fixed":11.03,"wires":73.36,"other":0.07},"taxes":15.62,"items":[{"l":"Price to Compare Default Service","a":142.05,"d":"1,054 KWH x 0.134770"},{"l":"Customer Charge","a":11.03,"d":""},{"l":"Distribution System Improvement Charge","a":0.58,"d":""},{"l":"Distribution Charge","a":72.78,"d":"1,054 KWH x 0.069051"},{"l":"Default Service Support Charge","a":1.22,"d":"1,054 KWH x 0.001160"},{"l":"LED Conversion Charge","a":0.09,"d":"1,054 KWH x 0.000090"},{"l":"State Tax Surcharge","a":-0.02,"d":""}]},{"start":"2026-09-17","end":"2026-10-15","days":29,"kwh":578,"amount":130.76,"kwh_day":19.93,"cents_kwh":22.62,"temp":62,"ly_kwh_day":21,"ly_temp":66,"ly_days":30,"ptc":13.48,"comp":{"supply":77.9,"admin":0.67,"fixed":11.03,"wires":41.12,"other":0.04},"taxes":8.97,"items":[{"l":"Price to Compare Default Service","a":77.9,"d":"578 KWH x 0.134770"},{"l":"Customer Charge","a":11.03,"d":""},{"l":"Distribution System Improvement Charge","a":1.22,"d":""},{"l":"Distribution Charge","a":39.9,"d":"578 KWH x 0.069031"},{"l":"Default Service Support Charge","a":0.67,"d":"578 KWH x 0.001160"},{"l":"LED Conversion Charge","a":0.05,"d":"578 KWH x 0.000090"},{"l":"State Tax Surcharge","a":-0.01,"d":""}]}],"weather":{"base_kwh_day":15.11,"cool_per_f":1.77,"cool_from_f":61,"heat_per_f":0.2,"heat_below_f":49,"r2":0.961,"n":24,"points":[[47,15.03,"this"],[32,17.93,"this"],[34,19.88,"this"],[19,21.38,"this"],[44,18.31,"this"],[54,15.17,"this"],[55,16.48,"this"],[68,26.78,"this"],[75,43.06,"this"],[73,38.77,"this"],[72,34.0,"this"],[62,19.93,"this"],[55,14.0,"last"],[39,15.0,"last"],[31,18.0,"last"],[30,19.0,"last"],[40,16.0,"last"],[49,14.0,"last"],[62,15.0,"last"],[64,22.0,"last"],[77,39.0,"last"],[76,43.0,"last"],[67,26.0,"last"],[66,21.0,"last"]],"curve":[[15,21.83],[16,21.63],[17,21.44],[18,21.24],[19,21.04],[20,20.84],[21,20.64],[22,20.45],[23,20.25],[24,20.05],[25,19.85],[26,19.66],[27,19.46],[28,19.26],[29,19.06],[30,18.86],[31,18.67],[32,18.47],[33,18.27],[34,18.07],[35,17.88],[36,17.68],[37,17.48],[38,17.28],[39,17.08],[40,16.89],[41,16.69],[42,16.49],[43,16.29],[44,16.1],[45,15.9],[46,15.7],[47,15.5],[48,15.3],[49,15.11],[50,15.11],[51,15.11],[52,15.11],[53,15.11],[54,15.11],[55,15.11],[56,15.11],[57,15.11],[58,15.11],[59,15.11],[60,15.11],[61,15.11],[62,16.88],[63,18.65],[64,20.43],[65,22.2],[66,23.98],[67,25.75],[68,27.52],[69,29.3],[70,31.07],[71,32.85],[72,34.62],[73,36.39],[74,38.17],[75,39.94],[76,41.72],[77,43.49],[78,45.26],[79,47.04],[80,48.81],[81,50.59]]},"marginal":{"fixed":3.58,"cents_per_kwh":21.15,"r2":0.9989},"shares":{"supply":0.6006,"admin":0.0086,"fixed":0.0697,"wires":0.3201,"other":0.0009},"summer":{"n":4,"kwh_share":0.507,"amount_share":0.503,"kwh":4448,"amount":955.12},"last_year_kwh_est":7968,"ptc_first":11.86,"ptc_last":13.48}, el = id => document.getElementById(id), css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), tip = VZ.tip();
+const B = R.bills, W = R.weather, M = R.marginal;
+const usd = (v, d = 0) => (v < 0 ? '−' : '') + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const mon = s => new Date(s + 'T12:00:00').toLocaleString('en-US', { month: 'short' });
+const isSummer = b => b.end >= '2026-06-15' && b.end <= '2026-09-30';
+const wd = id => Math.min(960, el(id).clientWidth || 960);
+const lab = b => mon(b.end) + (b.end.slice(2, 4) !== '26' ? " '" + b.end.slice(2, 4) : '');
+
+function kpis() {
+  const base = W.base_kwh_day * 365, peak = B.reduce((a, b) => b.amount > a.amount ? b : a);
+  el('range').textContent = R.from + ' to ' + R.to;
+  el('kpis').innerHTML = [[R.kwh.toLocaleString('en-US'), 'kWh in twelve months', '≈ ' + Math.round(R.kwh / 365) + ' per day'], [usd(R.amount), 'total bills', usd(R.amount / 12) + ' a month'], [R.avg_cents.toFixed(1) + '¢', 'average per kWh', 'everything included'], [Math.round(R.summer.kwh_share * 100) + '%', 'of the year\'s kWh', 'in four summer bills'], [W.base_kwh_day.toFixed(0), 'kWh a day of base load', Math.round(base / R.kwh * 100) + '% of the year']].map(k => `<div class="kpi"><div class="v">${k[0]}</div><div class="l">${k[1]}</div><div class="s">${k[2]}</div></div>`).join('');
+}
+
+function usage() {
+  const Wd = wd('c-use'), P = VZ.pal(), o = VZ.svg(el('c-use'), Wd, 300, { t: 14, r: 50, b: 30, l: 50 }), g = o.g, x = d3.scaleBand().domain(B.map(lab)).range([0, o.iw]).padding(.25);
+  const y = d3.scaleLinear().domain([0, d3.max(B, b => b.kwh) * 1.1]).nice().range([o.ih, 0]), y2 = d3.scaleLinear().domain([0, d3.max(B, b => b.amount) * 1.1]).nice().range([o.ih, 0]);
+  g.append('g').call(d3.axisLeft(y).ticks(5).tickSize(-o.iw)).call(a => { a.select('.domain').remove(); a.selectAll('line').attr('stroke', P.line).attr('opacity', .6); VZ.axisStyle(a); });
+  B.forEach(b => g.append('rect').attr('x', x(lab(b))).attr('y', y(b.kwh)).attr('width', x.bandwidth()).attr('height', o.ih - y(b.kwh)).attr('rx', 3).attr('fill', css(isSummer(b) ? '--k2' : '--k1')).attr('opacity', .85)
+    .on('mousemove', e => tip.show(`<b>${b.start} to ${b.end}</b> (${b.days} days)<br>${b.kwh} kWh, ${b.kwh_day} a day<br>${usd(b.amount, 2)} (${b.cents_kwh}¢ a kWh)<br>average ${b.temp}°F`, e)).on('mouseleave', tip.hide));
+  g.append('path').datum(B).attr('fill', 'none').attr('stroke', P.fg2).attr('stroke-width', 2).attr('d', d3.line().x(b => x(lab(b)) + x.bandwidth() / 2).y(b => y2(b.amount)));
+  B.forEach(b => g.append('circle').attr('cx', x(lab(b)) + x.bandwidth() / 2).attr('cy', y2(b.amount)).attr('r', 3.5).attr('fill', P.fg2));
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).tickSize(0)));
+  VZ.axisStyle(g.append('g').attr('transform', `translate(${o.iw},0)`).call(d3.axisRight(y2).ticks(5).tickFormat(d => '$' + d)));
+  g.append('text').attr('x', -38).attr('y', -2).attr('fill', P.muted).style('font-size', '11px').text('kWh');
+  const hi = B.reduce((a, b) => b.kwh > a.kwh ? b : a), lo = B.reduce((a, b) => b.kwh < a.kwh ? b : a);
+  el('use-so').innerHTML = `The biggest period (<b>${hi.start} to ${hi.end}</b>) used <b>${hi.kwh}</b> kWh and cost <b>${usd(hi.amount, 2)}</b>; the smallest used <b>${lo.kwh}</b> and cost <b>${usd(lo.amount, 2)}</b>. A ${(hi.kwh / lo.kwh).toFixed(1)}-fold swing in use, almost all of it explained in section 3.`;
+}
+
+function anatomy() {
+  const keys = [['supply', '--k1'], ['wires', '--k3'], ['fixed', '--k4'], ['rest', '--k5']], Wd = wd('c-anat'), P = VZ.pal(), o = VZ.svg(el('c-anat'), Wd, 300, { t: 10, r: 10, b: 28, l: 44 }), g = o.g;
+  const D = B.map(b => ({ b, supply: b.comp.supply, wires: b.comp.wires, fixed: b.comp.fixed, rest: b.comp.admin + b.comp.other })), x = d3.scaleBand().domain(B.map(lab)).range([0, o.iw]).padding(.2), y = d3.scaleLinear().domain([0, d3.max(B, b => b.amount) * 1.05]).nice().range([o.ih, 0]);
+  g.append('g').call(d3.axisLeft(y).ticks(5).tickFormat(d => '$' + d).tickSize(-o.iw)).call(a => { a.select('.domain').remove(); a.selectAll('line').attr('stroke', P.line).attr('opacity', .6); VZ.axisStyle(a); });
+  d3.stack().keys(keys.map(k => k[0]))(D).forEach((s, i) => g.selectAll('.s' + i).data(s).join('rect').attr('x', d => x(lab(d.data.b))).attr('y', d => y(d[1])).attr('height', d => y(d[0]) - y(d[1])).attr('width', x.bandwidth()).attr('fill', css(keys[i][1])).attr('opacity', .9)
+    .on('mousemove', (e, d) => tip.show(`<b>${d.data.b.end}</b><br>generation ${usd(d.data.supply, 2)}<br>wires ${usd(d.data.wires, 2)}<br>fixed ${usd(d.data.fixed, 2)}<br>other ${usd(d.data.rest, 2)}`, e)).on('mouseleave', tip.hide));
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).tickSize(0)));
+}
+
+function share() {
+  const S = R.shares, parts = [['Generation and transmission', S.supply, '--k1'], ['Local wires and meters', S.wires, '--k3'], ['Fixed monthly charge', S.fixed, '--k4'], ['Supply admin and other', S.admin + S.other, '--k5']];
+  const Wd = wd('c-share'), P = VZ.pal(), o = VZ.svg(el('c-share'), Wd, 270, { t: 8, r: 8, b: 8, l: 8 }), g = o.g, r = Math.min(o.iw, o.ih) / 2 - 4;
+  const arc = d3.arc().innerRadius(r * 0.6).outerRadius(r), gg = g.append('g').attr('transform', `translate(${o.iw / 2},${o.ih / 2})`);
+  gg.selectAll('path').data(d3.pie().sort(null).value(d => d[1])(parts)).join('path').attr('d', arc).attr('fill', d => css(d.data[2])).attr('stroke', P.surface).attr('stroke-width', 2).on('mousemove', (e, d) => tip.show(`${d.data[0]}: ${(d.data[1] * 100).toFixed(1)}%`, e)).on('mouseleave', tip.hide);
+  gg.append('text').attr('text-anchor', 'middle').attr('y', 6).attr('fill', P.fg).style('font-size', '24px').style('font-weight', 600).text(usd(R.amount));
+  el('share-so').innerHTML = parts.map(p => `<b>${(p[1] * 100).toFixed(0)}%</b> ${p[0].toLowerCase()}`).join(' · ') + `. About <b>${(S.supply * 100).toFixed(0)} cents of every dollar</b> pays for generation and transmission, the part that follows the wholesale market; most of the rest pays for the local wires.`;
+}
+
+function weather() {
+  const Wd = wd('c-wx'), P = VZ.pal(), o = VZ.svg(el('c-wx'), Wd, 320, { t: 14, r: 20, b: 36, l: 50 }), g = o.g, x = d3.scaleLinear().domain([15, 82]).range([0, o.iw]), y = d3.scaleLinear().domain([0, 48]).range([o.ih, 0]);
+  g.append('g').call(d3.axisLeft(y).ticks(6).tickSize(-o.iw)).call(a => { a.select('.domain').remove(); a.selectAll('line').attr('stroke', P.line).attr('opacity', .6); VZ.axisStyle(a); });
+  [[W.heat_below_f, 'heating starts'], [W.cool_from_f, 'cooling starts']].forEach(([t, l]) => { g.append('line').attr('x1', x(t)).attr('x2', x(t)).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.muted).attr('stroke-dasharray', '3 4'); g.append('text').attr('x', x(t) + 4).attr('y', 12).attr('fill', P.muted).style('font-size', '11px').text(l + ' ' + t + '°F'); });
+  g.append('line').attr('x1', 0).attr('x2', o.iw).attr('y1', y(W.base_kwh_day)).attr('y2', y(W.base_kwh_day)).attr('stroke', P.muted).attr('stroke-dasharray', '2 3');
+  g.append('text').attr('x', 6).attr('y', y(W.base_kwh_day) - 5).attr('fill', P.muted).style('font-size', '11px').text('base load ' + W.base_kwh_day.toFixed(0) + ' kWh a day');
+  g.append('path').datum(W.curve).attr('fill', 'none').attr('stroke', P.fg).attr('stroke-width', 2).attr('d', d3.line().x(d => x(d[0])).y(d => y(d[1])));
+  W.points.forEach(p => g.append('circle').attr('cx', x(p[0])).attr('cy', y(p[1])).attr('r', 5).attr('fill', css(p[2] === 'this' ? '--k1' : '--k7')).attr('opacity', .8).on('mousemove', e => tip.show(`${p[2] === 'this' ? 'this year' : 'a year earlier'}: ${p[0]}°F, ${p[1]} kWh a day`, e)).on('mouseleave', tip.hide));
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(8).tickFormat(d => d + '°')));
+  g.append('text').attr('x', o.iw / 2).attr('y', o.ih + 32).attr('text-anchor', 'middle').attr('fill', P.muted).style('font-size', '11px').text('average temperature in the billing period (°F)');
+  const dayCost = W.cool_per_f * M.cents_per_kwh / 100;
+  el('wx-so').innerHTML = `Below about <b>${W.cool_from_f}°F</b> the house uses a flat <b>${W.base_kwh_day.toFixed(0)} kWh a day</b>; above it, every extra degree adds <b>${W.cool_per_f.toFixed(1)} kWh a day</b>, about ${usd(dayCost, 2)} a day or ${usd(dayCost * 30)} a month per degree. Cold weather barely registers (${W.heat_per_f.toFixed(1)} kWh a day per degree below ${W.heat_below_f}°F), which points to non-electric heat. The shape explains ${(W.r2 * 100).toFixed(0)}% of the variation, though the 24 dots are the same house in two years, not 24 independent houses.`;
+}
+
+function yoy() {
+  const D = B.filter(b => b.ly_kwh_day != null), Wd = wd('c-yoy'), P = VZ.pal(), o = VZ.svg(el('c-yoy'), Wd, 280, { t: 10, r: 10, b: 28, l: 40 }), g = o.g, x0 = d3.scaleBand().domain(D.map(lab)).range([0, o.iw]).padding(.2), x1 = d3.scaleBand().domain(['ly', 'ty']).range([0, x0.bandwidth()]).padding(.05), y = d3.scaleLinear().domain([0, d3.max(D, b => Math.max(b.kwh_day, b.ly_kwh_day)) * 1.1]).nice().range([o.ih, 0]);
+  g.append('g').call(d3.axisLeft(y).ticks(5).tickSize(-o.iw)).call(a => { a.select('.domain').remove(); a.selectAll('line').attr('stroke', P.line).attr('opacity', .6); VZ.axisStyle(a); });
+  D.forEach(b => { [['ly', b.ly_kwh_day, '--k7'], ['ty', b.kwh_day, '--k1']].forEach(([k, v, c]) => g.append('rect').attr('x', x0(lab(b)) + x1(k)).attr('y', y(v)).attr('width', x1.bandwidth()).attr('height', o.ih - y(v)).attr('fill', css(c)).attr('rx', 2).on('mousemove', e => tip.show(`${lab(b)}: ${k === 'ty' ? 'this year' : 'a year earlier'} ${v} kWh a day (${k === 'ty' ? b.temp : b.ly_temp}°F)`, e)).on('mouseleave', tip.hide)); });
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x0).tickSize(0)));
+  const ty = d3.sum(D, b => b.kwh), ly = D.reduce((s, b) => s + b.ly_kwh_day * (b.ly_days || b.days), 0), sm = D.filter(isSummer);
+  el('yoy-so').innerHTML = `Over these 12 periods the house used about <b>${((ty / ly - 1) * 100).toFixed(0)}% more</b> than a year earlier (${ty.toLocaleString('en-US')} against about ${Math.round(ly).toLocaleString('en-US')} kWh; the earlier figures are rounded daily averages from the bills, so treat this as approximate). The four summer periods were <b>${((d3.sum(sm, b => b.kwh) / sm.reduce((s, b) => s + b.ly_kwh_day * (b.ly_days || b.days), 0) - 1) * 100).toFixed(0)}% higher</b>, with similar temperatures both years.`;
+}
+
+function marginal() {
+  const Wd = wd('c-marg'), P = VZ.pal(), o = VZ.svg(el('c-marg'), Wd, 280, { t: 10, r: 14, b: 34, l: 50 }), g = o.g, x = d3.scaleLinear().domain([0, 1500]).range([0, o.iw]), y = d3.scaleLinear().domain([0, 320]).range([o.ih, 0]);
+  g.append('g').call(d3.axisLeft(y).ticks(5).tickFormat(d => '$' + d).tickSize(-o.iw)).call(a => { a.select('.domain').remove(); a.selectAll('line').attr('stroke', P.line).attr('opacity', .6); VZ.axisStyle(a); });
+  g.append('line').attr('x1', x(0)).attr('y1', y(M.fixed)).attr('x2', x(1500)).attr('y2', y(M.fixed + M.cents_per_kwh * 15)).attr('stroke', P.fg).attr('stroke-width', 2);
+  B.forEach(b => g.append('circle').attr('cx', x(b.kwh)).attr('cy', y(b.amount)).attr('r', 5).attr('fill', css(isSummer(b) ? '--k2' : '--k1')).on('mousemove', e => tip.show(`${b.end}: ${b.kwh} kWh, ${usd(b.amount, 2)}`, e)).on('mouseleave', tip.hide));
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).ticks(6)));
+  g.append('text').attr('x', o.iw / 2).attr('y', o.ih + 30).attr('text-anchor', 'middle').attr('fill', P.muted).style('font-size', '11px').text('kWh in the billing period');
+  el('marg-so').innerHTML = `A straight line through the twelve bills fits almost perfectly (R² ${M.r2.toFixed(3)}): about <b>${usd(M.fixed, 2)}</b> plus <b>${M.cents_per_kwh.toFixed(1)}¢ for every kWh</b>. The "fixed" charge is a small share of the bill, so the cost of the next kWh is nearly the same as the average cost of all of them, and using less saves nearly all of what it appears to.`;
+}
+
+function ptc() {
+  const Wd = wd('c-ptc'), P = VZ.pal(), o = VZ.svg(el('c-ptc'), Wd, 300, { t: 14, r: 60, b: 30, l: 44 }), g = o.g, x = d3.scalePoint().domain(B.map(lab)).range([20, o.iw - 20]), y = d3.scaleLinear().domain([10, 28]).range([o.ih, 0]);
+  g.append('g').call(d3.axisLeft(y).ticks(5).tickFormat(d => d + '¢').tickSize(-o.iw)).call(a => { a.select('.domain').remove(); a.selectAll('line').attr('stroke', P.line).attr('opacity', .6); VZ.axisStyle(a); });
+  [['ptc', '--k1'], ['cents_kwh', '--k2']].forEach(([k, c]) => { g.append('path').datum(B).attr('fill', 'none').attr('stroke', css(c)).attr('stroke-width', 2.5).attr('d', d3.line().x(b => x(lab(b))).y(b => y(b[k])));
+    B.forEach(b => g.append('circle').attr('cx', x(lab(b))).attr('cy', y(b[k])).attr('r', 3.5).attr('fill', css(c)).on('mousemove', e => tip.show(`${lab(b)}: ${b[k]}¢ a kWh`, e)).on('mouseleave', tip.hide)); });
+  const j = B.findIndex(b => b.end === '2026-06-15');
+  if (j >= 0) { g.append('line').attr('x1', x(lab(B[j])) + (x(lab(B[j + 1])) - x(lab(B[j]))) / 2).attr('x2', x(lab(B[j])) + (x(lab(B[j + 1])) - x(lab(B[j]))) / 2).attr('y1', 0).attr('y2', o.ih).attr('stroke', P.muted).attr('stroke-dasharray', '3 4'); g.append('text').attr('x', x(lab(B[j])) + (x(lab(B[j + 1])) - x(lab(B[j]))) / 2 - 6).attr('y', 12).attr('text-anchor', 'end').attr('fill', P.muted).style('font-size', '11px').text('new price to compare, June 1, 2026'); }
+  VZ.axisStyle(g.append('g').attr('transform', `translate(0,${o.ih})`).call(d3.axisBottom(x).tickSize(0)));
+  const june = B.find(b => b.items.some(i => /0\.134770/.test(i.d || '')) && b.items.some(i => /0\.126060/.test(i.d || '')));
+  el('ptc-so').innerHTML = `The utility's "price to compare" (what the bill charges for generation and transmission) rose from <b>${R.ptc_first}¢ to ${R.ptc_last}¢ a kWh</b> over the year, <b>${((R.ptc_last / R.ptc_first - 1) * 100).toFixed(0)}%</b>. ` + (june ? `The June 1, 2026 reset is visible inside one bill: the period of <b>${june.start} to ${june.end}</b> is priced at two rates, 12.606¢ before June 1 and 13.477¢ after, a <b>${((13.477 / 12.606 - 1) * 100).toFixed(1)}%</b> step. ` : '') + `The all-in line sits about 8 to 9¢ above it: that gap is the local wires, which do not move with the market. Wholesale prices reach a default-service customer slowly and in steps, because the utility buys in advance and resets the price a few times a year.`;
+}
+
+function whatif() {
+  const kwhYr = R.kwh, win = () => {
+    const d = +el('w-d').value, yr = d / 1000 * kwhYr, per = d / 1000 * 100;
+    el('w-do').textContent = (d >= 0 ? '+' : '−') + '$' + Math.abs(d) + ' per MWh';
+    el('w-so').innerHTML = `A ${d >= 0 ? 'rise' : 'fall'} of <b>$${Math.abs(d)}/MWh</b> in what the utility pays for power is <b>${Math.abs(per).toFixed(1)}¢</b> on every kWh, or about <b>${usd(Math.abs(yr))} a year</b> on this house's ${kwhYr.toLocaleString('en-US')} kWh (${(Math.abs(yr) / R.amount * 100).toFixed(1)}% of the bill). For scale, the reset of June 2026 was about $8.7/MWh. Capacity charges are in there too: they are spread over households by their share of the system's peak, which this house's summer air conditioning makes large.`;
+  }, lw = () => {
+    const w = +el('l-w').value, t = +el('l-t').value, save = w * 8.76 * M.cents_per_kwh / 100, sm = B.filter(isSummer), dd = sm.reduce((s, b) => s + b.days, 0), extra = t * W.cool_per_f * dd * M.cents_per_kwh / 100;
+    el('l-wo').textContent = w + ' W'; el('l-to').textContent = (t >= 0 ? '+' : '') + t + '°F';
+    el('l-so').innerHTML = `A steady <b>${w} W</b> (about ${(w / 10).toFixed(0)} ten-watt bulbs, or a fridge and a few chargers) is <b>${(w * 8.76).toFixed(0)} kWh</b> a year: <b>${usd(save)} a year</b> at the margin. A summer <b>${Math.abs(t)}°F ${t >= 0 ? 'hotter' : 'cooler'}</b> across these ${dd} summer days is ${t >= 0 ? 'about' : 'about −'}<b>${usd(Math.abs(extra))}</b> on the summer bills, using the fitted slope. The base load is the quiet lever: ${W.base_kwh_day.toFixed(0)} kWh a day all year is ${(W.base_kwh_day * 365 / R.kwh * 100).toFixed(0)}% of the year's kWh.`;
+  };
+  el('w-d').addEventListener('input', win); el('l-w').addEventListener('input', lw); el('l-t').addEventListener('input', lw); win(); lw();
+}
+
+function learn() {
+  const sm = B.filter(isSummer), smDays = d3.sum(sm, b => b.days), cool = d3.sum(sm, b => Math.max(0, b.kwh - W.base_kwh_day * b.days)), coolUsd = cool * M.cents_per_kwh / 100, base = W.base_kwh_day * 365;
+  const items = [
+    ['It is a summer bill, and the summer is air conditioning.', `Four of twelve bills carry <b>${Math.round(R.summer.kwh_share * 100)}%</b> of the year's energy and <b>${usd(R.summer.amount)}</b> of the ${usd(R.amount)}. Above the base load, summer cooling alone is about <b>${Math.round(cool).toLocaleString('en-US')} kWh</b>, roughly <b>${usd(coolUsd)}</b>, ${(coolUsd / R.amount * 100).toFixed(0)}% of the whole year. That is the "peak" the grid is built around: hot afternoons like these are what PJM's peak load, and so each household's share of capacity costs, depend on (we have not tested that for this house).`],
+    ['The quiet base load is the biggest line.', `About <b>${W.base_kwh_day.toFixed(0)} kWh every day</b> regardless of weather is <b>${Math.round(base).toLocaleString('en-US')} kWh</b> a year, ${(base / R.kwh * 100).toFixed(0)}% of the total and roughly <b>${usd(base * M.cents_per_kwh / 100)}</b>. Anything that runs all night (a second fridge, a dehumidifier, standby loads, a pool pump) is worth about <b>$1.85 a year per watt</b> at this house's marginal price.`],
+    ['Most of every dollar is variable.', `The fitted fixed charge is only about <b>${usd(M.fixed, 2)}</b> a month; the cost of a kWh at the margin is <b>${M.cents_per_kwh.toFixed(1)}¢</b>, close to the <b>${R.avg_cents.toFixed(1)}¢</b> average. Saving a kWh saves nearly all of it, which also means the rate you pay per kWh, not the monthly fee, is where tariff changes matter.`],
+    ['About three-fifths of the bill tracks the wholesale market, with a lag.', `<b>${(R.shares.supply * 100).toFixed(0)}%</b> of dollars are generation and transmission, whose price rose <b>${((R.ptc_last / R.ptc_first - 1) * 100).toFixed(0)}%</b> in a year and stepped up on June 1. The wires part (${(R.shares.wires * 100).toFixed(0)}%) is regulated and flat. The link to the PJM story we follow is real but slow: the capacity price for the 2026/27 year (about $329 per MW-day, up from about $270) began on June 1 too, but a utility's default price is built from earlier purchases, so a given auction shows up gradually and partly. We cannot separate energy from capacity in one customer's bill, so this page shows the timing, not the split.`],
+    ['Heat is not electric here.', `Cold months barely move the meter (${W.heat_per_f.toFixed(1)} kWh a day per degree below ${W.heat_below_f}°F, against ${W.cool_per_f.toFixed(1)} per degree above ${W.cool_from_f}°F in summer), so winter heating is most likely gas or another fuel. For a household like this one, electricity is a summer-weather product, and gas prices (the Natgas page) matter to the winter budget in a way these bills cannot show.`],
+    ['The house is using more, not just paying more.', `Use ran about <b>${((R.kwh / R.last_year_kwh_est - 1) * 100).toFixed(0)}%</b> above the year before on the bills' own comparison (approximate), concentrated in the summer. Part of the rise in cost is the price per kWh; part is quantity. Without a second year of bills we cannot say whether the extra use is habit, weather, a new load or something running that should not be.`],
+    ['What a retail customer can and cannot do.', `Shopping for a supplier means beating the price to compare (about ${R.ptc_last}¢) on generation only; the wires charge stays. A rise of $10/MWh in wholesale costs would add about ${usd(R.kwh / 100)} a year here, which is small next to the swing from one hot summer. For a household, the weather and the base load move the bill far more than the market does. That fits the rest of this project: the wholesale market's drama reaches households late and diluted, and the larger exposure sits with the companies that sell into it.`]
+  ];
+  el('learn').innerHTML = items.map((i, n) => `<div class="take"><b>${n + 1}. ${i[0]}</b> ${i[1]}</div>`).join('');
+}
+
+function notes() {
+  el('notes').innerHTML = [
+    `<b>Source.</b> Twelve monthly statements from one utility account, parsed from the PDFs: dates, kWh, itemized charges, the price to compare and the bill's own weather comparison. In every bill the itemized charges add up to the amount due. Names, addresses and account, customer and meter numbers were not read into the data.`,
+    `<b>Weather.</b> The average temperature comes from the bills. The fit is a flat base load with separate linear cooling and heating terms, with balance points chosen to fit best (a small grid search), on 24 dots from one house, so it is a description, not a forecast.`,
+    `<b>Last year.</b> Each bill reports the same period a year earlier as whole-number average daily use and temperature, so last-year totals are approximate.`,
+    `<b>Cost classes.</b> "Generation and transmission" is the price-to-compare line; "wires" is the distribution charge, the improvement surcharge and the LED conversion charge; "fixed" is the customer charge; "other" is the default-service support charge and the small state-tax adjustment. State taxes are already inside the charges.`,
+    `<b>Not here.</b> Supplier offers, other households, hourly smart-meter data and any claim about what you should switch to.`
+  ].map(i => `<li>${i}</li>`).join('');
+}
+
+function drawAll() { kpis(); usage(); anatomy(); share(); weather(); yoy(); marginal(); ptc(); learn(); notes(); }
+drawAll(); whatif();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+</script>
