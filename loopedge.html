@@ -1,0 +1,314 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Loop Edge: Overnight Strategy Search</title>
+<style>
+:root {
+  --bg: #fcfcfb; --surface: #ffffff; --fg: #141413; --fg2: #52514e; --muted: #7a7973;
+  --line: #e4e3de; --soft: #f4f3ef; --accent: #2a78d6; --up: #0b7a43; --down: #c03a2b; --warn: #a86b00;
+  --r-fuel: #b8541f; --r-gen: #2a78d6; --r-wire: #0e8a62; --r-equip: #6250d6; --r-load: #b0447a;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+    --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+    --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+  --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+  --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 28px; line-height: 1.2; margin: 6px 0 8px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+.lede { color: var(--fg2); max-width: 68ch; margin: 0 0 22px; }
+.sub { color: var(--fg2); font-size: 13px; margin: 0 0 12px; max-width: 74ch; }
+section { margin-bottom: 34px; }
+p { margin: 0 0 10px; }
+a { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi { border-top: 2px solid var(--line); padding-top: 8px; min-width: 0; }
+.kpi .v { font-family: var(--font-mono); font-size: 24px; font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--fg2); font-size: 13px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); } .warn { color: var(--warn); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted);
+  padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.num, td.num { text-align: right; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+tbody tr:last-child td { border-bottom: 0; }
+.pill { font: inherit; font-size: 13px; color: var(--fg2); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; cursor: pointer; }
+.pill[aria-pressed="true"] { color: var(--fg); border-color: var(--fg2); background: var(--soft); }
+button:focus-visible, input:focus-visible, th:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 10px; align-items: center; }
+.note { background: var(--soft); border-radius: 6px; padding: 10px 12px; font-size: 14px; max-width: 80ch; margin: 0 0 12px; }
+.foot { color: var(--muted); font-size: 12px; max-width: 82ch; border-top: 1px solid var(--line); padding-top: 14px; }
+.chart text { fill: var(--fg2); font-family: var(--font-body); font-size: 12px; }
+@media (max-width: 760px) { h1 { font-size: 24px; } }
+@media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi .v { font-size: 20px; } }
+
+:root { --k1: #2a78d6; --k2: #eb6834; --k3: #1baf7a; --k4: #eda100; --k7: #6250d6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500; --k7: #9085e9; } }
+:root[data-theme="dark"] { --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500; --k7: #9085e9; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
+.so { font-size: 14px; color: var(--fg2); margin: 8px 0 0; max-width: 84ch; } .so b { color: var(--fg); }
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 12px 0; counter-reset: st; }
+.st { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--surface); position: relative; font-size: 13px; color: var(--fg2); }
+.st::before { counter-increment: st; content: counter(st); font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.st h4 { margin: 2px 0 4px; font-size: 14px; color: var(--fg); }
+.st .tag { display: inline-block; font-family: var(--font-mono); font-size: 10.5px; border-radius: 4px; padding: 1px 6px; color: #fff; margin-top: 6px; }
+.st.ai { border-top: 3px solid var(--k1); } .st.code { border-top: 3px solid var(--k3); } .st.you { border-top: 3px solid var(--k4); } .st.empty { opacity: .55; border-style: dashed; }
+.ai .tag { background: var(--k1); } .code .tag { background: var(--k3); } .you .tag { background: var(--k4); } .empty .tag { background: var(--muted); }
+.legend { font-size: 12.5px; color: var(--muted); display: flex; gap: 16px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+svg text { font-family: var(--font-mono); font-size: 11px; fill: var(--fg2); }
+svg .ax { stroke: var(--line); } svg .lbl { fill: var(--muted); }
+.chart { width: 100%; height: auto; display: block; }
+.lever { border-top: 1px solid var(--line); padding: 14px 0 6px; max-width: 92ch; }
+.lever:first-of-type { border-top: 0; }
+.lever h4 { margin: 0 0 4px; font-size: 16px; } .lever p { margin: 4px 0; font-size: 14px; color: var(--fg2); } .lever p b { color: var(--fg); }
+.lever .rec { font-family: var(--font-mono); font-size: 11px; background: var(--k3); color: #fff; border-radius: 4px; padding: 1px 7px; margin-left: 8px; vertical-align: 2px; }
+.lever .no { background: var(--muted); }
+table.t td, table.t th { padding: 8px 10px; font-size: 13px; vertical-align: top; }
+ul.plain { margin: 6px 0; padding-left: 18px; max-width: 90ch; font-size: 14px; color: var(--fg2); } ul.plain li { margin: 5px 0; } ul.plain b { color: var(--fg); }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+
+<style>html{scroll-padding-top:52px}.sitenav::-webkit-scrollbar{display:none}</style><nav class="sitenav" style="position:sticky;top:0;z-index:1000;background:var(--bg,Canvas);font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:nowrap;white-space:nowrap;overflow-x:auto;scrollbar-width:none;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="brief.html" style="color:inherit;font-weight:600">Daily brief</a><a href="index.html" style="color:inherit">Build log</a><a href="scoreboard.html" style="color:inherit;font-weight:600">Scoreboard</a><a href="thesis.html" style="color:inherit;font-weight:600">Thesis</a><a href="critique.html" style="color:inherit;font-weight:600">Critique</a><a href="loopedge.html" style="color:inherit;font-weight:600">Loop Edge</a><a href="natgas.html" style="color:inherit;font-weight:600">Natgas</a><a href="residential.html" style="color:inherit">Residential</a><a href="spreads.html" style="color:inherit">Spreads</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="ai.html" style="color:inherit">AI power</a><a href="calendar.html" style="color:inherit">Energy calendar</a><a href="grid.html" style="color:inherit">Grid</a><a href="trade.html" style="color:inherit">Trade</a><a href="maths.html" style="color:inherit">Maths</a><a href="discourse.html" style="color:inherit">Discourse</a></nav>
+<div class="wrap">
+  <div class="eyebrow">Loop Edge · one overnight run · Nov 7 to 8, 2026</div>
+  <h1>Loop Edge: what an overnight AI strategy search found</h1>
+  <p class="lede">We asked a machine to try hundreds of trading ideas in one night and gave it one rule: an idea only counts if it survives tests its own author cannot touch. Of 356 ideas, none survived the first gate. This page shows the machine, what each test did, and how loop engineering, skill files and newer AI techniques could surface better strategies next.</p>
+  <div class="note"><b>Read this first.</b> The ideas were written by AI agents; the tests are plain code that no agent can edit. A null result does not prove no edge exists. It says this search space, with this data and this bar, did not give one up. Research and paper tracking only: nothing here is advice and no money moves.</div>
+
+  <section>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section id="machine">
+    <h2>1. The machine</h2>
+    <p class="sub">Blue steps are AI, green are plain code with no judgment, yellow is the owner. The key rule: the agent that writes an idea never grades it.</p>
+    <div class="flow">
+      <div class="st ai"><h4>Six investor lenses</h4>AI sessions, each told to think like a different kind of investor (small account, PJM insider, macro, calendar, stat-arb, contrarian). They write ideas as short rules.<br><span class="tag">AI</span></div>
+      <div class="st code"><h4>Queue</h4>Ideas wait on disk, mixed across lenses so one lens cannot hog the night. A new round of ideation fires when the queue empties.<br><span class="tag">CODE</span></div>
+      <div class="st ai"><h4>Worker</h4>A fresh AI session per idea. Writes the rule as code, has no internet, cannot see other results or the answer key, and gets one run. A guard script blocks it from touching the checker.<br><span class="tag">AI, FENCED</span></div>
+      <div class="st code"><h4>Locked checker</h4>Runs the tests below. Its code and thresholds are hash-locked, and it logs every try so the "how many did we try" count cannot be hidden.<br><span class="tag">CODE, LOCKED</span></div>
+      <div class="st code empty"><h4>Gate 1: Tier 1 pass</h4>Costs, noise, placebo, look-ahead, stability. <b id="g1"></b><br><span class="tag">0 REACHED</span></div>
+      <div class="st code empty"><h4>Gate 2: sealed holdout</h4>Data from May 2026 on, never shown to any worker. One look per idea, pass or fail only.<br><span class="tag">0 REACHED</span></div>
+      <div class="st code empty"><h4>Staged</h4>A passing idea is written to a staging folder. Nothing is registered anywhere without the owner.<br><span class="tag">0 REACHED</span></div>
+      <div class="st you empty"><h4>Paper forward test</h4>Weeks to months of live paper trading on the hash-chained ledger. Only after that is real money even a conversation, and that is the owner's call.<br><span class="tag">OWNER DECIDES</span></div>
+    </div>
+    <div class="legend"><span><i style="background:var(--k1)"></i>AI</span><span><i style="background:var(--k3)"></i>plain code</span><span><i style="background:var(--k4)"></i>owner</span><span>dashed = nothing reached this yet</span></div>
+  </section>
+
+  <section id="tracks">
+    <h2>2. Two kinds of history</h2>
+    <p class="sub">Ideas ran on one of two data sets. More years means a more believable test.</p>
+    <div class="two">
+      <div class="card"><h3>Short track</h3><p class="so">Oct 2024 to Apr 2026, with PJM power-market data. About 2.3 years, so an idea needs 60 active weeks. Ideas run here: <b id="nshort"></b>. This is where PJM-specific ideas live, but it is thin.</p></div>
+      <div class="card"><h3>Long track</h3><p class="so">2010 to Apr 2026, about 40 energy stocks and ETFs, plus macro, gas storage, positioning and weather data. Discovery on 2010 to 2022 (150 active weeks needed), then it must repeat on 2023 to Apr 2026. Ideas run here: <b id="nlong"></b>. No PJM data until now: NYISO and ISO-NE prices were added after the run.</p></div>
+    </div>
+  </section>
+
+  <section id="gauntlet">
+    <h2>3. The gauntlet: which test killed how many ideas</h2>
+    <p class="sub">An idea can fail several tests, so bars overlap. Long-track-only test: "did not replicate".</p>
+    <div class="card"><svg id="kills" class="chart" viewBox="0 0 760 330" role="img" aria-label="Number of ideas failing each test"></svg></div>
+    <ul class="plain">
+      <li><b>Weekly t-stat under 3.</b> The average weekly profit after costs, divided by its noise. Under 3 means it could easily be luck.</li>
+      <li><b>Multiple-testing correction.</b> Try 350 ideas and a few look good by chance. This test raises the bar as the count grows, and the count is in the log.</li>
+      <li><b>Placebo.</b> Slide the same trades to the wrong dates 500 times. If those do about as well, the signal is not about timing.</li>
+      <li><b>Look-ahead.</b> Cut the data off at 5 dates. If the signal changes, it was peeking at the future.</li>
+      <li><b>Halves and years.</b> Profit must be positive in both halves of history and in 70% of calendar years.</li>
+      <li><b>Active weeks.</b> Enough weeks with a real position that the result is more than a few lucky trades.</li>
+      <li><b>Costs.</b> 5 basis points on every fill, both sides, baked into every number above.</li>
+    </ul>
+  </section>
+
+  <section id="dist">
+    <h2>4. What 350 results look like</h2>
+    <p class="sub">Each idea gets one number, its t-stat. Pure noise makes a bell curve centered at zero. A real edge would show up as a lump right of the red line at 3.</p>
+    <div class="card"><svg id="hist" class="chart" viewBox="0 0 760 300" role="img" aria-label="Histogram of t-stats against the noise curve"></svg></div>
+    <p class="so"><b>Reading it.</b> Most ideas pile up at zero (signals that barely traded), a long tail runs left, and the right tail stops well short of the red line. The best idea reached <b id="best"></b>. The left tail is mostly costs making busy strategies lose reliably, which is not an edge (next chart). The dashed noise curve is only a rough guide here, since dead signals make the middle taller than noise would.</p>
+  </section>
+
+  <section id="costs">
+    <h2>5. Costs eat the signals</h2>
+    <p class="sub">Each dot is an idea: average weekly profit before costs (across) and after (up), in basis points of capital. On the diagonal, costs took nothing. Below it, costs took a lot.</p>
+    <div class="card"><svg id="scatter" class="chart" viewBox="0 0 760 360" role="img" aria-label="Gross versus net weekly profit"></svg></div>
+    <p class="so"><b>Reading it.</b> Almost every dot sits at near-zero before costs. The ones far below the diagonal have signals that move a lot and pay for it. A strategy with a t of -9 is a costs finding, not a short-it-instead edge: flipping it would still pay the same costs.</p>
+  </section>
+
+  <section id="lens">
+    <h2>6. Where the ideas came from, and how many were dead on arrival</h2>
+    <p class="sub">Dark part = signals with fewer than 10 active weeks, almost always a data join that never fired. Those spent a trial and told us nothing.</p>
+    <div class="card"><svg id="lensbars" class="chart" viewBox="0 0 760 240" role="img" aria-label="Ideas per lens"></svg></div>
+  </section>
+
+  <section id="close">
+    <h2>7. The eight closest calls</h2>
+    <p class="sub">Ranked by t-stat. Bar is 3.0. All eight fail on several tests.</p>
+    <div class="card"><div class="tablewrap"><table class="t"><thead><tr><th>Idea</th><th>t</th><th>Net bp/week</th><th>Active weeks</th><th>Placebo p (want under 0.02)</th><th>Corrected q (want under 0.05)</th></tr></thead><tbody id="closebody"></tbody></table></div></div>
+  </section>
+
+  <section id="wrong">
+    <h2>8. What went wrong on our side</h2>
+    <ul class="plain">
+      <li><b>Dead signals:</b> <span id="dead"></span> of the ideas barely traded. Several gas-positioning and weather ideas never fired; likely a gate or data join that never triggers (not yet diagnosed). New <code>--smoke</code> check now catches this before a trial is spent.</li>
+      <li><b>Look-ahead:</b> <span id="la"></span> ideas were flagged for peeking at the future by accident. The test worked; the agents wrote sloppy code.</li>
+      <li><b>Crashes:</b> 6 ideas ended without results (4 of them involve copper). Cause not yet diagnosed.</li>
+      <li><b>Repetition:</b> by round 4 the ideators were re-skinning storage, calendar and reversal ideas. "A thousand flowers" came out nearer forty species.</li>
+      <li><b>Survivor bias:</b> the long track holds today's names. That flatters long-only ideas, and no idea passed anyway.</li>
+      <li><b>The big-picture work was not tested:</b> the midterm, scenario and regime-shift thinking produced notes, not trades. The checker needs a daily rule on a price table, and "the PJM regime may flip" is not one. That part still needs a different test.</li>
+      <li><b>Money:</b> the $60 cap stopped the run at 03:13 with the queue empty and a fourth round just launched.</li>
+    </ul>
+  </section>
+
+  <section id="next">
+    <h2>9. Getting better strategies next: loops, skill files, and what is coming</h2>
+    <p class="sub">Last night showed the loop works as a machine and that ideas are cheap ($0.17 each) while trustworthy tests are the scarce part. The upgrades below are things we have not built or proven. Each is listed with what it could add and what it could break.</p>
+
+    <h3>What we used: loop engineering</h3>
+    <p class="so">A loop is a goal with a machine-checkable finish line, workers that never grade themselves, state kept on disk instead of in anyone's memory, and hard stops (time, money, trial count). Here that meant a locked checker, fenced worker sessions, a trial log, a spend cap, and doing every deterministic step in plain code so only the creative steps cost tokens. The biggest lesson: <b>the checker is the product.</b> A loop is only as honest as its test.</p>
+
+    <h3>What we would add</h3>
+    <div class="flow">
+      <div class="st ai"><h4>Skill files</h4>Reusable instruction packs (a SKILL.md file that loads only when relevant). Candidates: a hypothesis pre-registration skill, a "check this fact against a primary source" skill, a filings and transcript reading skill, and a post-mortem skill that writes what each kill taught into a shared learning file.<br><span class="tag">NOT BUILT</span></div>
+      <div class="st ai"><h4>Red-team agent</h4>A separate agent whose only job is to break an idea before it earns the holdout: hunt for look-ahead, survivor bias, a bad data join. It cannot edit the idea.<br><span class="tag">NOT BUILT</span></div>
+      <div class="st code"><h4>Planted-edge test</h4>Inject a fake edge of known size into history and see how often the gauntlet finds it. Today we do not know the smallest real edge this checker could detect, so a null result is hard to interpret. Cheap, and it comes first.<br><span class="tag">NOT BUILT</span></div>
+      <div class="st ai"><h4>Evolve, do not just generate</h4>Keep a population of rules, mutate the closest calls, score each with the locked checker (the pattern behind recent evaluator-guided search systems). Every mutation is another trial, so the multiple-testing bar must rise with the count.<br><span class="tag">NOT BUILT</span></div>
+      <div class="st ai"><h4>Primary-source retrieval</h4>Ground ideas in filings, transcripts, tariffs and docket text instead of search summaries. Several of our own world notes came from unverified summaries; this fixes the root cause.<br><span class="tag">NOT BUILT</span></div>
+      <div class="st you"><h4>Forward tests as the judge</h4>Backtests screen; calendar time decides. Dated, pre-registered forecasts scored with a Brier score are already live and are the right home for ideas a price table cannot test.<br><span class="tag">LIVE</span></div>
+    </div>
+    <div class="legend"><span><i style="background:var(--k1)"></i>AI-heavy</span><span><i style="background:var(--k3)"></i>plain code</span><span><i style="background:var(--k4)"></i>calendar time</span></div>
+
+    <div class="card" style="margin-top:14px"><div class="tablewrap"><table class="t"><thead><tr><th>Technique</th><th>What it could add</th><th>What it could break</th><th>Next step</th></tr></thead><tbody>
+      <tr><td>Planted-edge power test</td><td>Tells us how big an edge must be to be seen at all</td><td>Little. A badly built one could make us overconfident</td><td>First. Plant 5, 10 and 20 bp/week edges and measure detection</td></tr>
+      <tr><td>Skill files</td><td>Same discipline every night, versioned, shorter prompts</td><td>Stale skills quietly steer every idea the same way</td><td>Start with fact-check and pre-registration skills</td></tr>
+      <tr><td>Red-team agent</td><td>Catches leaks before the holdout is spent</td><td>False alarms; can learn to nitpick</td><td>Run on the closest calls only</td></tr>
+      <tr><td>Evolutionary search</td><td>Turns a near miss into a family of related tests</td><td>Multiplies trials, so noise gets more chances</td><td>After the power test shows what we can detect</td></tr>
+      <tr><td>Primary-source retrieval</td><td>Facts we can cite; ideas grounded in documents</td><td>Long documents can bury the signal; cost per run</td><td>Use it for the event forecasts</td></tr>
+      <tr><td>Role-played stakeholder agents</td><td>A wider set of scenarios to test</td><td>Produces stories, not evidence</td><td>Keep as ideation, never as proof</td></tr>
+      <tr><td>Cheap model for volume, strong model for review</td><td>More attempts per dollar</td><td>Weaker workers write sloppier code (we saw look-ahead leaks)</td><td>Keep the smoke check in front of every trial</td></tr>
+    </tbody></table></div></div>
+
+    <h3>Guardrails every upgrade needs</h3>
+    <ul class="plain">
+      <li><b>More attempts need a higher bar.</b> Every extra idea is another chance to get lucky, and the log has to count all of them.</li>
+      <li><b>Agents never edit the test, and never see the holdout.</b></li>
+      <li><b>Unverified facts stay labeled.</b> A claim from a search summary is a lead, not a citation.</li>
+      <li><b>Paper first, calendar time second, a person decides about real money.</b> Nothing on this site is advice.</li>
+    </ul>
+  </section>
+
+  <section id="forks">
+    <h2>10. Open forks</h2>
+    <div class="lever"><h4>Run again with new data</h4><p>NYISO and ISO-NE day-ahead prices (including NYISO's price for PJM) are now wired in. Another capped run costs about $60 and the odds are low; it is mainly the first run on data that has not been picked over.</p></div>
+    <div class="lever"><h4>Lower the bar</h4><p>Not an option we are taking. At t of 3, luck alone gives about one hit per 350 tries, so loosening it mostly lets noise through. We widen the data instead.</p></div>
+    <div class="lever"><h4>Pre-registered event forecasts</h4><p>For shifts a backtest cannot see: write the prediction, the dated signpost and what would prove it wrong now, then score it. A first batch on the December auction, the January load forecast, state affordability moves and hyperscaler spending is going into the forecast log (shown on the Energy calendar page).</p></div>
+    <div class="lever"><h4>Change what the search is for</h4><p>This machine hunts daily stock signals. A slower, larger thesis (a regime, an auction outcome, a re-rating) needs a different test, which is what the forecast log is for.</p></div>
+  </section>
+
+  <section id="where">
+    <h2>11. What is public and what is not</h2>
+    <ul class="plain">
+      <li><b>Public:</b> this page and its aggregate numbers.</li>
+      <li><b>Kept private:</b> the checker code, the 356 idea files, the raw downloaded data and the unverified research notes.</li>
+      <li><b>No money moves.</b> Everything here is research and paper tracking, not advice.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const D = {"n_logged": 356, "n_valid": 350, "passes": 0, "spend": 60.17, "calls": 369, "first": "2026-11-07T22:28:01", "last": "2026-11-08T03:13:31", "t": [-1.433, -1.201, -0.272, 0.061, -1.007, -0.618, -2.054, -0.927, 1.0, -1.722, 0.0, -0.127, 0.0, -1.423, -0.924, -0.498, -3.073, -1.314, -0.21, -0.794, 0.15, -0.366, 0.686, 0.0, 1.535, -0.447, 0.0, 0.0, 0.0, -0.975, 0.61, 1.497, -1.155, -0.021, -0.292, 0.407, -1.027, 0.579, -1.074, 1.295, 1.358, -0.038, -2.584, 0.031, -0.34, 0.741, -4.669, -4.299, -0.516, -0.867, 0.773, 0.419, -1.654, -1.149, -1.243, -1.415, -1.27, 1.0, 0.0, 0.469, -1.84, 0.757, 1.0, -0.829, -0.552, 0.146, 0.0, -0.531, -0.139, 0.585, 0.0, -2.038, 0.0, -1.054, 0.746, 0.249, -1.126, 0.322, 0.0, -0.288, -2.594, 0.814, 0.379, 0.218, -0.449, -0.283, -2.664, -0.714, -0.703, -0.716, -3.252, -3.18, -0.961, -1.17, 0.0, -0.088, -3.901, -2.709, -2.96, -1.535, -1.412, -4.744, 1.52, 2.36, -0.193, -0.787, -2.47, -4.168, -0.138, -0.737, -1.482, -3.365, -0.622, -0.741, -0.234, -0.938, 0.845, -1.273, 0.0, -1.17, -0.518, -0.606, -1.483, -0.074, 0.524, 0.74, -3.053, 1.867, -1.065, -1.079, -2.753, -1.187, 0.269, 1.045, 1.38, -3.809, -1.584, -1.835, 0.4, -0.978, -1.353, -0.798, -0.536, 0.615, -0.602, 1.029, -0.495, -1.053, -1.826, 0.0, 0.0, 0.059, 0.17, 1.374, 0.471, 0.0, 0.819, -1.083, -0.296, 0.158, 1.559, -0.03, -0.911, 0.62, 0.394, 0.552, 1.624, -9.305, -8.044, -4.927, -3.141, 0.837, -0.681, 1.998, -1.764, 0.007, -1.174, -0.583, -0.881, 0.513, 0.012, -4.478, -1.883, -1.452, 1.145, -0.355, -0.013, -0.387, -1.252, -0.559, -4.204, 1.867, -1.783, 1.964, 0.628, 2.186, -2.165, -0.503, 0.804, 1.484, -5.269, -1.232, 0.353, -1.5, 0.902, -0.058, 0.715, 0.487, -3.26, -1.575, 0.249, -3.446, -0.952, -0.433, 1.162, 0.885, -0.865, -2.583, -0.78, -8.876, -1.928, -1.041, -0.991, -0.267, -2.425, -0.098, -0.016, 1.602, -0.325, 0.0, -0.018, 0.078, 0.66, 0.27, -0.832, 0.72, 1.025, 0.208, -0.853, 1.464, -3.113, -1.748, -2.039, -0.808, 0.568, -0.694, 0.0, -5.515, 0.738, 1.357, -7.156, -0.75, 0.0, 0.189, -7.244, -0.249, -3.785, -1.22, 0.318, 0.174, -0.545, -1.111, 0.25, -1.712, -1.286, -0.853, 0.005, -0.366, -1.497, -1.0, -0.808, -6.495, -2.12, -2.207, -1.412, -1.25, 0.396, 0.301, -2.051, 1.521, -0.232, -1.957, 1.246, 0.548, 0.321, -0.658, 0.552, -1.031, -0.633, 1.254, 0.617, -1.967, -0.691, -2.531, -0.383, -0.848, 0.252, -0.26, -2.054, 0.063, -2.085, 0.0, -0.117, -2.114, -0.688, 0.535, 1.149, -0.801, -1.384, -0.471, 0.301, 0.0, 0.009, -0.861, -0.882, -7.441, -2.867, -0.687, -1.184, -1.14, -1.625, -2.694, -0.317, -2.678, -2.688, -0.137, -0.879, -1.271, -3.565, -1.032, 0.162, 0.7, -1.718, -1.425, 1.65, -1.086, -0.931, 0.467, 0.966, -1.028, -0.365, -0.81, -2.086, -1.118, -0.688, -2.46, -0.12, -0.855, -0.148, -0.221], "net": [-0.34, -0.22, -0.02, 0.0, -0.18, -0.14, -0.16, -0.13, 0.21, -0.03, 0.0, -0.03, 0.0, -0.09, -0.07, -0.08, -0.12, -0.06, -0.03, -0.11, 0.0, -0.23, 0.31, 0.0, 0.15, -0.09, 0.0, 0.0, 0.0, -0.19, 0.13, 0.25, -0.15, -0.0, -0.03, 0.08, -0.23, 0.14, -0.09, 1.13, 0.49, -0.0, -0.4, 0.01, -0.09, 0.13, -1.97, -1.88, -0.27, -0.16, 0.04, 0.03, -0.31, -0.09, -0.46, -0.52, -0.19, 0.01, 0.0, 0.05, -0.13, 0.18, 0.43, -0.03, -0.05, 0.03, 0.0, -0.23, -0.02, 0.04, 0.0, -0.02, 0.0, -0.13, 0.12, 0.03, -0.04, 0.01, 0.0, -0.05, -0.39, 0.09, 0.38, 0.21, -0.3, -0.37, -0.58, -0.26, -0.25, -0.02, -0.56, -0.42, -0.24, -0.15, 0.0, -0.0, -0.29, -0.19, -0.58, -0.35, -0.05, -0.61, 0.18, 0.61, -0.0, -0.11, -0.23, -0.11, -0.02, -0.1, -0.05, -1.3, -0.35, -0.71, -1.73, -0.91, 0.02, -0.22, 0.0, -0.07, -0.16, -0.09, -0.81, -0.02, 0.13, 0.02, -0.46, 0.96, -0.15, -1.93, -0.23, -0.17, 0.06, 0.11, 0.14, -0.2, -0.21, -0.44, 0.03, -0.16, -0.11, -0.06, -0.08, 0.15, -0.68, 0.2, -0.02, -0.32, -0.3, 0.0, 0.0, 0.02, 0.04, 0.53, 0.07, 0.0, 0.03, -0.4, -0.02, 0.04, 0.25, -0.01, -0.12, 0.41, 0.64, 0.12, 0.11, -2.44, -2.18, -1.05, -0.86, 0.31, -0.2, 0.25, -1.07, 0.0, -0.04, -0.02, -0.13, 0.04, 0.0, -0.96, -0.47, -0.88, 1.2, -0.17, -0.0, -0.02, -0.04, -0.08, -0.25, 0.2, -0.1, 0.11, 0.24, 0.86, -0.08, -1.16, 0.86, 1.69, -0.68, -0.08, 0.02, -0.17, 0.08, -0.03, 0.05, 0.03, -0.11, -0.36, 0.15, -0.66, -0.05, -0.01, 0.08, 0.06, -0.06, -0.81, -0.1, -0.74, -0.71, -0.33, -0.05, -0.03, -0.11, -0.0, -0.0, 0.25, -0.06, 0.0, -0.01, 0.03, 0.14, 0.08, -0.11, 0.06, 0.22, 0.01, -0.08, 0.23, -0.26, -0.09, -1.72, -0.14, 0.05, -0.04, 0.0, -0.79, 0.1, 0.06, -0.27, -0.09, 0.0, 0.02, -1.03, -0.02, -0.7, -0.32, 0.33, 0.02, -0.15, -0.02, 0.03, -0.27, -0.28, -0.16, 0.0, -0.05, -0.26, -0.13, -0.21, -1.7, -0.19, -0.61, -2.64, -0.46, 0.48, 0.1, -0.25, 0.48, -0.0, -0.02, 0.0, 0.0, 0.04, -0.1, 0.02, -0.03, -0.02, 0.02, 0.01, -0.05, -0.33, -2.53, -0.26, -0.09, 0.02, -0.04, -0.27, 0.05, -0.16, 0.0, -0.02, -1.0, -0.07, 0.07, 0.17, -0.24, -0.22, -0.11, 0.02, 0.0, 0.0, -0.27, -0.11, -1.17, -0.78, -0.16, -0.19, -0.19, -0.26, -0.43, -0.04, -0.27, -0.37, -0.04, -0.13, -0.37, -0.65, -0.1, 0.03, 0.17, -0.06, -0.11, 0.18, -0.31, -0.23, 0.03, 0.07, -0.11, -0.06, -0.09, -0.23, -0.01, -0.41, -0.18, -0.02, -0.08, -0.01, -0.03], "gross": [-0.21, -0.2, 0.01, 0.01, -0.1, 0.08, -0.14, -0.0, 0.33, -0.02, 0.0, -0.02, 0.0, -0.09, -0.05, -0.05, -0.11, -0.03, 0.03, -0.03, 0.01, -0.12, 0.37, 0.0, 0.17, -0.01, 0.0, 0.0, 0.0, -0.13, 0.13, 0.32, 0.12, 0.01, -0.02, 0.14, -0.18, 0.15, -0.03, 1.44, 0.51, -0.0, -0.14, 0.19, -0.02, 0.18, 0.4, -0.55, -0.02, -0.03, 0.05, 0.12, -0.26, -0.06, -0.05, -0.12, -0.16, 0.01, 0.0, 0.12, -0.07, 0.2, 0.43, -0.02, -0.05, 0.14, 0.0, -0.19, -0.02, 0.05, 0.0, -0.02, 0.0, -0.07, 0.13, 0.05, -0.03, 0.02, 0.0, -0.05, -0.38, 0.11, 0.41, 0.24, -0.22, -0.23, 0.22, -0.14, -0.14, -0.0, -0.42, -0.01, 0.02, -0.11, 0.0, 0.0, -0.2, -0.12, -0.11, -0.01, -0.05, -0.45, 0.25, 0.64, -0.0, -0.0, -0.16, -0.07, 0.02, -0.03, -0.01, 0.22, -0.27, 0.01, 0.67, -0.8, 0.05, -0.19, 0.0, -0.06, -0.08, -0.09, -0.69, 0.18, 0.21, 0.03, 0.12, 1.11, -0.06, -0.92, -0.08, -0.15, 0.18, 0.16, 0.19, -0.14, -0.03, -0.43, 0.05, -0.04, -0.08, -0.05, -0.06, 0.16, -0.61, 0.24, 0.01, -0.21, -0.29, 0.0, 0.0, 0.18, 0.05, 0.59, 0.09, 0.0, 0.03, -0.38, 0.01, 0.06, 0.26, 0.01, -0.09, 0.47, 0.9, 0.14, 0.11, 0.23, -0.16, -0.21, 0.44, 0.44, -0.1, 0.28, -0.63, 0.01, -0.03, -0.01, -0.1, 0.1, 0.01, -0.13, -0.15, -0.3, 1.31, -0.15, 0.01, 0.03, 0.01, -0.07, 0.08, 0.22, -0.05, 0.11, 0.28, 0.9, -0.07, 2.44, 0.92, 2.29, -0.15, 0.14, 0.02, -0.1, 0.11, 0.05, 0.06, 0.06, 0.02, -0.11, 0.26, 0.06, -0.04, 0.02, 0.09, 0.07, -0.03, 0.02, -0.01, 0.02, -0.7, -0.06, -0.0, -0.01, -0.06, -0.0, 0.02, 0.25, -0.03, 0.0, 0.12, 0.08, 0.2, 0.08, -0.07, 0.08, 0.23, 0.04, -0.02, 0.24, 0.09, 0.03, -1.04, -0.12, 0.14, 0.03, 0.0, -0.01, 0.11, 0.1, 0.01, -0.09, 0.0, 0.04, -0.15, 0.04, -0.07, -0.14, 0.59, 0.03, -0.03, -0.01, 0.06, -0.24, -0.11, -0.07, 0.02, 0.03, -0.02, -0.13, 0.09, -0.56, -0.12, -0.52, -2.13, -0.36, 0.73, 0.31, -0.12, 0.52, 0.01, -0.02, 0.0, 0.01, 0.05, 0.01, 0.02, 0.03, -0.02, 0.02, 0.02, -0.02, -0.19, -1.28, -0.07, -0.03, 0.08, -0.03, -0.26, 0.22, -0.15, 0.0, -0.0, -0.81, -0.06, 0.09, 0.18, -0.19, -0.17, -0.02, 0.02, 0.0, 0.01, -0.2, 0.02, -0.08, 0.11, -0.03, -0.14, -0.13, -0.05, -0.26, 0.02, -0.06, -0.26, 0.15, 0.08, -0.16, 0.2, -0.03, 0.18, 0.3, -0.03, -0.07, 0.19, -0.29, -0.23, 0.08, 0.09, -0.07, -0.05, -0.06, -0.2, -0.01, -0.36, -0.12, 0.02, -0.05, 0.01, 0.05], "aw": [296, 89, 182, 20, 108, 312, 56, 155, 275, 16, 0, 42, 0, 9, 23, 77, 17, 89, 153, 100, 9, 20, 12, 0, 77, 274, 0, 0, 0, 388, 316, 108, 466, 21, 26, 315, 163, 160, 126, 43, 2, 113, 414, 303, 150, 115, 678, 678, 674, 237, 58, 342, 275, 96, 666, 663, 107, 1, 0, 314, 220, 4, 1, 24, 7, 293, 0, 119, 10, 61, 0, 5, 0, 178, 145, 64, 20, 12, 0, 73, 120, 177, 14, 18, 18, 66, 582, 668, 668, 40, 339, 430, 344, 86, 0, 33, 131, 154, 568, 460, 9, 299, 9, 668, 3, 142, 169, 118, 82, 91, 69, 662, 252, 412, 73, 53, 532, 360, 0, 3, 207, 14, 136, 146, 422, 91, 615, 274, 193, 69, 333, 279, 300, 306, 310, 148, 172, 177, 11, 210, 142, 30, 55, 178, 14, 185, 73, 275, 143, 0, 0, 456, 576, 259, 254, 0, 19, 272, 162, 132, 44, 169, 398, 12, 42, 296, 5, 678, 678, 503, 637, 336, 205, 145, 677, 97, 103, 57, 87, 140, 35, 636, 673, 69, 19, 275, 71, 30, 34, 182, 109, 51, 27, 42, 264, 123, 9, 72, 30, 18, 648, 274, 6, 293, 92, 433, 192, 141, 670, 505, 17, 634, 14, 282, 82, 75, 617, 544, 183, 589, 277, 419, 115, 87, 495, 12, 296, 22, 220, 0, 22, 28, 295, 233, 97, 38, 114, 93, 312, 28, 430, 146, 239, 63, 114, 53, 0, 349, 60, 46, 177, 28, 0, 47, 463, 37, 250, 133, 19, 65, 668, 50, 115, 674, 672, 241, 97, 652, 527, 16, 674, 678, 120, 233, 46, 15, 44, 439, 306, 101, 8, 7, 2, 4, 50, 42, 9, 23, 8, 5, 7, 24, 9, 32, 19, 291, 239, 43, 18, 658, 165, 0, 138, 415, 123, 180, 214, 152, 227, 223, 26, 0, 180, 263, 371, 389, 498, 667, 666, 650, 654, 550, 80, 322, 623, 52, 655, 625, 628, 156, 193, 204, 72, 310, 38, 185, 157, 104, 110, 125, 81, 75, 59, 2, 13, 156, 200, 65, 55, 111], "track": ["long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "short", "short", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "short", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "short", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "short", "short", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "long", "short", "long", "long", "long", "long", "long"], "lens": ["calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "macro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "micro", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "pjm", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "small", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "stat", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "calendar", "macro", "macro"], "kills": [["Too few active weeks", 191], ["Look-ahead found", 27], ["Trades too often", 0], ["A half of the sample lost money", 322], ["Lost money in too many years", 346], ["Weekly t-stat under 3", 350], ["Fails the multiple-testing correction", 319], ["Shifted-in-time signals do as well", 345], ["Did not replicate in 2023 to Apr 2026", 307]], "closest": [{"id": "small_low_dollar_volume_names_excess_cc_weekly", "t": 2.36, "net": 0.61, "weeks": 668, "placebo": 0.0619, "q": 0.1486}, {"id": "pjmr2_cftc_storage_agreement_gas_producers", "t": 2.186, "net": 0.86, "weeks": 123, "placebo": 0.0299, "q": 0.2199}, {"id": "micror2_util_corr_spike_basket_vs_spy", "t": 1.998, "net": 0.25, "weeks": 145, "placebo": 0.0399, "q": 0.3083}, {"id": "pjmr2_yoy_degree_day_comp_utilities", "t": 1.964, "net": 0.11, "weeks": 42, "placebo": 0.0479, "q": 0.3338}, {"id": "stat_long_event_day_residual_drift", "t": 1.867, "net": 0.96, "weeks": 274, "placebo": 0.0878, "q": 0.3986}, {"id": "pjmr2_bidweek_producers_spot_drift", "t": 1.867, "net": 0.2, "weeks": 51, "placebo": 0.0559, "q": 0.3857}, {"id": "calendarr4_long_monday_weekend_hdd_surprise_producers", "t": 1.65, "net": 0.18, "weeks": 38, "placebo": 0.1277, "q": 0.4496}, {"id": "macror2_spot_fut_gas_weekend_hdd_monday", "t": 1.624, "net": 0.11, "weeks": 5, "placebo": 0.1178, "q": 0.6251}], "dead": 46, "lookahead": 27};
+const $ = (id) => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const el = (p, tag, a, txt) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; p.appendChild(e); return e; };
+const css = (v) => `var(${v})`;
+const hrs = ((new Date(D.last) - new Date(D.first)) / 36e5).toFixed(1);
+$("kpis").innerHTML = [[D.n_logged, "ideas tested", D.n_valid + " with full results"], [D.passes, "cleared the first gate", "so the sealed data was never opened"],
+  ["$" + D.spend.toFixed(0), "spent", D.calls + " AI sessions over " + hrs + " hours"], ["~1", "hit expected from luck alone", "at t of 3 across this many tries"]]
+  .map((k) => `<div class="kpi"><div class="v">${k[0]}</div><div class="l">${k[1]}</div><div class="s">${k[2]}</div></div>`).join("");
+$("g1").textContent = D.passes + " of " + D.n_valid + " passed.";
+$("nshort").textContent = D.track.filter((x) => x === "short").length;
+$("nlong").textContent = D.track.filter((x) => x === "long").length;
+$("best").textContent = "t = " + Math.max(...D.t).toFixed(2);
+$("dead").textContent = D.dead; $("la").textContent = D.lookahead;
+
+// 3. kills
+(() => {
+  const s = $("kills"), W = 760, L = 250, R = 50, rowH = 30, top = 10, mx = D.n_valid;
+  D.kills.forEach((k, i) => {
+    const y = top + i * rowH, w = (W - L - R) * k[1] / mx;
+    el(s, "text", { x: L - 10, y: y + 17, "text-anchor": "end" }, k[0]);
+    el(s, "rect", { x: L, y: y + 4, width: Math.max(w, 1), height: 18, rx: 3, fill: css("--k2") });
+    el(s, "text", { x: L + w + 6, y: y + 17 }, k[1]);
+  });
+  el(s, "line", { x1: L, x2: L, y1: top, y2: top + rowH * D.kills.length, class: "ax" });
+  el(s, "text", { x: L, y: 322, class: "lbl" }, "of " + D.n_valid + " ideas with full results");
+})();
+
+// 4. histogram vs normal
+(() => {
+  const s = $("hist"), x0 = 50, x1 = 740, y0 = 250, y1 = 20, lo = -10, hi = 4, bw = 0.5;
+  const nb = Math.round((hi - lo) / bw), cnt = new Array(nb).fill(0);
+  D.t.forEach((t) => { const i = Math.min(nb - 1, Math.max(0, Math.floor((t - lo) / bw))); cnt[i]++; });
+  const m = Math.max(...cnt, 1), X = (v) => x0 + (x1 - x0) * (v - lo) / (hi - lo), Y = (c) => y0 - (y0 - y1) * c / m;
+  cnt.forEach((c, i) => el(s, "rect", { x: X(lo + i * bw) + 1, y: Y(c), width: X(lo + (i + 1) * bw) - X(lo + i * bw) - 2, height: y0 - Y(c), fill: css("--k1"), opacity: .8 }));
+  const phi = (z) => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI);
+  let d = ""; for (let v = lo; v <= hi; v += 0.1) d += (d ? "L" : "M") + X(v) + "," + Y(D.t.length * bw * phi(v));
+  el(s, "path", { d, fill: "none", stroke: css("--fg2"), "stroke-width": 1.5, "stroke-dasharray": "4 3" });
+  el(s, "line", { x1: X(3), x2: X(3), y1: y1, y2: y0, stroke: css("--down"), "stroke-width": 2 });
+  el(s, "text", { x: X(3) - 6, y: y1 + 10, "text-anchor": "end", fill: css("--down") }, "bar: t = 3");
+  el(s, "line", { x1: x0, x2: x1, y1: y0, y2: y0, class: "ax" });
+  for (let v = lo; v <= hi; v += 2) { el(s, "text", { x: X(v), y: y0 + 16, "text-anchor": "middle" }, v); }
+  el(s, "text", { x: x0, y: 290, class: "lbl" }, "t-stat of weekly profit after costs  ·  dashed line = what pure noise would give");
+  el(s, "text", { x: x0 + 4, y: y1 + 10, class: "lbl" }, "ideas per bucket");
+})();
+
+// 5. scatter
+(() => {
+  const s = $("scatter"), x0 = 60, x1 = 740, y0 = 320, y1 = 15, a = -5, b = 3;
+  const X = (v) => x0 + (x1 - x0) * (Math.min(b, Math.max(a, v)) - a) / (b - a), Y = (v) => y0 - (y0 - y1) * (Math.min(b, Math.max(a, v)) - a) / (b - a);
+  el(s, "line", { x1: x0, x2: x1, y1: y0, y2: y0, class: "ax" }); el(s, "line", { x1: x0, x2: x0, y1: y1, y2: y0, class: "ax" });
+  el(s, "line", { x1: X(a), x2: X(b), y1: Y(a), y2: Y(b), stroke: css("--muted"), "stroke-dasharray": "4 3" });
+  el(s, "text", { x: X(b) - 4, y: Y(b) + 14, "text-anchor": "end", class: "lbl" }, "no cost");
+  for (let v = a; v <= b; v += 2) { el(s, "text", { x: X(v), y: y0 + 16, "text-anchor": "middle" }, v); el(s, "text", { x: x0 - 8, y: Y(v) + 4, "text-anchor": "end" }, v); }
+  D.gross.forEach((g, i) => { if (D.aw[i] >= 10) el(s, "circle", { cx: X(g), cy: Y(D.net[i]), r: 3, fill: D.track[i] === "long" ? css("--k1") : css("--k4"), opacity: .55 }); });
+  el(s, "text", { x: x0, y: 352, class: "lbl" }, "gross bp/week (before costs)  →     ·     up = net bp/week     ·     blue = long track, yellow = short track     ·     off-scale dots pinned to the edge");
+})();
+
+// 6. lenses
+(() => {
+  const s = $("lensbars"), names = { small: "Small account", pjm: "PJM insider", macro: "Cross-asset macro", calendar: "Calendar and events", stat: "Statistical arb", micro: "Contrarian / micro" };
+  const rows = Object.keys(names).map((k) => { const ix = D.lens.map((l, i) => l === k ? i : -1).filter((i) => i >= 0); return [names[k], ix.length, ix.filter((i) => D.aw[i] < 10).length]; });
+  const mx = Math.max(...rows.map((r) => r[1])), L = 170, W = 760, R = 70;
+  rows.forEach((r, i) => {
+    const y = 8 + i * 36, w = (W - L - R) * r[1] / mx, wd = (W - L - R) * r[2] / mx;
+    el(s, "text", { x: L - 10, y: y + 18, "text-anchor": "end" }, r[0]);
+    el(s, "rect", { x: L, y: y + 5, width: w, height: 20, rx: 3, fill: css("--k1"), opacity: .75 });
+    el(s, "rect", { x: L, y: y + 5, width: wd, height: 20, rx: 3, fill: css("--fg2") });
+    el(s, "text", { x: L + w + 6, y: y + 19 }, r[1] + "  (" + r[2] + " dead)");
+  });
+})();
+
+// 7. table
+$("closebody").innerHTML = D.closest.map((r) => `<tr><td>${r.id.replace(/_/g, " ")}</td><td>${r.t.toFixed(2)}</td><td>${r.net.toFixed(2)}</td><td>${r.weeks}</td><td>${r.placebo.toFixed(3)}</td><td>${r.q.toFixed(3)}</td></tr>`).join("");
+</script>
