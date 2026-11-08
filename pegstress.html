@@ -1,0 +1,132 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Peg Stress: PJM Power and Gas Watchlist</title>
+<style>
+:root {
+  --bg: #fcfcfb; --surface: #ffffff; --fg: #141413; --fg2: #52514e; --muted: #7a7973;
+  --line: #e4e3de; --soft: #f4f3ef; --accent: #2a78d6; --up: #0b7a43; --down: #c03a2b; --warn: #a86b00;
+  --r-fuel: #b8541f; --r-gen: #2a78d6; --r-wire: #0e8a62; --r-equip: #6250d6; --r-load: #b0447a;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+    --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+    --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --surface: #1a1a19; --fg: #f0efec; --fg2: #c3c2b7; --muted: #9a998f;
+  --line: #2c2c2a; --soft: #222220; --accent: #3987e5; --up: #3fbf7f; --down: #ef7566; --warn: #e0a43a;
+  --r-fuel: #e98a54; --r-gen: #3987e5; --r-wire: #2fbf93; --r-equip: #9085e9; --r-load: #e07fae;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 28px; line-height: 1.2; margin: 6px 0 8px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+.lede { color: var(--fg2); max-width: 68ch; margin: 0 0 22px; }
+.sub { color: var(--fg2); font-size: 13px; margin: 0 0 12px; max-width: 74ch; }
+section { margin-bottom: 34px; }
+p { margin: 0 0 10px; }
+a { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi { border-top: 2px solid var(--line); padding-top: 8px; min-width: 0; }
+.kpi .v { font-family: var(--font-mono); font-size: 24px; font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--fg2); font-size: 13px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); } .warn { color: var(--warn); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted);
+  padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.num, td.num { text-align: right; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+tbody tr:last-child td { border-bottom: 0; }
+.pill { font: inherit; font-size: 13px; color: var(--fg2); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; cursor: pointer; }
+.pill[aria-pressed="true"] { color: var(--fg); border-color: var(--fg2); background: var(--soft); }
+button:focus-visible, input:focus-visible, th:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 10px; align-items: center; }
+.note { background: var(--soft); border-radius: 6px; padding: 10px 12px; font-size: 14px; max-width: 80ch; margin: 0 0 12px; }
+.foot { color: var(--muted); font-size: 12px; max-width: 82ch; border-top: 1px solid var(--line); padding-top: 14px; }
+.chart text { fill: var(--fg2); font-family: var(--font-body); font-size: 12px; }
+@media (max-width: 760px) { h1 { font-size: 24px; } }
+@media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi .v { font-size: 20px; } }
+
+.so { font-size: 14px; color: var(--fg2); margin: 8px 0 0; max-width: 84ch; } .so b { color: var(--fg); }
+table.t td, table.t th { padding: 8px 10px; font-size: 13px; vertical-align: top; }
+ul.plain { margin: 6px 0; padding-left: 18px; max-width: 90ch; font-size: 14px; color: var(--fg2); } ul.plain li { margin: 5px 0; } ul.plain b { color: var(--fg); }
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 10.5px; border-radius: 4px; padding: 1px 6px; background: var(--muted); color: #fff; white-space: nowrap; }
+.pill.call { background: #1baf7a; } .pill.watch { background: #eda100; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+
+<style>html{scroll-padding-top:52px}.sitenav::-webkit-scrollbar{display:none}</style><nav class="sitenav" style="position:sticky;top:0;z-index:1000;background:var(--bg,Canvas);font:13px/1.4 system-ui,sans-serif;display:flex;flex-wrap:nowrap;white-space:nowrap;overflow-x:auto;scrollbar-width:none;gap:6px 18px;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid #8884"><a href="brief.html" style="color:inherit;font-weight:600">Daily brief</a><a href="index.html" style="color:inherit">Build log</a><a href="scoreboard.html" style="color:inherit;font-weight:600">Scoreboard</a><a href="thesis.html" style="color:inherit;font-weight:600">Thesis</a><a href="critique.html" style="color:inherit;font-weight:600">Critique</a><a href="loopedge.html" style="color:inherit;font-weight:600">Loop Edge</a><a href="pegstress.html" style="color:inherit;font-weight:600">Peg Stress</a><a href="natgas.html" style="color:inherit;font-weight:600">Natgas</a><a href="residential.html" style="color:inherit">Residential</a><a href="spreads.html" style="color:inherit">Spreads</a><a href="equities.html" style="color:inherit">Equity map</a><a href="capacity.html" style="color:inherit">Capacity desk</a><a href="capstack.html" style="color:inherit">Capital stacks</a><a href="ai.html" style="color:inherit">AI power</a><a href="calendar.html" style="color:inherit">Energy calendar</a><a href="grid.html" style="color:inherit">Grid</a><a href="trade.html" style="color:inherit">Trade</a><a href="maths.html" style="color:inherit">Maths</a><a href="discourse.html" style="color:inherit">Discourse</a></nav>
+<div class="wrap">
+  <div class="eyebrow">Peg Stress · watchlist · started Nov 8, 2026</div>
+  <h1>Peg Stress: is PJM's price ceiling about to be tested?</h1>
+  <p class="lede">Some of the biggest market moves came when a price held in place by policy met a force it could not hold back. PJM's capacity price now sits at a policy ceiling while demand grows faster than supply can be built. This page lists what would show that strain is real, and what would show it is not, each with a date and a way to be wrong.</p>
+  <div class="note"><b>Read this first.</b> This is a watchlist and a record of dated forecasts, not advice and not a trade idea. Probabilities are our judgment and are scored later. Nothing here is a position. Any paper position would run through the forward ledger, and real money is the owner's decision. Facts are from the linked sources as of Nov 8, 2026; items marked "unverified" were not confirmed.</div>
+
+  <section id="analogy">
+    <h2>1. Why the analogy, and where it breaks</h2>
+    <div class="card"><div class="tablewrap"><table class="t"><thead><tr><th></th><th>What was held</th><th>What pushed on it</th><th>How it resolved</th></tr></thead><tbody>
+      <tr><td>UK pound, 1992</td><td>A fixed exchange-rate band</td><td>High German rates; a weak UK economy</td><td>Government could not afford the rates needed to defend it, and left the band</td></tr>
+      <tr><td>Aluminum, early 1990s</td><td>A walled-off Soviet supply</td><td>Regime collapse</td><td>Stockpiles reached world markets and prices fell</td></tr>
+      <tr><td>Texas Railroad Commission to OPEC, 1970s</td><td>Spare capacity that capped the world price</td><td>Output peaked and spare capacity ran out</td><td>Pricing power moved to producers abroad</td></tr>
+      <tr><td><b>PJM capacity, now</b></td><td>An auction price collar set by regulators</td><td>Load growth, retirements, slow new build</td><td><b>Unresolved.</b> Open: collar relaxed, bills fall on households, supply arrives, or demand slips</td></tr>
+    </tbody></table></div></div>
+    <p class="so"><b>Where it breaks.</b> Those moves paid off because the market believed the peg would hold. Here the market already doubts it: data-center load and capacity prices are widely covered, and the generator stocks have already moved a lot. So "nobody sees it" is the weakest part of the idea. What may still be mispriced is the timing and form of the release, not the existence of the strain.</p>
+  </section>
+
+  <section id="power">
+    <h2>2. The capacity peg: what is true now</h2>
+    <div class="card"><div class="tablewrap"><table class="t"><thead><tr><th>Indicator</th><th>Reading today</th><th>Reads as stress if</th><th>Reads as relief if</th><th>When</th></tr></thead><tbody>
+      <tr><td>Price versus ceiling</td><td>The 2027/28 auction cleared at the cap, $333.44 per MW-day, the second year in a row at the ceiling (<a href="https://www.power-eng.com/business/pjm-capacity-auction-hits-price-cap-again-as-region-falls-short-of-reliability-target/">Power Engineering</a>). One source says it would have cleared near $530 without the cap; sources differ on the uncapped figure.</td><td>The 2029/30 auction clears at the cap again</td><td>It clears more than 15% below the cap</td><td>Results expected December 2026, date unconfirmed. <span class="pill call">scored call</span></td></tr>
+      <tr><td>Supply versus requirement</td><td>PJM bought about 134,479 MW and came up 6,623 MW short of its reliability requirement, a reserve margin near 14.8% against a target near 20%. A later analysis put the shortfall at 6,517 MW (<a href="https://www.pjm.com/-/media/DotCom/about-pjm/newsroom/2025-releases/20251217-pjm-auction-procures-134479-mw-of-generation-resources.pdf">PJM release</a>).</td><td>The 2029/30 shortfall is 7 GW or more</td><td>The shortfall is under 3 GW</td><td>Same auction. <span class="pill call">scored call</span></td></tr>
+      <tr><td>Winter load versus supply</td><td>PJM's winter outlook, Nov 5, 2026: 182,426 MW of operational capacity against a forecast peak near 147,500 MW plus about 3,200 MW of exports. The forecast peak is up about 7,500 MW (5%) since 2022 (<a href="https://insidelines.pjm.com/pjm-winter-outlook-power-supplies-available-to-serve-expected-cold-weather-conditions/">PJM</a>).</td><td>A new all-time winter peak (the record is 143,700 MW)</td><td>Cold weather passes without it</td><td>Dec 1, 2026 to Feb 28, 2027. <span class="pill call">scored call</span></td></tr>
+      <tr><td>The load forecast itself</td><td>The forecast is under review for large-load adjustments (Maryland's consumer advocate cited this). Cuts here would ease the peg.</td><td>2032 summer peak stays at or above last year's forecast</td><td>It falls</td><td>Published early 2027. <span class="pill call">scored call</span></td></tr>
+      <tr><td>Political response</td><td>Affordability is the pressure point on the other side of the peg.</td><td>No chamber passes a revenue-cap bill</td><td>One does</td><td>By Mar 31, 2027. <span class="pill call">scored call</span></td></tr>
+      <tr><td>The collar after 2029/30</td><td>The calendar lists the 2029/30 auction as the last under the extended collar.</td><td>Extension or cap increase proposed</td><td>Collar lapses with no replacement</td><td>No date set. <span class="pill watch">watch</span></td></tr>
+    </tbody></table></div></div>
+  </section>
+
+  <section id="gas">
+    <h2>3. The gas side: where supply could give</h2>
+    <p class="sub">Gas sets the marginal price of power in most hours and is the largest fuel for new generation. Four things could break or relieve it.</p>
+    <div class="card"><div class="tablewrap"><table class="t"><thead><tr><th>Indicator</th><th>Reading today</th><th>Reads as stress if</th><th>Reads as relief if</th><th>When</th></tr></thead><tbody>
+      <tr><td>Cold-snap gas and power</td><td>Winter Storm Fern, Jan 2026: PJM held hourly loads above 130,000 MW for eight straight days (Jan 26 to Feb 2). A third-party read puts the highest hour near 139 GW, below the 2025 record. We found no gas-outage data for that event, so how gas units performed is unverified. The closest historical case is Winter Storm Elliott in December 2022.</td><td>Forced outages concentrated in gas units in a cold snap</td><td>Gas units perform through a record-level day</td><td>Winter 2026/27. <span class="pill watch">watch</span></td></tr>
+      <tr><td>Northeast pipeline takeaway</td><td>Williams broke ground on NESE (400,000 dekatherms a day) in April 2026 and targets fourth-quarter 2027 service (<a href="https://www.ogj.com/pipelines-transportation/pipelines/news/55370960/williams-breaks-ground-on-nese-project-aims-to-expand-natural-gas-to-northeast-in-2027">OGJ</a>). One headline about a court vacating a New Jersey permit (Sept 2026) is unverified. Constitution was shelved in 2020 and its refiling status is unconfirmed.</td><td>NESE slips past 2027</td><td>NESE is in service on time</td><td>Q4 2027. <span class="pill watch">watch</span></td></tr>
+      <tr><td>LNG pulling gas out</td><td>US LNG exports averaged 17.4 Bcf/d in the first half of 2026, up 23% from a year earlier. EIA expects 18.7 Bcf/d in the first half of 2027 as Golden Pass, Port Arthur and Rio Grande ramp (<a href="https://www.eia.gov/todayinenergy/detail.php?id=68064">EIA</a>).</td><td>Exports run above EIA's path while storage is low</td><td>Projects slip or exports fall</td><td>EIA monthly. <span class="pill watch">watch</span></td></tr>
+      <tr><td>Turbines to build new supply</td><td>GE Vernova's gas equipment backlog plus slot reservations reached 122 GW in Q3 2026, of which 58 GW are reservations rather than firm orders, and it expects at least 130 GW by year-end. It is building toward about 20 GW a year of output (<a href="https://www.turbomachinerymag.com/view/ge-vernova-q3-2026-gas-power-backlog-122-gw-trench-acquisition">Turbomachinery</a>). We found no source saying slots are sold out through any specific year, so we make no such claim.</td><td>Backlog keeps rising and reservations convert to orders</td><td>Reservations are cancelled or backlog falls</td><td>Q4 2026 results. <span class="pill call">scored call</span></td></tr>
+    </tbody></table></div></div>
+  </section>
+
+  <section id="calls">
+    <h2>4. The two new scored calls</h2>
+    <ul class="plain">
+      <li><b>New winter record, 20%.</b> PJM's hourly load exceeds 143,700 MW at least once between Dec 1, 2026 and Feb 28, 2027. Low because Fern's forecasts of up to 148 GW did not materialize and the peak came in near 139 GW. Wrong if no hour exceeds it.</li>
+      <li><b>Turbine backlog, 85%.</b> GE Vernova reports gas equipment backlog plus slot reservations of at least 130 GW with its Q4 2026 results, published by Feb 28, 2027. Management guided to this level. Wrong if the figure is lower or not reported on that basis.</li>
+    </ul>
+    <p class="so">The five forecasts from the Energy calendar (auction timing and reaction, load forecast, hyperscaler capex, state bills) carry over as indicators above. All seven are hash-chained and scored with a Brier score. They are forecasts, not positions.</p>
+  </section>
+
+  <section id="not">
+    <h2>5. What this does not do</h2>
+    <ul class="plain">
+      <li><b>It cannot be backtested.</b> A policy-peg release is a one-time event, so the overnight search has nothing to test. The only honest test is dated calls scored as they resolve.</li>
+      <li><b>It gives no position sizes or entries.</b> Whether any indicator should become a paper position is a separate decision.</li>
+      <li><b>It may be priced in.</b> If the generator stocks already discount a break, being right about the strain pays nothing. That is the main reason to keep these as scored calls first.</li>
+    </ul>
+  </section>
+</div>
